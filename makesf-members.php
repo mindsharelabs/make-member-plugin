@@ -21,6 +21,7 @@
      }
      //Define all the constants
      $this->define( 'MAKESF_ABSPATH', dirname( MAKESF_PLUGIN_FILE ) . '/' );
+     $this->define( 'MAKESF_URL', plugin_dir_url( __FILE__ ));
      $this->define( 'MAKESF_PLUGIN_VERSION', '1.0.0');
      $this->define( 'PLUGIN_DIR', plugin_dir_url( __FILE__ ));
 
@@ -46,6 +47,7 @@
     //General
     include_once MAKESF_ABSPATH . 'inc/options.php';
     include_once MAKESF_ABSPATH . 'inc/profile.class.php';
+    include_once MAKESF_ABSPATH . 'inc/blocks.php';
   }
 
 
