@@ -1,19 +1,28 @@
 {
-  "name": "Blankout",
-  "version": "3.9.1",
-  "description": "A robust, responsive, Bootstrap 3-enabled theme framework for WordPress developed by Mindshare Labs, Inc.\r ========",
+  "name": "MindshareLabsBlank",
+  "version": "4.0.1",
+  "description": "A robust, responsive, Bootstrap 4-enabled theme framework for WordPress developed by Mindshare Labs, Inc.\r ========",
   "main": "index.php",
   "repository": {
     "type": "git",
-    "url": "ssh://git@github.com:mindsharelabs/blankout.git"
+    "url": "ssh://git@git.mindsharelabs.com:devops/mindblank.git"
   },
   "devDependencies": {
-    "grunt": "^1.0.4",
-    "grunt-contrib-sass": "1.0.0",
-    "grunt-contrib-watch": "1.1.0",
-    "grunt-newer": "",
-    "matchdep": "2.0.0"
+    "del": "^7.0.0",
+    "gulp": "^4.0.2",
+    "gulp-sass": "^5.1.0",
+    "gulp-sourcemaps": "^3.0.0",
+    "node-sass": "^7.0.1"
   },
   "author": "Mindshare Labs, Inc.",
-  "license": "GPL-3.0"
+  "license": "GPL-3.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "sass": "^1.55.0"
+  },
+  "type": "module"
 }

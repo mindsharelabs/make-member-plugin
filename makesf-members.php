@@ -28,9 +28,6 @@
      $this->includes();
 
 
-     add_action( 'admin_enqueue_scripts', array($this , 'enqueue_admin_script' ));
-
-
  	}
   public static function get_instance() {
     if ( null === self::$instance ) {
@@ -48,13 +45,10 @@
     include_once MAKESF_ABSPATH . 'inc/options.php';
     include_once MAKESF_ABSPATH . 'inc/profile.class.php';
     include_once MAKESF_ABSPATH . 'inc/blocks.php';
+    include_once MAKESF_ABSPATH . 'inc/scripts.php';
+    include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
   }
 
-
-  function enqueue_admin_script() {
-    wp_register_style( 'makesf_wp_admin_css', PLUGIN_DIR . 'style.css', true, MAKESF_PLUGIN_VERSION );
-    wp_enqueue_style( 'makesf_wp_admin_css' );
-  }
 
 
 

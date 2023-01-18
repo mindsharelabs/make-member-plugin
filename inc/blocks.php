@@ -29,7 +29,7 @@ add_action('acf/init', function () {
 			'name'              => 'make-member-sign-in',
 			'title'             => __('Make Member Sign In'),
 			'description'       => __('A block that allows a user to sign in.'),
-			'render_template'   => MAKESF_ABSPATH . '/inc/block-templates/make-member-sign-in.php',
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-member-sign-in.php',
 			'category'          => 'make-blocks',
 			// 'icon'              => file_get_contents(MAKESF_URL . 'inc/img/logo-sm.svg'),
 			'keywords'          => array( 'make', 'sign', 'member', 'mind', 'Mindshare'),
@@ -48,7 +48,7 @@ add_action('acf/init', function () {
 
 				wp_register_script('make-sign-in-scripts', MAKESF_URL . 'inc/js/cca-events-slider.js', array('jquery'), MAKESF_PLUGIN_VERSION, true);
 				wp_enqueue_script('make-sign-in-scripts');
-				wp_localize_script( 'make-sign-in-scripts', 'make-member', array(
+				wp_localize_script( 'make-sign-in-scripts', 'makeMember', array(
 					'ajax_url' => admin_url( 'admin-ajax.php' ),
 					'postID' => get_the_id(),
 					'data' => array()

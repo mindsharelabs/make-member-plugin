@@ -3,3 +3,60 @@
     width: 100%;
   }
 }
+
+#makerProfileReturn {
+  .profile-container {   
+    display: flex;
+    .profile-card {
+      max-width: 400px;
+      margin: 0 auto;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #efefef;
+      background: white;
+      overflow: visible;
+      text-align: center;
+      border-radius: 10px;
+      padding: 15px;
+      -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.2);
+      box-shadow: 0 0 10px 0 rgba(1,1,1,.2);
+      img.profile-image {
+        margin-top: -75px;
+        width: 150px;
+        height: 150px;
+        border-radius: 75px;
+        border: 2px solid #eeeee;
+      }
+      .profile-info {
+        h3 { //name
+          margin: 10px 0 0 0;
+          font-size: 24px;
+        }
+        span.membership {
+          display: block;
+          font-style: italic;
+          font-size: 14px;
+          color: #4f4f4f;
+        }
+      }
+      .badge-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 15px;
+        .badge-item {
+          max-width: 30px;
+          img.badge-image {
+
+          }
+
+        }
+      }
+      &.selected {
+        border: 3px solid #be202e;
+        
+      }
+    }
+  } 
+  
+}
