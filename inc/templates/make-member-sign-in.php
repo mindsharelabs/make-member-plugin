@@ -33,6 +33,7 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
 
       echo '<div id="reader" style="width:100%"></div>';
       echo '<div id="result"></div>';
+      echo '<div id="signFooter" class="sign-in-footer text-center"><button class="btn btn-info btn-lg sign-in-email">Sign in by email</button></div>';
 
   echo '</div>';
 

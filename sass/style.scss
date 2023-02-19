@@ -20,7 +20,11 @@ $dark:          rgba(1, 1, 1, 1);
 #MAKEMemberSignIn {
   #result {
     position: relative;
-    min-height: 50vh;
+    min-height: 10vh;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     .loading {
       position: absolute;
       font-size: 3em;
@@ -35,10 +39,16 @@ $dark:          rgba(1, 1, 1, 1);
     .no-user {
       
     }
+    .email-form {
+      width: 500px;
+      form {
+
+      }
+    }
   }
-  #reader__dashboard {
-    display: none;
-  }
+  // #reader__dashboard {
+  //   display: none;
+  // }
   .profile-container {   
     display: flex;
     .profile-card {
@@ -110,5 +120,11 @@ $dark:          rgba(1, 1, 1, 1);
     .badge-header {
       width: 100%;
     }
-  
+  .sign-in-footer {
+    button {
+      &.removed {
+        opacity: 0;
+      }
+    }
+  }
 }

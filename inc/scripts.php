@@ -28,10 +28,26 @@
 	add_action('wp_ajax_nopriv_makeGetMember', 'make_get_member_scan');
 	add_action('wp_ajax_makeGetMember', 'make_get_member_scan');
 	function make_get_member_scan() {
-	
-
 		if($_REQUEST['action'] == 'makeGetMember') :
-			$user = get_user_by('id', $_REQUEST['userID']);
+			mapi_write_log($_REQUEST);
+
+			$userEmail = ($_REQUEST['userEmail'] === 'false' ? false : $_REQUEST['userEmail']);
+			$userID = ($_REQUEST['userID'] === 'false' ? false : $_REQUEST['userID']);
+
+			mapi_write_log($userEmail);
+			mapi_write_log($userID);
+
+			if($userEmail) :
+				$user = get_user_by('email', $userEmail);
+				mapi_write_log('email');
+			elseif($userID) :
+				$user = get_user_by('id', $userID);
+				mapi_write_log('userid');
+			endif;
+
+			mapi_write_log($user);
+
+
 			$html = '';
 			$return = array();
 			// User Loop
@@ -115,3 +131,28 @@
 		
 
 	}
+
+
+
+
+add_action('wp_ajax_nopriv_makeGetEmailForm', 'make_get_email_form');
+add_action('wp_ajax_makeGetEmailForm', 'make_get_email_form');
+
+function make_get_email_form() {
+
+	if($_REQUEST['action'] == 'makeGetEmailForm') :
+		$return = array();
+		$html = '<div class="email-form text-center">';
+			$html .= '<form id="emailSubmit">';
+			  $html .= '<div class="mb-3 input-group input-group-lg text-center">';
+			    $html .= '<span class="input-group-text">Email</span>';
+			    $html .= '<input type="email" name="userEmail" class="form-control">';
+			  $html .= '</div>';
+			  $html .= '<button type="submit" class="btn btn-primary btn-lg emailSubmit">Submit</button>';
+			$html .= '</form>';
+		$html .= '</div>';
+		$return['html'] = $html;
+		wp_send_json_success( $return );
+	endif;
+
+}

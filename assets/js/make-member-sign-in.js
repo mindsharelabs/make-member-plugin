@@ -14,7 +14,7 @@
         var html5QrCodeScanner = new Html5QrcodeScanner("reader", {
           fps: 1,
           qrbox: 400,
-          // aspectRatio: 1.7777778
+          aspectRatio: 1.7777778
         });
 
         // in
@@ -32,12 +32,23 @@
             metaContainer.html('<div class="alert alert-success">Scan Success!</div>');
 
 
+            
+            submitUser(qrCodeMessage);
+          
+
+
+        }
+
+
+
+        function submitUser(userID = false, userEmail = false) {
             $.ajax({
                 url : makeMember.ajax_url,
                 type : 'post',
                 data : {
                     action : 'makeGetMember',
-                    userID : qrCodeMessage
+                    userID : userID,
+                    userEmail : userEmail
                 },
                 success: function(response) {
                     html5QrCodeScanner.clear();
@@ -47,7 +58,6 @@
 
                     } else if(response.data.status == 'nomembership') {
                         metaContainer.html(response.data.html);
-                        console.log(response);
                         setTimeout(function() { 
                             metaContainer.html('');
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
@@ -70,15 +80,7 @@
                     console.log(response);
                 },
             });
-
-          
-
-
         }
-
-
-
-
 
 
 
@@ -123,6 +125,7 @@
                         setTimeout(function() { 
                             metaContainer.html('');
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
+                            $('button.sign-in-email').removeClass('removed');
                         }, 2500);
 
                         
@@ -143,11 +146,50 @@
 
 
 
+        $(document).on('click', 'button.sign-in-email', function(e) {
+
+            $.ajax({
+                url : makeMember.ajax_url,
+                type : 'post',
+                data : {
+                    action : 'makeGetEmailForm',
+                },
+                beforeSend: function() {
+                    metaContainer.html('<div class="loading"><div><i class="fas fa-spinner fa-spin"></i></div></div>');
+                    $('button.sign-in-email').addClass('removed');
+                    html5QrCodeScanner.clear();
+                },
+                success: function(response) {
+                    metaContainer.html(response.data.html);
+                    console.log(response);
 
 
 
+                    //return to normal sign in after 30sec
+                    setTimeout(function() { 
+                        metaContainer.html('');
+                        html5QrCodeScanner.render(onScanSuccess, onScanError);
+                        $('button.sign-in-email').removeClass('removed');
+                    }, 30000);
+
+                    
+                },
+                error: function (response) {
+                    console.log('An error occurred.');
+                    console.log(response);
+                },
+            });
+        })
 
 
+
+        $(document).on('submit', 'form#emailSubmit', function(e) {
+            e.preventDefault();
+
+            var userEmail = $('#emailSubmit').find('input[name="userEmail"]').val();
+            submitUser(false, userEmail);
+
+        })
 
 
 
