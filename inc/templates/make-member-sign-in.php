@@ -31,7 +31,7 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
   echo '<div id="MAKEMemberSignIn">';
     
 
-      echo '<div id="reader" style="width:100%result"></div>';
+      echo '<div id="reader" style="width:100%"></div>';
       echo '<div id="result"></div>';
 
   echo '</div>';
