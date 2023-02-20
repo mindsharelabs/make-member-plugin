@@ -227,12 +227,14 @@ class makeProfile {
           endif;
 
           $terms = get_the_terms( $product_id, 'product_cat' );
-          foreach ($terms as $term) {
-            if($this->workshopCategory == $term->slug) :
-              $bought = true;
-              break;
-            endif;
-          }
+          if($terms) :
+            foreach ($terms as $term) :
+              if($this->workshopCategory == $term->slug) :
+                $bought = true;
+                break;
+              endif;
+            endforeach;
+          endif;
       }
     }
     // return "true" if one the specifics products have been bought before by customer

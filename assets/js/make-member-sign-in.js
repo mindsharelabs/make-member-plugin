@@ -72,6 +72,13 @@
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
                         }, 2500);
 
+                    } else if(response.data.status == 'nosafety') {
+                        metaContainer.html(response.data.html);
+                        
+                        setTimeout(function() { 
+                            metaContainer.html('');
+                            html5QrCodeScanner.render(onScanSuccess, onScanError);
+                        }, 6500);
                     }
 
                 },
@@ -84,7 +91,7 @@
 
 
 
-        $(document).on('click', '.badge-item:not(.not-allowed)', function() {
+        $(document).on('click', '.badge-item:not(.not-allowed), .activity-item', function() {
             $(this).toggleClass('selected');
 
             var selections = $('.selected').length;

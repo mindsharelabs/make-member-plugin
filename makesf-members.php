@@ -69,7 +69,7 @@ function make_install() {
  
   $charset_collate = $wpdb->get_charset_collate();
 
-  $sql = "CREATE TABLE SIGNIN_TABLENAME (
+  $sql = "CREATE TABLE make_signin (
     id INT NOT NULL AUTO_INCREMENT,
     time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
     badges TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,

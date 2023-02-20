@@ -10,9 +10,10 @@
 			global $wpdb;
 				
 			$badges = serialize($_REQUEST['badges']);
+			$activity = serialize($_REQUEST['activity']);
 			
 			$wpdb->insert( 
-				SIGNIN_TABLENAME, 
+				make_signin, 
 				array( 
 					'time' => current_time( 'mysql' ), 
 					'badges' => $badges, 
@@ -34,18 +35,14 @@
 			$userEmail = ($_REQUEST['userEmail'] === 'false' ? false : $_REQUEST['userEmail']);
 			$userID = ($_REQUEST['userID'] === 'false' ? false : $_REQUEST['userID']);
 
-			mapi_write_log($userEmail);
-			mapi_write_log($userID);
 
 			if($userEmail) :
 				$user = get_user_by('email', $userEmail);
-				mapi_write_log('email');
+	
 			elseif($userID) :
 				$user = get_user_by('id', $userID);
-				mapi_write_log('userid');
-			endif;
 
-			mapi_write_log($user);
+			endif;
 
 
 			$html = '';
@@ -84,15 +81,18 @@
 
 				$html .= '</div>';
 
-				if(!empty($memberships)) :
-
+				$has_waiver = get_user_meta( $user->ID, 'waiver_complete', true );
+				if(!$has_waiver) :
+					$html .= '<div class="alert alert-danger text-center"><h1>No Safety Waiver!</h1><h2>Please log into your online profile and sign our safety waiver.</h2></div>';	
+					$return['status'] = 'nosafety';
+				elseif(!empty($memberships)) :
 					$all_badges = new WP_Query(array(
 						'post_type' => 'certs',
 						'posts_per_page' => -1,
 					));
 					if($all_badges->have_posts()) :
 						$html .= '<div class="badge-list d-flex">';
-						$html .='<div class="badge-header text-center"><h4 class="mt-5">Which of your badges are you using today?</h3></div>';
+						$html .=	'<div class="badge-header text-center"><h4 class="mt-5">Which of your badges are you using today?</h3></div>';
 									
 							while($all_badges->have_posts()) :
 								$all_badges->the_post();
@@ -105,15 +105,33 @@
 									$html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
 								$html .= '</div>';
 
-
-
 							endwhile;
+
+
+							// Add additional activities that are not badges
+							$html .= '<div class="badge-item w-50 text-center" data-badge="volunteer">';
+								$html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
 							$html .= '</div>';
-						$html .='<div class="badge-footer text-center"><button disabled class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
+
+							$html .= '<div class="badge-item w-50 text-center" data-badge="workshop">';
+								$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+							$html .= '</div>';
+
+
+
+						$html .= '</div>';
 					endif;
+				
+
+
+					$html .='<div class="badge-footer text-center mt-3"><button disabled class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
 				else :
-					$html .= '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';	
+					$return['status'] = 'nomembership';
+					$html .= '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';		
 				endif;
+
+				
+
 
 
 
@@ -156,3 +174,6 @@ function make_get_email_form() {
 	endif;
 
 }
+
+
+
