@@ -15,7 +15,7 @@
 
    public function __construct() {
      $this->userId = get_current_user_id();
-
+     global $wpdb;
      if ( !defined( 'MAKESF_PLUGIN_FILE' ) ) {
      	define( 'MAKESF_PLUGIN_FILE', __FILE__ );
      }
@@ -24,6 +24,7 @@
      $this->define( 'MAKESF_URL', plugin_dir_url( __FILE__ ));
      $this->define( 'MAKESF_PLUGIN_VERSION', '1.0.0');
      $this->define( 'PLUGIN_DIR', plugin_dir_url( __FILE__ ));
+     $this->define( 'SIGNIN_TABLENAME', $wpdb->prefix . 'makesignin');
 
      $this->includes();
 
@@ -58,3 +59,27 @@
 
 
 new makeMember();
+
+
+
+
+
+function make_install() {
+  global $wpdb;
+ 
+  $charset_collate = $wpdb->get_charset_collate();
+
+  $sql = "CREATE TABLE SIGNIN_TABLENAME (
+    id INT NOT NULL AUTO_INCREMENT,
+    time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+    badges TEXT CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+    user INT NOT NULL,
+    PRIMARY KEY  (id)
+  ) $charset_collate;";
+
+  require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+  dbDelta( $sql );
+
+}
+
+register_activation_hook( __FILE__, 'make_install' );

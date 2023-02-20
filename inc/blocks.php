@@ -44,7 +44,7 @@ add_action('acf/init', function () {
 				wp_register_style( 'make-block-styles', MAKESF_URL . 'css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
-				wp_register_script('html5-qrcode', 'https://unpkg.com/html5-qrcode', array('jquery'), MAKESF_PLUGIN_VERSION, false);
+				wp_register_script('html5-qrcode', MAKESF_URL . 'assets/js/html5-qrcode.min.js', array('jquery'), MAKESF_PLUGIN_VERSION, false);
 				wp_enqueue_script('html5-qrcode');
 
 				wp_register_script('make-sign-in-scripts', MAKESF_URL . 'assets/js/make-member-sign-in.js', array('jquery', 'html5-qrcode'), MAKESF_PLUGIN_VERSION, true);
@@ -55,13 +55,6 @@ add_action('acf/init', function () {
 					'data' => array()
 				));
 
-
-				
-				// wp_localize_script( 'html5-qrcode', 'makeMember', array(
-				// 	'ajax_url' => admin_url( 'admin-ajax.php' ),
-				// 	'postID' => get_the_id(),
-				// 	'data' => array()
-				// ));
 
 			})
 		);
