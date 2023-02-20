@@ -1,18 +1,4 @@
 <?php
-	add_action('wp_enqueue_scripts', function() {
-		wp_enqueue_script('make-member-sign-in', MAKESF_URL . '/assets/js/make-member-sign-in.js', array('jquery'), null, true);
-		wp_localize_script('make-member-sign-in', 'makeMemberSignIn', [
-			'ajax_url' => admin_url('admin-ajax.php'),
-			'ajax_nonce' => wp_create_nonce('autocompleteSearchNonce')
-		]);
-
-
-		wp_register_style('make-plugin-css', MAKESF_URL . '/css/style.css', array(), THEME_VERSION);
-    	wp_enqueue_style('make-plugin-css');
-
-	});
-
-
 
 
 	add_action('wp_ajax_nopriv_makeMemberSignIn', 'make_autocomplete_search');

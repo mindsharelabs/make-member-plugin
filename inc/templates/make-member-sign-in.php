@@ -29,20 +29,13 @@ if( !empty($block['align']) ) {
 echo '<div class="' . $className . '" id= "' . $id .'">';
 
   echo '<div id="MAKEMemberSignIn">';
-    echo '<form id="makeMemberSearch">';
+    
 
-      echo '<div class="form-group">';
-        echo '<label for="makerEmail">Email Address</lable>';
-        echo '<input class="form-control" type="text" id="makerEmail" name="makerEmail" placeholder="Email Address" required>';
-      echo '</div>';
+      echo '<div id="qr-reader" style="width:500px"></div>';
+      // echo '<div id="qr-reader-results"></div>';
 
-
-      echo '<button type="submit" class="mt-4 btn btn-primary">Search</button>';
-    echo '</form>';
   echo '</div>';
 
-
-  echo '<div id="makerProfileReturn"></div>';
 
 
 echo '</div>';
