@@ -7,14 +7,30 @@
         
         var metaContainer = $('#result');
 
+        console.log($(window).width());
+        var windowWidth = $(window).width();
+        var windowHeight = $(window).height();
+        var aspectRatio = windowWidth / windowHeight;
+        var reverseAspectRatio = windowHeight / windowWidth;
+
+        
+        if(reverseAspectRatio > 1.5) {
+            reverseAspectRatio = reverseAspectRatio + (reverseAspectRatio *12 / 100);
+        }
+
+        if(windowWidth < 600) {
+            var aspectRatio = mobileAspectRatio;
+        }
+
 
 
 
         // Setting up Qr Scanner properties
         var html5QrCodeScanner = new Html5QrcodeScanner("reader", {
-          fps: 1,
-          qrbox: 400,
-          aspectRatio: 1.7777778
+          fps: 2,
+          qrbox: 300,
+          facingMode: 'user',
+          aspectRatio: aspectRatio
         });
 
         // in

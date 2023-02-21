@@ -18,9 +18,11 @@ $dark:          rgba(1, 1, 1, 1);
  
 
 #MAKEMemberSignIn {
+  width: 60%;
+  margin: 0 auto;
   #result {
     position: relative;
-    min-height: 10vh;
+    // height: 60%;
     display: flex;
     justify-content: center;
     flex-direction: column;

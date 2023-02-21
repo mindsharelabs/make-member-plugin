@@ -13,7 +13,7 @@
 			$activity = serialize($_REQUEST['activity']);
 			
 			$wpdb->insert( 
-				make_signin, 
+				'make_signin', 
 				array( 
 					'time' => current_time( 'mysql' ), 
 					'badges' => $badges, 
@@ -30,21 +30,21 @@
 	add_action('wp_ajax_makeGetMember', 'make_get_member_scan');
 	function make_get_member_scan() {
 		if($_REQUEST['action'] == 'makeGetMember') :
-			mapi_write_log($_REQUEST);
+			// mapi_write_log($_REQUEST);
 
 			$userEmail = ($_REQUEST['userEmail'] === 'false' ? false : $_REQUEST['userEmail']);
 			$userID = ($_REQUEST['userID'] === 'false' ? false : $_REQUEST['userID']);
 
-
+			// mapi_write_log($userID);
 			if($userEmail) :
 				$user = get_user_by('email', $userEmail);
-	
+				// mapi_write_log('user by email');
 			elseif($userID) :
 				$user = get_user_by('id', $userID);
-
+				// mapi_write_log('user by id');
 			endif;
 
-
+			// mapi_write_log($user);
 			$html = '';
 			$return = array();
 			// User Loop
@@ -60,7 +60,7 @@
 						$image = get_field('photo', 'user_' . $user->ID);
 						
 						if($image) :
-							$html .= wp_get_attachment_image($image['ID'], 'medium', false, array('class' => 'profile-image') );
+							$html .= wp_get_attachment_image($image['ID'], 'small-square', false, array('class' => 'profile-image') );
 						endif;
 						$html .= '<div class="profile-info">';
 							$html .= '<h3>' . $user->data->display_name . '</h3>';
@@ -109,11 +109,11 @@
 
 
 							// Add additional activities that are not badges
-							$html .= '<div class="badge-item w-50 text-center" data-badge="volunteer">';
+							$html .= '<div class="badge-item w-100 text-center" data-badge="volunteer">';
 								$html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
 							$html .= '</div>';
 
-							$html .= '<div class="badge-item w-50 text-center" data-badge="workshop">';
+							$html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
 								$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
 							$html .= '</div>';
 
