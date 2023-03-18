@@ -7,7 +7,6 @@
         
         var metaContainer = $('#result');
 
-        console.log($(window).width());
         var windowWidth = $(window).width();
         var windowHeight = $(window).height();
         var aspectRatio = windowWidth / windowHeight;
@@ -74,9 +73,11 @@
 
                     } else if(response.data.status == 'nomembership') {
                         metaContainer.html(response.data.html);
+
                         setTimeout(function() { 
                             metaContainer.html('');
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
+                            $('button.sign-in-email').removeClass('removed');
                         }, 5500);
 
 
@@ -86,6 +87,7 @@
                         setTimeout(function() { 
                             metaContainer.html('');
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
+                            $('button.sign-in-email').removeClass('removed');
                         }, 2500);
 
                     } else if(response.data.status == 'nosafety') {
@@ -94,6 +96,7 @@
                         setTimeout(function() { 
                             metaContainer.html('');
                             html5QrCodeScanner.render(onScanSuccess, onScanError);
+                            $('button.sign-in-email').removeClass('removed');
                         }, 6500);
                     }
 
@@ -184,9 +187,7 @@
                 },
                 success: function(response) {
                     metaContainer.html(response.data.html);
-                    console.log(response);
-
-
+                   
 
                     //return to normal sign in after 30sec
                     setTimeout(function() { 
