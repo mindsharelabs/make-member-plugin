@@ -43,8 +43,22 @@ class makeProfile {
     add_action('woocommerce_before_my_account', array($this, 'display_member_resources'));
     add_action('woocommerce_account_dashboard', array($this, 'profile_progress'));
 
+    add_action('wp_footer', array($this, 'enqueueAssets'));
 
   }
+
+
+  public function enqueueAssets(){
+
+    wp_register_style('member-styles', MAKESF_URL . 'css/style.css', array(), MAKESF_PLUGIN_VERSION);
+    wp_enqueue_style('member-styles');
+
+    //  wp_register_style('mindblankcssmin', get_template_directory_uri() . '/css/style.css', array(), THEME_VERSION);
+    // wp_enqueue_style('mindblankcssmin');
+
+
+  }
+
   public static function get_instance() {
     if ( null === self::$instance ) {
       self::$instance = new self;
@@ -58,31 +72,75 @@ class makeProfile {
   }
 
 
-
-
   public function display_member_resources() {
     $resources = $this->memberResources;
+
+
+    $user = get_user_by('ID', $this->userID);
+
+
+
+
     if($resources) :
-      echo '<div class="row">';
-      echo '<div class="col-12 text-center mt-2 mb-2">';
-        echo '<h3 class="pt-3">Member Resources</h3>';
-      echo '</div>';
-      foreach ($resources as $key => $item) :
-        echo '<div class="col-12 col-md-4 mb-3">';
-          echo '<div class="card h-100">';
-            echo '<div class="card-body d-flex flex-column">';
-              echo '<h5 class="card-title">' . $item['resource_name'] . '</h5>';
-              echo '<p class="card-text">' . $item['resource_desc'] . '</p>';
-              echo '<a href="' . $item['resource_link'] . '" class="btn btn-primary btn-block mt-auto">Check it out.</a>';
-            echo '</div>';
+      echo '<div id="memberResources" class="row member-resources">';
+
+        echo '<div class="col-12 col-md-4 mt-5">';
+          echo '<p class="small text-center mx-5 mb-1">Your member badge. Screenshot this and print it out to sign in at the Makerspace.</p>';
+          echo '<div class="member-badge p-4">';
+            echo '<div class="badge-header"><img src="' . MAKESF_URL . 'assets/img/logo.svg" /></div>';
+            echo '<div class="badge-body">';
+              echo '<h2 class="mb-0 mt-4">' . $user->data->display_name . '</h2>';
+              echo '<h3>' . $this->get_membership_plan_name() . '</h3>';
+              echo '<div class="qr-code m-5">';
+                echo '<img class="w-100" src="https://api.qrserver.com/v1/create-qr-code/?data=' . $this->userID . '&size=400x400" alt="" title="' . $user->data->display_name . '" />';
+
+              echo '</div>';  
+            echo '</div>';  
           echo '</div>';
         echo '</div>';
-      endforeach;
+
+
+        echo '<div class="col-12 col-md-8">';
+          echo '<div class="row">';
+
+            echo '<div class="col-12 text-center mt-2 mb-2">';
+              echo '<h3 class="pt-3">Member Resources</h3>';
+            echo '</div>';
+            foreach ($resources as $key => $item) :
+              echo '<div class="col-12 col-md-4 mb-3">';
+                echo '<div class="card h-100">';
+                  echo '<div class="card-body d-flex flex-column">';
+                    echo '<h5 class="card-title">' . $item['resource_name'] . '</h5>';
+                    echo '<p class="card-text">' . $item['resource_desc'] . '</p>';
+                    echo '<a href="' . $item['resource_link'] . '" class="btn btn-primary btn-block mt-auto">Check it out.</a>';
+                  echo '</div>';
+                echo '</div>';
+              echo '</div>';
+            endforeach;
+          echo '</div>';
+        echo '</div>';
+
+
       echo '</div>';
     endif;
   }
 
+  private function get_membership_plan_name() {
+    if(function_exists('wc_memberships_get_user_active_memberships')) :
+      $active_memberships = wc_memberships_get_user_active_memberships($this->userID);
+      $memberships = '';
+      if($active_memberships) :
+                foreach($active_memberships as $membership) :
+          $memberships .= $membership->plan->name;
+          if(next($active_memberships)) :
+            $memberships .= ' & ';
+          endif;
+        endforeach;
+      endif;
+      return $memberships;  
+    endif;
 
+  }
 
 
   function profile_progress() {
@@ -240,8 +298,6 @@ class makeProfile {
     // return "true" if one the specifics products have been bought before by customer
     return $bought;
   }
-
-
 
 
 

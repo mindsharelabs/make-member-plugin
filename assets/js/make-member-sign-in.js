@@ -189,12 +189,12 @@
                     metaContainer.html(response.data.html);
                    
 
-                    //return to normal sign in after 30sec
+                    //return to normal sign in after 45sec
                     setTimeout(function() { 
                         metaContainer.html('');
                         html5QrCodeScanner.render(onScanSuccess, onScanError);
                         $('button.sign-in-email').removeClass('removed');
-                    }, 30000);
+                    }, 45000);
 
                     
                 },
