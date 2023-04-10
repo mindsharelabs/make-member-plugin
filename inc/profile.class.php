@@ -78,6 +78,7 @@ class makeProfile {
     $user = get_user_by('ID', $this->userID);
 
     $user_badge_image = get_transient( $this->userID . '_badge_image_url' );
+    // $user_badge_image = false;
     if(!$user_badge_image) :
       $css = "
         .member-badge{border:1px dashed #000}
@@ -91,7 +92,7 @@ class makeProfile {
 
 
       $html = '<div class="member-badge p-4">';
-        $html .= '<div class="badge-header">Make Santa Fe</div>';
+        $html .= '<div class="badge-header text-white h3">Make Santa Fe</div>';
         $html .= '<div class="badge-body">';
           $html .= '<h2 class="mb-0 mt-4">' . $user->data->display_name . '</h2>';
           $html .= '<h3 class="mt-1">' . $this->get_membership_plan_name() . '</h3>';
@@ -102,6 +103,7 @@ class makeProfile {
         $html .= '</div>';  
       $html .= '</div>';
 
+      // return $html;
 
         $google_fonts = "Courier Prime ";
 
