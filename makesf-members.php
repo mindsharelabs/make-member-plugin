@@ -22,9 +22,13 @@
      //Define all the constants
      $this->define( 'MAKESF_ABSPATH', dirname( MAKESF_PLUGIN_FILE ) . '/' );
      $this->define( 'MAKESF_URL', plugin_dir_url( __FILE__ ));
-     $this->define( 'MAKESF_PLUGIN_VERSION', '1.2.0');
+     $this->define( 'MAKESF_PLUGIN_VERSION', '1.3.0');
      $this->define( 'PLUGIN_DIR', plugin_dir_url( __FILE__ ));
      $this->define( 'SIGNIN_TABLENAME', $wpdb->prefix . 'makesignin');
+
+     //https://htmlcsstoimage.com/dashboard/api-keys
+     $this->define( 'HTMLTOIMAGE_USERID', 'dedbd1c8-7760-4824-b2db-cdd819483026');
+     $this->define( 'HTMLTOIMAGE_APIKEY', 'dd7e81cb-31d6-4438-b09d-6394a65117ae');
 
      $this->includes();
 

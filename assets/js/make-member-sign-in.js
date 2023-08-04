@@ -10,16 +10,8 @@
         var windowWidth = $(window).width();
         var windowHeight = $(window).height();
         var aspectRatio = windowWidth / windowHeight;
-        var reverseAspectRatio = windowHeight / windowWidth;
 
         
-        if(reverseAspectRatio > 1.5) {
-            reverseAspectRatio = reverseAspectRatio + (reverseAspectRatio *12 / 100);
-        }
-
-        if(windowWidth < 600) {
-            var aspectRatio = mobileAspectRatio;
-        }
 
 
 
@@ -189,12 +181,12 @@
                     metaContainer.html(response.data.html);
                    
 
-                    //return to normal sign in after 30sec
+                    //return to normal sign in after 45sec
                     setTimeout(function() { 
                         metaContainer.html('');
                         html5QrCodeScanner.render(onScanSuccess, onScanError);
                         $('button.sign-in-email').removeClass('removed');
-                    }, 30000);
+                    }, 45000);
 
                     
                 },

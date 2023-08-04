@@ -15,7 +15,34 @@ $dark:          rgba(1, 1, 1, 1);
 }
 
 
- 
+#memberResources {
+  .member-badge {
+    border: 1px dashed black;
+    .badge-header {
+      background: $primary;
+      text-align: center;
+      padding: 15px;
+      img {
+        width: 33%;
+        margin: 0 auto;
+        height: auto;
+      }
+    }
+    .badge-body {
+      text-align: center;
+      h2 {
+        font-size: 1.7em ;
+      }
+      h3 {
+        font-size: 1.2em;
+        font-style: italic;
+      }
+      .qr-code {
+        padding: 30px;
+      }
+    }
+  }
+}
 
 #MAKEMemberSignIn {
   width: 80%;
@@ -130,3 +157,5 @@ $dark:          rgba(1, 1, 1, 1);
     }
   }
 }
+
+

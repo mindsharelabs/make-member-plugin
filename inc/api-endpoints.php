@@ -91,12 +91,12 @@ function make_events($request) {
   $events = tribe_get_events( array(
    'posts_per_page' => -1,
    'start_date'     => 'now',
-   'tax_query'=> array(
-      array(
-      'taxonomy' => 'tribe_events_cat',
-      'field' => 'slug',
-      'terms' => 'badge-classes'
-      ))
+   // 'tax_query'=> array(
+   //    array(
+   //    'taxonomy' => 'tribe_events_cat',
+   //    'field' => 'slug',
+   //    'terms' => 'badge-classes'
+   //    ))
   ));
   if($events) :
     $all_events = array();
