@@ -29,12 +29,12 @@ function make_create_booking_for_event( $post_ID, $post) {
 
 
 
-			mapi_write_log($bookable_product);
-			mapi_write_log($has_booking);
-			mapi_write_log($resources);
+			// mapi_write_log($bookable_product);
+			// mapi_write_log($has_booking);
+			// mapi_write_log($resources);
 			if($resources && !$has_booking) : //if we have resources and DO NOT have a booking alreadt
-				mapi_write_log('WooCommerce Exists?');
-				mapi_write_log(class_exists( 'woocommerce' )); 
+				// mapi_write_log('WooCommerce Exists?');
+				// mapi_write_log(class_exists( 'woocommerce' )); 
 				if(class_exists( 'woocommerce' )) :
 					foreach($resources as $resource) :
 
