@@ -148,8 +148,6 @@ class makeProfile {
 
   public function display_member_resources() {
     $resources = $this->memberResources;
-
-
     if($resources) :
       echo '<div id="memberResources" class="row member-resources">';
 

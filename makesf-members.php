@@ -49,6 +49,7 @@
     //General
     include_once MAKESF_ABSPATH . 'inc/options.php';
     include_once MAKESF_ABSPATH . 'inc/profile.class.php';
+    include_once MAKESF_ABSPATH . 'inc/skilltree.class.php';
     include_once MAKESF_ABSPATH . 'inc/blocks.php';
     include_once MAKESF_ABSPATH . 'inc/scripts.php';
     include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
