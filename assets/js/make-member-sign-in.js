@@ -9,43 +9,46 @@
 
         var windowWidth = $(window).width();
         var windowHeight = $(window).height();
-        var aspectRatio = windowWidth / windowHeight;
-
-        
 
 
 
+        var memberContainer = $('#memberList');
 
-        // Setting up Qr Scanner properties
-        var html5QrCodeScanner = new Html5QrcodeScanner("reader", {
-          fps: 2,
-          qrbox: 300,
-          facingMode: 'user',
-          aspectRatio: aspectRatio
+
+        $( document ).ready(function() {
+            loadMembers();
+            
         });
 
-        // in
-        html5QrCodeScanner.render(onScanSuccess, onScanError);
 
-
-        // When scan is unsuccessful fucntion will produce error message
-        function onScanError(errorMessage) {
-          // Handle Scan Error
-        }
-
-        // When scan is successful fucntion will produce data
-        function onScanSuccess(qrCodeMessage) {
-
-            metaContainer.html('<div class="alert alert-success">Scan Success!</div>');
-
-            $('button.sign-in-email').addClass('removed');
+        function loadMembers(callback) {
             
-            submitUser(qrCodeMessage);
-          
+            $.ajax({
+                url : makeMember.ajax_url,
+                type : 'post',
+                data : {
+                    action : 'makeAllGetMembers'
+                },
+                success: function(response) {
+                  
+                    memberContainer.html(response.data.html);
+                    const memberList = new List('member-list', { 
+                        valueNames: [
+                            'email',
+                            'name',
+                        
+                        ],
+                        searchClass : 'member-search'
+                    });
+                  
 
-
+                },
+                error: function (response) {
+                    console.log('An error occurred.');
+                    console.log(response);
+                },
+            });
         }
-
 
 
         function submitUser(userID = false, userEmail = false) {
@@ -57,9 +60,15 @@
                     userID : userID,
                     userEmail : userEmail
                 },
+                beforeSend : function() {
+                    $('#member-list').addClass('d-none');
+                    $('#memberSearch').val('');
+                    metaContainer.html('<div class="loading"><div><i class="fas fa-spinner fa-spin"></i></div></div>');
+                   
+                },
                 success: function(response) {
-                    html5QrCodeScanner.clear();
-
+                  
+                   
                     if(response.data.status == 'userfound') {
                         metaContainer.html(response.data.html);
 
@@ -68,9 +77,9 @@
 
                         setTimeout(function() { 
                             metaContainer.html('');
-                            html5QrCodeScanner.render(onScanSuccess, onScanError);
-                            $('button.sign-in-email').removeClass('removed');
-                        }, 5500);
+                            $('#member-list').removeClass('d-none');
+        
+                        }, 10000);
 
 
                     } else if(response.data.status == 'nouser') {
@@ -78,18 +87,19 @@
                         
                         setTimeout(function() { 
                             metaContainer.html('');
-                            html5QrCodeScanner.render(onScanSuccess, onScanError);
-                            $('button.sign-in-email').removeClass('removed');
-                        }, 2500);
+                            $('#member-list').removeClass('d-none');
+
+                        }, 10000);
 
                     } else if(response.data.status == 'nosafety') {
                         metaContainer.html(response.data.html);
                         
+
                         setTimeout(function() { 
                             metaContainer.html('');
-                            html5QrCodeScanner.render(onScanSuccess, onScanError);
-                            $('button.sign-in-email').removeClass('removed');
-                        }, 6500);
+                            $('#member-list').removeClass('d-none');
+          
+                        }, 10000);
                     }
 
                 },
@@ -99,6 +109,14 @@
                 },
             });
         }
+
+
+
+        $(document).on('click', '.profile-card', function() {
+            var userID = $(this).data('user');
+            
+            submitUser(userID);
+        });
 
 
 
@@ -142,9 +160,9 @@
                         
                         setTimeout(function() { 
                             metaContainer.html('');
-                            html5QrCodeScanner.render(onScanSuccess, onScanError);
-                            $('button.sign-in-email').removeClass('removed');
-                        }, 2500);
+                            loadMembers();
+                            $('#member-list').removeClass('d-none');
+                        }, 4000);
 
                         
                     },
@@ -164,48 +182,11 @@
 
 
 
-        $(document).on('click', 'button.sign-in-email', function(e) {
-
-            $.ajax({
-                url : makeMember.ajax_url,
-                type : 'post',
-                data : {
-                    action : 'makeGetEmailForm',
-                },
-                beforeSend: function() {
-                    metaContainer.html('<div class="loading"><div><i class="fas fa-spinner fa-spin"></i></div></div>');
-                    $('button.sign-in-email').addClass('removed');
-                    html5QrCodeScanner.clear();
-                },
-                success: function(response) {
-                    metaContainer.html(response.data.html);
-                   
-
-                    //return to normal sign in after 45sec
-                    setTimeout(function() { 
-                        metaContainer.html('');
-                        html5QrCodeScanner.render(onScanSuccess, onScanError);
-                        $('button.sign-in-email').removeClass('removed');
-                    }, 45000);
-
-                    
-                },
-                error: function (response) {
-                    console.log('An error occurred.');
-                    console.log(response);
-                },
-            });
-        })
 
 
 
-        $(document).on('submit', 'form#emailSubmit', function(e) {
-            e.preventDefault();
 
-            var userEmail = $('#emailSubmit').find('input[name="userEmail"]').val();
-            submitUser(false, userEmail);
-
-        })
+      
 
 
 

@@ -45,7 +45,7 @@ $dark:          rgba(1, 1, 1, 1);
 }
 
 #MAKEMemberSignIn {
-  width: 80%;
+  width: 100%;
   margin: 0 auto;
   #result {
     position: relative;
@@ -80,6 +80,7 @@ $dark:          rgba(1, 1, 1, 1);
   // }
   .profile-container {   
     display: flex;
+    cursor: pointer;
     .profile-card {
       max-width: 400px;
       margin: 0 auto;
@@ -124,7 +125,6 @@ $dark:          rgba(1, 1, 1, 1);
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      margin-top: 15px;
       .badge-item {
         width: 100px;
         margin: 6px;
