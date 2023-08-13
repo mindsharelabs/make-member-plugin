@@ -47,6 +47,7 @@ $dark:          rgba(1, 1, 1, 1);
 #MAKEMemberSignIn {
   width: 100%;
   margin: 0 auto;
+  overflow-x: hidden;
   #result {
     position: relative;
     // height: 60%;
@@ -81,7 +82,9 @@ $dark:          rgba(1, 1, 1, 1);
   .profile-container {   
     display: flex;
     cursor: pointer;
+    margin-top: 40px;
     .profile-card {
+      width: 100%;
       max-width: 400px;
       margin: 0 auto;
       border-radius: 10px;

@@ -256,7 +256,7 @@ function make_output_profile_container($user) {
 				if($image) :
 					$html .= wp_get_attachment_image($image['ID'], 'small-square', false, array('class' => 'profile-image') );
 				else :
-					$html .= wp_get_attachment_image($image['ID'], 'small-square', false, array('class' => 'profile-image') );
+					$html .= '<img class="profile-image" src="' . MAKESF_URL . '/assets/img/nophoto.jpg"/>';
 				endif;
 				$html .= '<div class="profile-info">';
 					$html .= '<h3 class="name">' . $user->data->display_name . '</h3>';
