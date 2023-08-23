@@ -154,12 +154,12 @@ class makeProfile {
       echo '<div id="memberResources" class="row member-resources">';
 
 
-        if($this->has_membership()) :
-          echo '<div class="col-12 col-md-4 mt-5">';
-            echo '<p class="small text-center mx-5 mb-1">Your member badge. Click to download.</p>';
-            echo $this->generate_member_badge();
-          echo '</div>';
-        endif;
+        // if($this->has_membership()) :
+        //   echo '<div class="col-12 col-md-4 mt-5">';
+        //     echo '<p class="small text-center mx-5 mb-1">Your member badge. Click to download.</p>';
+        //     echo $this->generate_member_badge();
+        //   echo '</div>';
+        // endif;
 
 
         echo '<div class="col-12 col-md">';
