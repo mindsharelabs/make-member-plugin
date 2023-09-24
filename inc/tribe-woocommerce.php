@@ -1,10 +1,59 @@
 <?php
+//Unsets some unuseful columns in thbe attendee table
+add_filter('tribe_tickets_attendee_table_columns', function($columns) {
+	unset($columns['security']);
+	return $columns;
+});
 
+
+
+add_filter('tribe_tickets_attendee_table_columns', function($columns) {
+	$columns['is-member'] = 'Membership';
+	$columns['make-badges'] = 'Badges';
+
+	return $columns;
+});
+
+
+add_filter('tribe_events_tickets_attendees_table_column', function($value, $item, $column) {
+	if($column == 'is-member') :
+		if(function_exists('wc_memberships_get_user_active_memberships')) :
+			$active_memberships = wc_memberships_get_user_active_memberships($item['user_id']);
+			$value = '';
+			if($active_memberships) :
+				foreach($active_memberships as $membership) :
+					$value .= $membership->plan->name;
+					if(next($active_memberships)) :
+						$value .= ' & ';
+					endif;
+				endforeach;
+			endif;
+		endif;
+		return $value;
+	endif;
+
+	if($column == 'make-badges') :
+		if(function_exists('wc_memberships_get_user_active_memberships')) :
+			$user_badges = get_field('certifications', 'user_' . $item['user_id']);
+			$value = '';
+			if($user_badges) :
+				foreach($user_badges as $badge) :
+					$value .= '<small class="small">' . get_the_title($badge) . '</small>';
+					if(next($user_badges)) :
+						$value .= ', ';
+					endif;
+				endforeach;
+			endif;
+		endif;
+		return $value;
+	endif;
+
+	return $value;
+
+}, 1, 3);
 
 add_action( 'save_post_tribe_events', 'make_create_booking_for_event', 999, 2);
 // add_action( 'publish_tribe_events', 'make_create_booking_for_event', 999, 2);
-
-
 function make_create_booking_for_event( $post_ID, $post) {
 	mapi_write_log('===========New ROUND============');
 
