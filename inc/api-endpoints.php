@@ -30,6 +30,7 @@ function make_content_routes_v2() {
 
 }
 
+
 function make_members($request) {
   $members = make_get_active_members();
   if($members) :
@@ -38,12 +39,15 @@ function make_members($request) {
       
       $member_obj = get_user_by('ID', $member->user_id);
       if(function_exists('wcs_get_users_subscriptions')) :
-        $user_subscriptions = array();
+        $user_subscriptions = '';
+        $total = '';
         $current_subscriptions = wcs_get_users_subscriptions($member_obj->ID);
         foreach ($current_subscriptions as $subscription):
           if ($subscription->has_status(array('active'))) :
             foreach($subscription->get_items() as $item) :
-              $user_subscriptions[] = $item->get_name();
+              $user_subscriptions .= $item->get_name() . ' | ';
+              $total = $item->get_total();
+            
             endforeach;
             
           endif;
@@ -73,6 +77,7 @@ function make_members($request) {
         // 'email' => $member_obj->user_email,
         'memberships' => (isset($memberships) ? $memberships : false),
         'subscriptions' => (isset($user_subscriptions) ? $user_subscriptions : false),
+        'total' => (isset($total) ? $total : false),
         'image' => get_avatar_url($member_obj->ID, ['size' => '400'])
       );
     endforeach;
