@@ -70,6 +70,7 @@ function make_members($request) {
       $all_members[] = array(
         'ID' => $member_obj->ID,
         'name' => $member_obj->data->display_name,
+        // 'email' => $member_obj->user_email,
         'memberships' => (isset($memberships) ? $memberships : false),
         'subscriptions' => (isset($user_subscriptions) ? $user_subscriptions : false),
         'image' => get_avatar_url($member_obj->ID, ['size' => '400'])
