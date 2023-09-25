@@ -281,8 +281,22 @@ class makeProfile {
       return;
     }
     $form = new GFAPI();
-    $search_criteria = array();
-    $search_criteria['field_filters'][] = array( 'key' => 'created_by', 'value' => $this->userID );
+    $user_info = get_userdata($this->userID);
+    $user_email = $user_info->user_email;
+    $search_criteria = array(
+      'status'        => 'active',
+      'field_filters' => array(
+          'mode' => 'any',
+          array(
+              'key'   => 'created_by',
+              'value' => $this->userID 
+          ),
+          array(
+              'key'   => '34',
+              'value' => $user_email
+          )
+      )
+    );
     $entries = $form->get_entries( 27, $search_criteria);
 
     if(count($entries) > 0) {

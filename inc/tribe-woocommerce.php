@@ -10,6 +10,7 @@ add_filter('tribe_tickets_attendee_table_columns', function($columns) {
 add_filter('tribe_tickets_attendee_table_columns', function($columns) {
 	$columns['is-member'] = 'Membership';
 	$columns['make-badges'] = 'Badges';
+	$columns['safety-waiver'] = 'Safety Waiver';
 
 	return $columns;
 });
@@ -43,14 +44,28 @@ add_filter('tribe_events_tickets_attendees_table_column', function($value, $item
 						$value .= ', ';
 					endif;
 				endforeach;
+			else :
+				$value = '<small class="badge badge-danger">No Badges</small>';	
 			endif;
 		endif;
+		return $value;
+	endif;
+
+	if($column == 'safety-waiver') :
+		$has_waiver = get_user_meta( $item['user_id'], 'waiver_complete', true );
+		if($has_waiver != true) :
+			$value = '<span class="badge badge-success text-red">Incomplete</span>';
+		else :
+			$value = '<span class="badge badge-success">Signed</span>';
+		endif;	
 		return $value;
 	endif;
 
 	return $value;
 
 }, 1, 3);
+
+
 
 add_action( 'save_post_tribe_events', 'make_create_booking_for_event', 999, 2);
 // add_action( 'publish_tribe_events', 'make_create_booking_for_event', 999, 2);
@@ -81,7 +96,7 @@ function make_create_booking_for_event( $post_ID, $post) {
 			// mapi_write_log($bookable_product);
 			// mapi_write_log($has_booking);
 			// mapi_write_log($resources);
-			if($resources && !$has_booking) : //if we have resources and DO NOT have a booking alreadt
+			if($resources && !$has_booking) : //if we have resources and DO NOT have a booking already
 				// mapi_write_log('WooCommerce Exists?');
 				// mapi_write_log(class_exists( 'woocommerce' )); 
 				if(class_exists( 'woocommerce' )) :
