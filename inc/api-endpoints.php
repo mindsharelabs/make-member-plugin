@@ -91,24 +91,32 @@ function make_members($request) {
 
 function make_events($request) {
   $events = tribe_get_events( array(
-   'posts_per_page' => -1,
-   'start_date'     => 'now',
-   // 'tax_query'=> array(
-   //    array(
-   //    'taxonomy' => 'tribe_events_cat',
-   //    'field' => 'slug',
-   //    'terms' => 'badge-classes'
-   //    ))
+    'posts_per_page' => -1,
+    'start_date'     => 'now',
+    'meta_key' => '_tribe_ticket_capacity',
+    'meta_value' => 0, // change to how "event date" is stored
+    'meta_compare' => '>',
+    // 'tax_query'=> array(
+    //    array(
+    //    'taxonomy' => 'tribe_events_cat',
+    //    'field' => 'slug',
+    //    'terms' => 'badge-classes'
+    //    ))
   ));
+  $all_events = false;
   if($events) :
     $all_events = array();
     foreach($events as $event) :
+
+      $event_capacity = get_post_meta($event->ID, '_tribe_ticket_capacity', true);
+
       $attendees = tribe_tickets_get_attendees( $event->ID );
       $all_events[] = array(
         'ID' => $event->ID,
         'start_date' => tribe_get_start_date($event->ID,false, 'M j, y'),
         'title' => get_the_title($event->ID),
         'attendee_count' => count($attendees),
+        'event_capacity' => (int)$event_capacity,
         'image' => get_the_post_thumbnail_url($event->ID, 'full' ),
         'excerpt' => get_the_excerpt($event->ID),
         'permalink' => get_permalink($event->ID)

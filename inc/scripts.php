@@ -126,6 +126,8 @@ function make_get_member_scan() {
 			// mapi_write_log('user by id');
 		endif;
 
+
+
 		// mapi_write_log($user);
 		$html = '';
 		$return = array();
@@ -134,11 +136,7 @@ function make_get_member_scan() {
 			$return['status'] = 'userfound';
 			$memberships = wc_memberships_get_user_active_memberships($user->ID);
 	
-
-
 			// $html .= make_output_profile_container($user);
-
-
 
 			$has_waiver = get_user_meta( $user->ID, 'waiver_complete', true );
 			if(!$has_waiver) :
@@ -151,7 +149,10 @@ function make_get_member_scan() {
 				));
 				if($all_badges->have_posts()) :
 					$html .= '<div class="badge-list d-flex">';
-					$html .=	'<div class="badge-header text-center"><h4>Which of your badges are you using today?</h3></div>';
+					$html .=	'<div class="badge-header text-center">';
+						$html .= '<h3 class="name">Hi, ' . $user->data->display_name . '</h3>';
+						$html .= '<h4>Which of your badges are you using today?</h3>';
+					$html .= '</div>';
 								
 						while($all_badges->have_posts()) :
 							$all_badges->the_post();
@@ -181,20 +182,13 @@ function make_get_member_scan() {
 					$html .= '</div>';
 				endif;
 			
-
-
 				$html .='<div class="badge-footer text-center mt-3"><button disabled class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
 			else :
 				$return['status'] = 'nomembership';
 				$html .= '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';		
 			endif;
 
-			
-
-
-
-
-
+	
 		else :
 			$return['status'] = 'nouser';
 			$html .= '<div class="no-user alert alert-danger text-center">';
