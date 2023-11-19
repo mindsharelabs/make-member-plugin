@@ -139,7 +139,36 @@ function make_get_member_scan() {
 			// $html .= make_output_profile_container($user);
 
 			$has_waiver = get_user_meta( $user->ID, 'waiver_complete', true );
+
+			//search entries for a waiver in the case we have not updated the user yet. 
 			if(!$has_waiver) :
+				if(class_exists('GFAPI')) :
+					$form = new GFAPI();
+				    $search_criteria = array(
+				      'status'        => 'active',
+				      'field_filters' => array(
+				          'mode' => 'any',
+				          array(
+				              'key'   => 'created_by',
+				              'value' => $userID 
+				          ),
+				          array(
+				              'key'   => '34',
+				              'value' => $userEmail
+				          )
+				      )
+				    );
+				    $entries = $form->get_entries( 27, $search_criteria);
+				    if(count($entries) > 0) {
+				      $has_waiver = true;
+				    } else {
+				      $has_waiver = false;
+				    }
+				endif;
+			endif;
+			
+			//if we still don't have a waiver, send a notice. 
+			if(!$has_waiver) :	
 				$html .= '<div class="alert alert-danger text-center"><h1>No Safety Waiver!</h1><h2>Please log into your online profile and sign our safety waiver.</h2></div>';	
 				$return['status'] = 'nosafety';
 			elseif(!empty($memberships)) :

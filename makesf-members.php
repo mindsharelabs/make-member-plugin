@@ -53,6 +53,7 @@
     include_once MAKESF_ABSPATH . 'inc/scripts.php';
     include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
+    include_once MAKESF_ABSPATH . 'inc/meetupAPI.class.php';
   }
 
 

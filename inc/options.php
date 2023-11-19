@@ -153,15 +153,9 @@ function makesf_support_settings() {
 
 
 
-
-
-
-
 //if the current user fills out the Waiver and Release of Liability, then we add this user meta
 add_action( 'gform_after_submission_27', function ( $entry, $form ) {
-  mapi_write_log($entry);
   $update = update_user_meta( $entry['created_by'], 'waiver_complete', true );
-  mapi_write_log($update);
 }, 10, 2 );
 
 
