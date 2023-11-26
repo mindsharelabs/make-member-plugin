@@ -199,8 +199,33 @@ function makesf_display_stats_page() {
     echo '<div>';
       echo '<canvas id="numberSignIns"></canvas>';
     echo '</div>';
-  echo '</div>';
 
+
+    echo '<div class="sign-ins-by-user">';
+      $users = get_users_that_sign_in();
+      foreach($users as $key => $value) :
+        $user = get_user_by('id', $key);
+        echo '<div class="user">';
+          echo '<div class="user-avatar">';
+            $thumb = get_field('photo', 'user_' . $user->ID);
+            if($thumb) :
+              echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
+            endif;
+          echo '</div>';
+          echo '<div class="user-meta">';
+            echo '<h3 class="name">' . $user->display_name . '</h3>';
+            echo '<div class="user-signins">';
+              echo $value;
+            echo '</div>';
+          echo '</div>';
+          
+        echo '</div>';
+      endforeach;
+
+    echo '</div>';
+
+  echo '</div>';
+  get_users_that_sign_in();
 }
 
 
@@ -276,4 +301,15 @@ function makesf_get_signin_data() {
 
   return $datasets;
 
+}
+
+function get_users_that_sign_in() {
+  global $wpdb;
+  $results = $wpdb->get_results("SELECT user, count(user) AS 'signins' FROM `make_signin` GROUP BY user ORDER BY 2 DESC;");
+  $users = array();
+  foreach($results as $result) {
+    $users[$result->user] = $result->signins;
+  }
+  
+  return $users;
 }

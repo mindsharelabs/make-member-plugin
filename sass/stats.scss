@@ -11,5 +11,39 @@ $dark:          rgba(1, 1, 1, 1);
 
 
 #makesfStats {
-    
-}
+    .sign-ins-by-user {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        .user {
+            margin: 20px;
+            display: flex;
+            flex-direction: row;
+            width: 300px;
+            border: 1px solid $light;
+            .user-avatar {
+                width: 100px;
+                height: 100px;
+                margin: 10px;
+                border-radius: 50%;
+                background-color: $light;
+                img {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                }
+            }
+            h3 {
+                
+
+            }
+            .user-signins {
+                font-size: 4em;
+                text-align: center;
+                display: inline-block;
+                margin: 10px 0;
+            }
+        }
+    }
+} 
+
