@@ -14,15 +14,36 @@ $dark:          rgba(1, 1, 1, 1);
   }
 }
 
+.woocommerce {
+  .progress-container {
+    .progress-item {
+      a {
+        text-decoration: none;
+      }
+      &.bg-success {
+        &:hover {
+          background-color: darken($success, 15%) !important;
+        }
+      }
+      &.bg-danger {
+        &:hover {
+          background-color: darken($danger, 15%) !important;
+        }
+
+      }
+    }
+  }
+}
 
 #memberResources {
+  
   .member-badge {
     border: 1px dashed black;
     .badge-header {
       background: $primary;
       text-align: center;
       padding: 15px;
-      img {
+      img { 
         width: 33%;
         margin: 0 auto;
         height: auto;

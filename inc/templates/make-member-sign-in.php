@@ -30,9 +30,11 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
 
   echo '<div id="MAKEMemberSignIn">';
     
-      echo '<h1 class="text-center mb-5 d-block pb-5 display-1 strong"><strong>Member Sign In</strong></h1>';
+      echo '<h1 class="text-center ' . (get_field('enable_member_notice', 'option') ? ' ' : 'mb-5 pb-5') . ' d-block  display-1 strong"><strong>Member Sign In</strong></h1>';
+      
       echo '<div id="memberList" class="mt-3" style="width:100%"></div>';
       echo '<div id="result"></div>';
+      
       
   echo '</div>';
 

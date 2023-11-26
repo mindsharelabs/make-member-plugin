@@ -74,78 +74,6 @@ class makeProfile {
 
 
 
-  private function generate_member_badge() {
-    $user = get_user_by('ID', $this->userID);
-
-    $user_badge_image = get_transient( $this->userID . '_badge_image_url' );
-    // $user_badge_image = false;
-    if(!$user_badge_image) :
-      $css = "
-        .member-badge{border:1px dashed #000}
-        .member-badge .badge-header{background:#be202e;text-align:center;padding:15px}
-        .member-badge .badge-header img{width:33%;margin:0 auto;height:auto}
-        .member-badge .badge-body{text-align:center}
-        .member-badge .badge-body h2{font-size:1.7em}
-        .member-badge .badge-body h3{font-size:1.2em;font-style:italic}
-        .member-badge .badge-body .qr-code{padding:30px}
-      ";
-
-
-      $html = '<div class="member-badge p-4">';
-        $html .= '<div class="badge-header text-white h3">Make Santa Fe</div>';
-        $html .= '<div class="badge-body">';
-          $html .= '<h2 class="mb-0 mt-4">' . $user->data->display_name . '</h2>';
-          $html .= '<h3 class="mt-1">' . $this->get_membership_plan_name() . '</h3>';
-          $html .= '<div class="qr-code px-5">';
-            $html .= '<img class="w-100" src="https://api.qrserver.com/v1/create-qr-code/?data=' . $this->userID . '&size=400x400" alt="" title="' . $user->data->display_name . '" />';
-
-          $html .= '</div>';  
-        $html .= '</div>';  
-      $html .= '</div>';
-
-      // return $html;
-
-        $google_fonts = "Courier Prime ";
-
-        $data = array('html'=>$html,
-                      'css'=>$css,
-                      'google_fonts'=>$google_fonts,
-
-                    );
-
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, "https://hcti.io/v1/image");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
-
-        curl_setopt($ch, CURLOPT_POST, 1);
-        
-
-        // Retrieve your user_id and api_key from https://htmlcsstoimage.com/dashboard
-        curl_setopt($ch, CURLOPT_USERPWD, HTMLTOIMAGE_USERID . ":" . HTMLTOIMAGE_APIKEY);
-
-        $headers = array();
-        $headers[] = "Content-Type: application/x-www-form-urlencoded";
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-        $result = curl_exec($ch);
-        if (curl_errno($ch)) {
-          echo 'Error:' . curl_error($ch);
-        }
-        curl_close ($ch);
-        $res = json_decode($result,true);
-
-        set_transient( $this->userID . '_badge_image_url', $res['url'], MONTH_IN_SECONDS );
-        return '<a href="' . $res['url'] . '" download="MakeSignInBadge" target="_blank"><img src="' . $res['url'] . '"/></a>';
-      else :
-        return '<a href="' . $user_badge_image . '" download="download" target="_blank"><img src="' . $user_badge_image . '"/></a>';
-      endif;
-    
-  }
-
-
   public function display_member_resources() {
     $resources = $this->memberResources;
 
@@ -154,20 +82,20 @@ class makeProfile {
       echo '<div id="memberResources" class="row member-resources">';
 
 
-        // if($this->has_membership()) :
-        //   echo '<div class="col-12 col-md-4 mt-5">';
-        //     echo '<p class="small text-center mx-5 mb-1">Your member badge. Click to download.</p>';
-        //     echo $this->generate_member_badge();
-        //   echo '</div>';
-        // endif;
-
-
         echo '<div class="col-12 col-md">';
           echo '<div class="row">';
 
-            echo '<div class="col-12 text-center mt-2 mb-2">';
-              echo '<h3 class="pt-3">Member Resources</h3>';
-            echo '</div>';
+            
+            if(get_field('enable_member_notice', 'option')) :
+              echo '<div class="alert alert-success" role="alert" id="alert">';
+                echo '<h3 class=" text-center mb-1">' . get_field('member_modal_title', 'option') . '</h3>';
+                echo '<p>' . get_field('member_modal_content', 'option') . '</p>';
+              echo '</div>';
+            else :
+              echo '<div class="col-12 text-center mt-2 mb-2">';
+                echo '<h3 class="pt-3">Member Resources</h3>';
+              echo '</div>';  
+            endif;
             foreach ($resources as $key => $item) :
               echo '<div class="col-12 col-md-4 mb-3">';
                 echo '<div class="card h-100">';
@@ -213,6 +141,9 @@ class makeProfile {
       echo '<div class="progress-container d-flex flex-column flex-md-row mt-3 mb-3">';
       foreach ($maker_steps as $key => $step) :
         echo $this->get_progress_bar($step['label'], $max, 0, $step['complete'], $step['link']);
+        if(next($maker_steps)) :
+          echo '<span class="d-block p-2"><i class="fas fa-arrow-right"></i></span>';
+        endif;
       endforeach;
       echo '</div>';
     endif;
@@ -252,11 +183,6 @@ class makeProfile {
         'complete' => $this->has_badge(),
         'link' => $this->badgesURL
       ),
-      // 'forum' => array(
-      //   'label' => 'Post to the forum',
-      //   'complete' => $this->has_forum(),
-      //   'link' => $this->forumURL
-      // ),
       'workshop' => array(
         'label' => 'Take a workshop',
         'complete' => $this->has_workshop(),
