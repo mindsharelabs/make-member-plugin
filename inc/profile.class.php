@@ -298,7 +298,6 @@ class makeProfile {
       )
     );
     $entries = $form->get_entries( 27, $search_criteria);
-
     if(count($entries) > 0) {
       update_user_meta( $this->userID, 'waiver_complete', true );
       return true;
