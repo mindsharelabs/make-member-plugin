@@ -22,7 +22,7 @@
      //Define all the constants
      $this->define( 'MAKESF_ABSPATH', dirname( MAKESF_PLUGIN_FILE ) . '/' );
      $this->define( 'MAKESF_URL', plugin_dir_url( __FILE__ ));
-     $this->define( 'MAKESF_PLUGIN_VERSION', '1.3.0');
+     $this->define( 'MAKESF_PLUGIN_VERSION', '1.4.0');
      $this->define( 'PLUGIN_DIR', plugin_dir_url( __FILE__ ));
      $this->define( 'SIGNIN_TABLENAME', $wpdb->prefix . 'makesignin');
 

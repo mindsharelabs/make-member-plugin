@@ -11,38 +11,63 @@ $dark:          rgba(1, 1, 1, 1);
 
 
 #makesfStats {
+    h1 {
+        text-align: center;
+    }
     .sign-ins-by-user {
+       
         display: flex;
         justify-content: space-between;
         flex-wrap: wrap;
         .user {
             margin: 20px;
-            display: flex;
-            flex-direction: row;
+            
             width: 300px;
             border: 1px solid $light;
-            .user-avatar {
-                width: 100px;
-                height: 100px;
-                margin: 10px;
-                border-radius: 50%;
-                background-color: $light;
-                img {
-                    width: 100%;
-                    height: 100%;
+            .top-card {
+                display: flex;
+                flex-direction: row;
+                .user-avatar {
+                    width: 100px;
+                    
+                    margin: 10px;
                     border-radius: 50%;
+                    background-color: $light;
+                    img {
+                        width: 100%;
+                        height: 100%;
+                        border-radius: 50%;
+                    }
+                }
+                .user-meta {
+                    width: 100%;
+                    h3.name {
+                   
+                    }
+                    .user-signins {
+                        font-size: 4em;
+                        text-align: center;
+                        display: inline-block;
+                        margin: 10px 0;
+                    }
                 }
             }
-            h3 {
-                
-
+            
+            .areas {
+                margin: 10px;
+                width: 100%;
+                ul {
+                    list-style: inherit;
+                    padding: 0;
+                    margin-left: 20px;
+                    li {
+                        margin: 0;
+                        margin-bottom: 0 !important;
+                        padding: 0;
+                    }
+                }
             }
-            .user-signins {
-                font-size: 4em;
-                text-align: center;
-                display: inline-block;
-                margin: 10px 0;
-            }
+            
         }
     }
 } 

@@ -200,23 +200,44 @@ function makesf_display_stats_page() {
       echo '<canvas id="numberSignIns"></canvas>';
     echo '</div>';
 
-
+    echo '<h1>Sign-in Leaderboard</h1>';
     echo '<div class="sign-ins-by-user">';
+      
       $users = get_users_that_sign_in();
       foreach($users as $key => $value) :
         $user = get_user_by('id', $key);
+        
+        
         echo '<div class="user">';
-          echo '<div class="user-avatar">';
-            $thumb = get_field('photo', 'user_' . $user->ID);
-            if($thumb) :
-              echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
-            endif;
-          echo '</div>';
-          echo '<div class="user-meta">';
-            echo '<h3 class="name">' . $user->display_name . '</h3>';
-            echo '<div class="user-signins">';
-              echo $value;
+          echo '<div class="top-card">';
+            echo '<div class="user-avatar">';
+              $thumb = get_field('photo', 'user_' . $user->ID);
+              if($thumb) :
+                echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
+              endif;
             echo '</div>';
+            echo '<div class="user-meta">';
+              echo '<h3 class="name">' . $user->display_name . '</h3>';
+              echo '<div class="user-signins">';
+                echo $value;
+              echo '</div>';
+            echo '</div>';
+          echo '</div>';
+
+          $sign_ins = get_user_singins($key);
+          echo '<div class="areas">';
+            echo '<ul class="area">';
+              foreach($sign_ins as $key => $value) :
+                
+                  echo '<li>' . $key . ': ' . count($value) . '</li>';
+                  // echo '<ul>';
+                  //   foreach($value as $date) :
+                  //     echo '<li>' . date('F j, Y', strtotime($date)) . '</li>';
+                  //   endforeach;
+                  // echo '</ul>';
+              
+              endforeach;
+            echo '</ul>';
           echo '</div>';
           
         echo '</div>';
@@ -312,4 +333,32 @@ function get_users_that_sign_in() {
   }
   
   return $users;
+}
+
+
+function get_user_singins($user_id) {
+  global $wpdb;
+  $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
+  $badge_signins = array();
+  foreach($results as $result) {
+    $badges = unserialize($result->badges);
+    foreach($badges as $badge) {
+      $badge_signins[get_badge_name_by_id($badge)][] = $result->time;
+    }
+  }
+  
+  array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+  return $badge_signins;
+}
+
+
+function get_badge_name_by_id($id) {
+  if($id == 'workshop') :
+    $title ='Attended Workshop';
+  elseif($id == 'volunteer') :
+    $title ='Volunteered';
+  else :
+    $title = get_the_title($id);
+  endif;
+  return  $title;
 }
