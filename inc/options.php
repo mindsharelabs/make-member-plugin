@@ -152,20 +152,132 @@ function makesf_support_settings() {
 }
 
 
-
-
-
-
-
 //if the current user fills out the Waiver and Release of Liability, then we add this user meta
 add_action( 'gform_after_submission_27', function ( $entry, $form ) {
-  mapi_write_log($entry);
   $update = update_user_meta( $entry['created_by'], 'waiver_complete', true );
-  mapi_write_log($update);
 }, 10, 2 );
 
 
 
 
 
+/**
+ * Register a custom menu page.
+ */
+add_action( 'admin_menu', function () {
+	$menu = add_menu_page(
+		__( 'Space Sign-in Stats', 'textdomain' ),
+		'Sign-in Stats',
+		'manage_options',
+		'makesf-stats',
+		'makesf_display_stats_page',
+		'dashicons-chart-pie',
+		76
+	);
 
+  add_action( 'admin_print_scripts-' . $menu, 'makesf_stats_enqueue_scripts' );
+
+
+});
+
+
+function makesf_stats_enqueue_scripts() {
+  wp_enqueue_style( 'makesf-stats', MAKESF_URL . 'assets/css/stats.css', array(), MAKESF_PLUGIN_VERSION, 'all' );
+  wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', array(), MAKESF_PLUGIN_VERSION, true );
+  wp_enqueue_script( 'makesf-stats', MAKESF_URL . 'assets/js/stats.js', array( 'chart-js', 'jquery' ), MAKESF_PLUGIN_VERSION, true );
+  wp_localize_script( 'makesf-stats', 'makeMember', array(
+    'ajax_url' => admin_url( 'admin-ajax.php' ),
+    'nonce' => wp_create_nonce( 'makesf_stats_nonce' ),
+    'stats' => array(
+      'labels' => makesf_get_signin_labels(),
+      'data' => makesf_get_signin_data(),
+    ),
+  ));
+}
+
+
+
+function makesf_display_stats_page() {
+  echo '<div id="makesfStats">';
+    echo '<h1>Sign-in Stats</h1>';
+    echo '<div>';
+      echo '<canvas id="numberSignIns"></canvas>';
+    echo '</div>';
+  echo '</div>';
+
+}
+
+
+
+function makesf_get_past_year_dates($date = 'now') {
+  for ($i = 0; $i < 12; $i++) {
+    $dates[] = array(
+      'month' => date("m", strtotime( $date . " -$i months")),
+      'year' => date("Y", strtotime( $date . " -$i months")),
+    );
+
+  }
+  return array_reverse($dates);
+}
+
+
+function makesf_get_signin_labels() {
+  $dates = makesf_get_past_year_dates();
+  foreach($dates as $date) {
+    $labels[] = date('F', mktime(0, 0, 0, $date['month'], 10));
+  }
+
+  $labels = array_values($labels);
+  return $labels;
+}
+
+
+function makesf_get_signin_data() {
+  global $wpdb;
+  $labels = makesf_get_signin_labels();
+  $number_signins = array();
+  $badge_signins = array();
+  $dates = makesf_get_past_year_dates();
+  foreach($dates as $key => $date) {
+    $month = $date['month'];
+    $year = $date['year'];
+    $results = $wpdb->get_results("SELECT * FROM `make_signin` WHERE MONTH(time) = $month AND YEAR(time) = $year");
+    
+    foreach($results as $result) {
+      $badges = unserialize($result->badges);
+      foreach($badges as $badge) {
+        $badge_signins[$badge][$labels[($key)]] = (isset($badge_signins[$badge][$labels[($key)]]) ? $badge_signins[$badge][$labels[($key)]] + 1 : 1);
+      }
+    }
+    $number_signins[$labels[$key]] = count($results);
+  }
+
+  //Badge_signins now has an array of badge signins for each month
+  $datasets = array();
+  foreach($badge_signins as $key => $value) {
+    
+    $label = (is_int($key) ? get_the_title($key) : $key);
+    if(!$label) :
+      $label = 'Badge Removed';
+    endif;
+    $datasets[] = array(
+      'type' => 'line',
+      'label' => html_entity_decode($label),
+      'data' => $value,
+      'borderWidth' => 1,
+    );
+    
+  }
+
+  //add total counts
+  $datasets[] = array(
+    'type' => 'bar',
+    'label' => 'Number of Sign-ins',
+    'data' => $number_signins,
+    'borderWidth' => 1,
+  );
+  // mapi_write_log($datasets);
+
+  return $datasets;
+
+}

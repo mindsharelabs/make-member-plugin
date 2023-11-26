@@ -130,12 +130,6 @@ function make_events($request) {
   return wp_send_json_success($all_events);
 }
 
-function make_event($request) {
-
-  return wp_send_json_success($return);
-}
-
-
 
 
 

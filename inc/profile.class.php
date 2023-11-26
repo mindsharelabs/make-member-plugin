@@ -50,7 +50,7 @@ class makeProfile {
 
   public function enqueueAssets(){
 
-    wp_register_style('member-styles', MAKESF_URL . 'css/style.css', array(), MAKESF_PLUGIN_VERSION);
+    wp_register_style('member-styles', MAKESF_URL . 'assets/css/style.css', array(), MAKESF_PLUGIN_VERSION);
     wp_enqueue_style('member-styles');
 
     //  wp_register_style('mindblankcssmin', get_template_directory_uri() . '/css/style.css', array(), THEME_VERSION);

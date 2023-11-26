@@ -14,13 +14,24 @@ gulp.task('plugin-styles', () => {
         outputStyle: 'compressed'//nested, expanded, compact, compressed
       }).on('error', sass.logError))
       .pipe(sourcemaps.write('.'))
-      .pipe(gulp.dest('./css/'))
+      .pipe(gulp.dest('./assets/css/'))
+});
+
+gulp.task('stats-styles', () => {
+  return gulp.src('sass/stats.scss')
+    .pipe(sourcemaps.init())
+    .pipe(sass({
+      outputStyle: 'compressed'//nested, expanded, compact, compressed
+    }).on('error', sass.logError))
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest('./assets/css/'))
 });
 //
 
 gulp.task('clean', () => {
     return deleteAsync([
-        'inc/css/theme-styles.css',
+        'assets/css/style.css', 
+        'assets/css/stats.css', 
     ]);
 });
 
@@ -30,4 +41,4 @@ gulp.task('watch', () => {
   });
 });
 
-gulp.task('default', gulp.series(['clean', 'plugin-styles', 'watch']));
+gulp.task('default', gulp.series(['clean', 'plugin-styles', 'stats-styles', 'watch']));

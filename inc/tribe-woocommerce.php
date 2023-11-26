@@ -70,8 +70,6 @@ add_filter('tribe_events_tickets_attendees_table_column', function($value, $item
 add_action( 'save_post_tribe_events', 'make_create_booking_for_event', 999, 2);
 // add_action( 'publish_tribe_events', 'make_create_booking_for_event', 999, 2);
 function make_create_booking_for_event( $post_ID, $post) {
-	mapi_write_log('===========New ROUND============');
-
 
 	if(isset($_POST['acf'])) :
 		if($post->post_type == 'tribe_events') :
@@ -110,7 +108,7 @@ function make_create_booking_for_event( $post_ID, $post) {
 					    );
 					
 						$return = create_wc_booking( $bookable_product, $defaults, 'complete', false );
-						mapi_write_log($return);
+						
 						if($return) :
 							update_post_meta($post_ID, 'make_has_booking', true);
 						endif;
