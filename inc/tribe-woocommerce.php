@@ -82,36 +82,58 @@ function make_create_booking_for_event( $post_ID, $post) {
 	    		$has_booking = !$_POST['acf']['field_63134513mas5221c'];
 	    	endif;	
 
-			// $bookable_product = 60863;//local
-			$bookable_product = 60979;//remote
+
+			//$bookable_product = 60979;//remote
 				
-			
 			$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
 
-
-
-
-			// mapi_write_log($bookable_product);
-			// mapi_write_log($has_booking);
-			// mapi_write_log($resources);
 			if($resources && !$has_booking) : //if we have resources and DO NOT have a booking already
-				// mapi_write_log('WooCommerce Exists?');
-				// mapi_write_log(class_exists( 'woocommerce' )); 
+
+
 				if(class_exists( 'woocommerce' )) :
 					foreach($resources as $resource) :
 
-						$defaults = array(
-					        'product_id'  => $bookable_product, 
-					        'start_date'  => $start_date,
-					        'end_date'    => $end_date,
-					        'resource_id' => $resource,
-					    );
+				
+						$start_date_obj = new DateTime();
+						$end_date_obj = new DateTime();
+
+						$start_date_obj->setTimestamp($start_date);
+						$end_date_obj->setTimestamp($end_date);
+
+						$booking_availability = get_post_meta($resource, '_wc_booking_availability', true);
 					
-						$return = create_wc_booking( $bookable_product, $defaults, 'complete', false );
-						
-						if($return) :
-							update_post_meta($post_ID, 'make_has_booking', true);
-						endif;
+						$booking_availability[] = array(
+							'type' => 'custom:daterange',
+							'bookable' => 'no',
+							'priority' => 1,
+							'from' => $start_date_obj->format('H:s'),
+							'to' => $end_date_obj->format('H:s'),
+							'from_date' => $start_date_obj->format('Y-m-d'),
+							'to_date' => $end_date_obj->format('Y-m-d')
+						);
+						update_post_meta($resource, '_wc_booking_availability', $booking_availability);
+
+
+
+						// $defaults = array(
+					    //     'product_id'  => $bookable_product, 
+					    //     'start_date'  => $start_date,
+					    //     'end_date'    => $end_date,
+					    //     'resource_id' => $resource,
+					    // );
+
+						//quantity is the number of available slots for each resource. We need to create a booking for each slot,
+						//otherwise a user will still be able to reserve the resource even if it's already booked.
+						// $quantity = get_post_meta($resource, 'qty', true);
+
+
+						// for($i = 0; $i < $quantity; $i++) :
+						// 	$return = create_wc_booking( $bookable_product, $defaults, 'confirmed', true );
+						// endfor;
+					
+						// if($return) :
+						// 	update_post_meta($post_ID, 'make_has_booking', true);
+						// endif;
 					endforeach;
 				endif;
 
