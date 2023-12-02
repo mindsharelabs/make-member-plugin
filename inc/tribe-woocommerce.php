@@ -155,11 +155,11 @@ if( function_exists('acf_add_local_field_group') ):
 		'fields' => array(
 			array (
 	            'key' => 'field_63134513mas5221c',
-	            'label' => 'Force Create Booking',
+	            'label' => 'Force Block Availability',
 	            'name' => 'force_create_booking',
 	            'type' => 'true_false',
 	            'prefix' => '',
-	            'instructions' => 'If a booking was already created, this will try to recreate it again.',
+	            'instructions' => 'If availability was already blocked, this will try to block it again. Double check availability on the <a href="wp-admin/edit.php?post_type=bookable_resource">resources</a> to make sure they are correct.',
 	            'required' => 0,
 	            'conditional_logic' => 0,
 	            'wrapper' => array (
@@ -177,7 +177,7 @@ if( function_exists('acf_add_local_field_group') ):
 	        ),
 			array(
 				'key' => 'field_63a1325d5221c',
-				'label' => 'Create Booking',
+				'label' => 'Block Availability',
 				'name' => 'create_booking',
 				'aria-label' => '',
 				'type' => 'relationship',
