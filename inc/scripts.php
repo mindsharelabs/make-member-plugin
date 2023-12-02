@@ -10,7 +10,7 @@ function make_sign_in_member() {
 		global $wpdb;
 			
 		$badges = serialize($_REQUEST['badges']);
-		$activity = serialize($_REQUEST['activity']);
+		// $activity = serialize($_REQUEST['activity']);
 		
 		$wpdb->insert( 
 			'make_signin', 
@@ -45,8 +45,9 @@ function make_get_all_members() {
 		    foreach($members as $member) :
 		      
 		      $member_obj = get_user_by('ID', $member->user_id);
+
 		      
-		      if(function_exists('wc_memberships_get_user_active_memberships')) :
+		      if(function_exists('wc_memberships_get_user_active_memberships') && $member_obj) :
 		        $active_memberships = wc_memberships_get_user_active_memberships($member_obj->ID);
 		        $memberships = '';
 		        if($active_memberships) :
@@ -57,17 +58,17 @@ function make_get_all_members() {
 		            endif;
 		          endforeach;
 		        endif;
-		        
+		        $all_members[] = array(
+			        'ID' => $member_obj->ID,
+			        'name' => $member_obj->data->display_name,
+			        'memberships' => (isset($memberships) ? $memberships : false),
+			        // 'subscriptions' => (isset($user_subscriptions) ? $user_subscriptions : false),
+			        'image' => get_avatar_url($member_obj->ID, ['size' => '400'])
+			      );
 		      endif;
 
 		      
-		      $all_members[] = array(
-		        'ID' => $member_obj->ID,
-		        'name' => $member_obj->data->display_name,
-		        'memberships' => (isset($memberships) ? $memberships : false),
-		        // 'subscriptions' => (isset($user_subscriptions) ? $user_subscriptions : false),
-		        'image' => get_avatar_url($member_obj->ID, ['size' => '400'])
-		      );
+		      
 		    endforeach;
 
 		    $html .= '<div class="row list mt-5 pt-5">';
@@ -138,34 +139,7 @@ function make_get_member_scan() {
 	
 			// $html .= make_output_profile_container($user);
 
-			$has_waiver = get_user_meta( $user->ID, 'waiver_complete', true );
-
-			//search entries for a waiver in the case we have not updated the user yet. 
-			if(!$has_waiver) :
-				if(class_exists('GFAPI')) :
-					$form = new GFAPI();
-				    $search_criteria = array(
-				      'status'        => 'active',
-				      'field_filters' => array(
-				          'mode' => 'any',
-				          array(
-				              'key'   => 'created_by',
-				              'value' => $userID 
-				          ),
-				          array(
-				              'key'   => '34',
-				              'value' => $userEmail
-				          )
-				      )
-				    );
-				    $entries = $form->get_entries( 27, $search_criteria);
-				    if(count($entries) > 0) {
-				      $has_waiver = true;
-				    } else {
-				      $has_waiver = false;
-				    }
-				endif;
-			endif;
+			$has_waiver = make_check_user_waiver($user->ID);
 			
 			//if we still don't have a waiver, send a notice. 
 			if(!$has_waiver) :	
@@ -304,5 +278,39 @@ function make_output_profile_container($user) {
 	endif;
 	
 
+}
+
+
+function make_check_user_waiver($user_id) {
+	
+	if(class_exists('GFAPI')) :
+		$user_info = get_userdata($user_id);
+    	$user_email = $user_info->user_email;
+
+		$form = new GFAPI();
+	    $search_criteria = array(
+	      'status'        => 'active',
+	      'field_filters' => array(
+	          'mode' => 'any',
+	          array(
+	              'key'   => 'created_by',
+	              'value' => $user_id
+	          ),
+	          array(
+	              'key'   => '34',
+	              'value' => $user_email
+	          )
+	      )
+	    );
+	    $entries = $form->get_entries( 27, $search_criteria);
+	    if(count($entries) > 0) {
+	      update_user_meta( $user_id, 'waiver_complete', true );
+	      return true;
+	    } else {
+	      update_user_meta( $user_id, 'waiver_complete', false );
+	      return false;
+	    }
+	endif;
+	return false;
 }
 
