@@ -220,7 +220,7 @@ class makeSocialAPI {
 					}
 				
 					$data = json_decode($response, true);
-					mapi_write_log('Here is the data:=====================');
+					mapi_write_log('Here is the return data:=====================');
 					mapi_write_log($data);
 					$return = array(
 						'success' => true,
@@ -264,29 +264,34 @@ class makeSocialAPI {
 	private static function getEventDetails($eventID) {
 		$event = tribe_get_event($eventID, 'ARRAY_A', 'raw', false);
 
-		// mapi_write_log($event);
-
 		$start = $event['dates']->start;
 		$end = $event['dates']->end;
 		$p = $end->diff($start);
-		mapi_write_log($p);
-		$duration = 'P';
-		$duration .= ($p->y > 0) ? $p->y . 'Y' : '';
-		$duration .= ($p->m > 0) ? $p->m . 'M' : '';
-		$duration .= ($p->d > 0) ? $p->d . 'D' : '';
-		$duration .= 'T';
-		$duration .= ($p->h > 0) ? $p->h . 'H' : '';
-		$duration .= ($p->i > 0) ? $p->i . 'M' : '';
-		$duration .= ($p->s > 0) ? $p->s . 'S' : '';
-		mapi_write_log($duration);
+		$duration = ISO_date_duration($p);
 		$eventDetails = array(
 		    'title' => $event['post_title'],
 		    'description' => $event['post_excerpt'],
 			'startTime' => $start->format('Y-m-d\TH:i:s'),
-		    'duration' => $duration// Add other event details as needed
+		    'duration' => $duration
+			// Add other event details as needed
 		);
-		mapi_write_log($eventDetails);
+		$eventDetails = add_filter('make_social_event_details', $eventDetails);
 		return $eventDetails;
+	}
+
+
+
+	private function ISO_date_duration($diff) {
+		$duration = 'P';
+		$duration .= ($diff->y > 0) ? $diff->y . 'Y' : null;
+		$duration .= ($diff->m > 0) ? $diff->m . 'M' : null;
+		$duration .= ($diff->d > 0) ? $diff->d . 'D' : null;
+		$duration .= 'T';
+		$duration .= ($diff->h > 0) ? $diff->h . 'H' : null;
+		$duration .= ($diff->i > 0) ? $diff->i . 'M' : null;
+		$duration .= ($diff->s > 0) ? $diff->s . 'S' : null;
+
+		return $duration;
 	}
 
 

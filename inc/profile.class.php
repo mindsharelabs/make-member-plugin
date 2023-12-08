@@ -26,24 +26,25 @@ class makeProfile {
 
     $this->options = get_option( 'makesf_support_settings' );
 
-    $this->waiverURL = (isset($this->options['makesf_waiver_url']) ? $this->options['makesf_waiver_url'] : false);
-    $this->membershipURL = (isset($this->options['makesf_membership_url']) ? $this->options['makesf_membership_url'] : false);
-    $this->badgesURL = (isset($this->options['makesf_badges_url']) ? $this->options['makesf_badges_url'] : false);
+    if($this->userID) :
+      $this->waiverURL = (isset($this->options['makesf_waiver_url']) ? $this->options['makesf_waiver_url'] : false);
+      $this->membershipURL = (isset($this->options['makesf_membership_url']) ? $this->options['makesf_membership_url'] : false);
+      $this->badgesURL = (isset($this->options['makesf_badges_url']) ? $this->options['makesf_badges_url'] : false);
 
-    $this->workshopsURL = (isset($this->options['makesf_workshops_url']) ? $this->options['makesf_workshops_url'] : false);
-    $this->sharingURL = (isset($this->options['makesf_share_url']) ? $this->options['makesf_share_url'] : false);
+      $this->workshopsURL = (isset($this->options['makesf_workshops_url']) ? $this->options['makesf_workshops_url'] : false);
+      $this->sharingURL = (isset($this->options['makesf_share_url']) ? $this->options['makesf_share_url'] : false);
 
-    $this->workshopCategory = (isset($this->options['makesf_workshop_category']) ? $this->options['makesf_workshop_category'] : false);
+      $this->workshopCategory = (isset($this->options['makesf_workshop_category']) ? $this->options['makesf_workshop_category'] : false);
 
-    if(function_exists('get_field')) :
-      $this->memberResources = get_field('member_resources', 'options');
+      if(function_exists('get_field')) :
+        $this->memberResources = get_field('member_resources', 'options');
+      endif;
+
+      add_action('woocommerce_before_my_account', array($this, 'display_member_resources'));
+      add_action('woocommerce_account_dashboard', array($this, 'profile_progress'));
+
+      add_action('wp_footer', array($this, 'enqueueAssets'));
     endif;
-
-
-    add_action('woocommerce_before_my_account', array($this, 'display_member_resources'));
-    add_action('woocommerce_account_dashboard', array($this, 'profile_progress'));
-
-    add_action('wp_footer', array($this, 'enqueueAssets'));
 
   }
 
@@ -52,10 +53,6 @@ class makeProfile {
 
     wp_register_style('member-styles', MAKESF_URL . 'assets/css/style.css', array(), MAKESF_PLUGIN_VERSION);
     wp_enqueue_style('member-styles');
-
-    //  wp_register_style('mindblankcssmin', get_template_directory_uri() . '/css/style.css', array(), THEME_VERSION);
-    // wp_enqueue_style('mindblankcssmin');
-
 
   }
 

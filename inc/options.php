@@ -153,7 +153,23 @@ function makesf_support_settings() {
 
 //if the current user fills out the Waiver and Release of Liability, then we add this user meta
 add_action( 'gform_after_submission_27', function ( $entry, $form ) {
-  $update = update_user_meta( $entry['created_by'], 'waiver_complete', true );
+  if (! class_exists ('GFAPI')) {
+    return;
+  }
+
+  if($entry['created_by']) :
+    update_user_meta( $entry['created_by'], 'waiver_complete', true );
+
+  else :
+    $user = get_user_by('email', $entry['34']);
+    if($user) :
+      $forms = new GFAPI();
+      $forms->update_entry_property( $entry['id'], 'created_by', $user->id );
+      update_user_meta( $user->id, 'waiver_complete', true );
+    endif;
+  endif;
+
+
 }, 10, 2 );
 
 
