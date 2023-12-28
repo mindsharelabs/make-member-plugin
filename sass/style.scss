@@ -8,6 +8,15 @@ $danger:        rgba(201,73,73, 1);
 $light:         rgb(230, 230, 230);
 $dark:          rgba(1, 1, 1, 1);
 
+@mixin transition($speed) {
+  -webkit-transition: all $speed ease-in-out;
+  -moz-transition: all $speed ease-in-out;
+  -ms-transition: all $speed ease-in-out;
+  -o-transition: all $speed ease-in-out;
+  transition: all $speed ease-in-out;
+}
+
+
 #makesf {
   .makesf-text-field {
     width: 100%;
@@ -183,3 +192,22 @@ $dark:          rgba(1, 1, 1, 1);
 }
 
 
+
+
+//Blocks
+
+.make-badge-list {
+  .badge-card {
+    @include transition(500ms);
+    -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
+    box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
+    a {
+      text-decoration: none;
+    }
+    &:hover {
+      @include transition(100ms);
+      -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.4);
+      box-shadow: 0 0 10px 0 rgba(1,1,1,.4);    
+    }
+  }
+}

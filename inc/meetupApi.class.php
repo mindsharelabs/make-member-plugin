@@ -194,7 +194,7 @@ function init_meetup_metabox() {
 	new makeMeetupAPI();
 }
 
-if ( is_admin() ) {
-	add_action('add_meta_boxes', 'init_meetup_metabox');
-}
+// if ( is_admin() ) {
+// 	add_action('add_meta_boxes', 'init_meetup_metabox');
+// }
 
