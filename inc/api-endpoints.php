@@ -132,12 +132,6 @@ function make_events($request) {
 
 
 
-
-
-
-
-
-
 function make_get_active_members(){
     global $wpdb;
     // Getting all User IDs and data for a membership plan

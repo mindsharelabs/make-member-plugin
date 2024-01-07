@@ -29,8 +29,6 @@ function make_sign_in_member() {
 
 add_action('wp_ajax_nopriv_makeAllGetMembers', 'make_get_all_members');
 add_action('wp_ajax_makeAllGetMembers', 'make_get_all_members');
-
-
 function make_get_all_members() {
 
 	$members = make_get_active_members();
@@ -99,7 +97,6 @@ function make_get_all_members() {
 	
 
 }
-
 
 
 

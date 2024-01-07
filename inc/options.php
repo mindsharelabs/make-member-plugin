@@ -187,8 +187,6 @@ add_action( 'admin_menu', function () {
 	);
 
   add_action( 'admin_print_scripts-' . $menu, 'makesf_stats_enqueue_scripts' );
-
-
 });
 
 
