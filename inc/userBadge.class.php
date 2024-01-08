@@ -59,10 +59,7 @@ class makeUserBadges {
 				echo '<h3>Comma Separated Email Addresses</h3>';
 				
 				foreach ( $users->get_results() as $user ) {
-					echo $user->user_email;
-					if(next($users)) :
-						echo ',';
-					endif;
+					echo $user->user_email . ',';
 				}
 				
 			echo '</div>';	
