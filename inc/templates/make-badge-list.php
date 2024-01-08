@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MAKE Member Sign In
+ * MAKE Badge List
  *
  * @param   array $block The block settings and attributes.
  * @param   string $content The block inner HTML (empty).

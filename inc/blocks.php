@@ -61,6 +61,30 @@ add_action('acf/init', function () {
 
 
 		acf_register_block_type(array(
+			'name'              => 'make-blog-categories',
+			'title'             => __('Blog Category List'),
+			'description'       => __('A block that displays a selection of blog categories.'),
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-blog-categories.php',
+			'category'          => 'make-blocks',
+			// 'icon'              => file_get_contents(MAKESF_URL . 'inc/img/logo-sm.svg'),
+			'keywords'          => array( 'blog', 'categories', 'posts', 'mind', 'Mindshare'),
+			'align'             => 'full',
+			'mode'            	=> 'edit',
+			'multiple'          => false,
+			'supports'					=> array(
+				'align' => false,
+			),
+			'enqueue_assets' => function(){
+				// We're just registering it here and then with the action get_footer we'll enqueue it.
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+		
+
+			})
+		);
+
+
+		acf_register_block_type(array(
 			'name'              => 'make-badge-list',
 			'title'             => __('Badge List'),
 			'description'       => __('A block that displays all the Badges in a card-list format.'),
