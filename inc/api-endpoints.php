@@ -93,15 +93,15 @@ function make_events($request) {
   $events = tribe_get_events( array(
     'posts_per_page' => -1,
     'start_date'     => 'now',
-    'meta_key' => '_tribe_ticket_capacity',
-    'meta_value' => 0, // change to how "event date" is stored
-    'meta_compare' => '>',
-    // 'tax_query'=> array(
-    //    array(
-    //    'taxonomy' => 'tribe_events_cat',
-    //    'field' => 'slug',
-    //    'terms' => 'badge-classes'
-    //    ))
+    // 'meta_key' => '_tribe_ticket_capacity',
+    // 'meta_value' => 0, // change to how "event date" is stored
+    // 'meta_compare' => '>',
+    'tax_query'=> array(
+       array(
+       'taxonomy' => 'tribe_events_cat',
+       'field' => 'slug',
+       'terms' => 'badge-classes, workshops'
+       ))
   ));
   $all_events = false;
   if($events) :
