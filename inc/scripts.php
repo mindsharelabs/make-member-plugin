@@ -20,6 +20,20 @@ function make_sign_in_member() {
 				'user' => $_REQUEST['userID'], 
 			) 
 		);
+
+		$tips = get_field('member_tips', 'options');
+		if($tip = $tips[array_rand($tips)]) :
+			$return = array(
+				'html' => '<div class="alert alert-info text-center"><h1>Did you know...?</h1><h2>' . $tip['tip'] . '</h2></div>',
+			);
+		else : 
+			$return = array(
+				'html' => '<div class="alert alert-success text-center"><h1>Success!</h1><h2>Thank you!</h2></div>',
+			);
+		endif;	
+		
+		return wp_send_json_success( $return );
+
 	endif;
 
 }

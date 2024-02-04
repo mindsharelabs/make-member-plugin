@@ -156,13 +156,14 @@
                         metaContainer.html('<div class="loading"><div><i class="fas fa-spinner fa-spin"></i></div></div>');
                     },
                     success: function(response) {
-                        metaContainer.html('<div class="alert alert-success text-center"><h1>Success!</h1><h2>Thank you!</h2></div>');
+                        console.log(response);
+                        metaContainer.html(response.data.html);
                         
                         setTimeout(function() { 
                             metaContainer.html('');
                             loadMembers();
                             $('#member-list').removeClass('d-none');
-                        }, 4000);
+                        }, 8000);
 
                         
                     },
