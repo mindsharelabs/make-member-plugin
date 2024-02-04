@@ -93,15 +93,26 @@ function make_events($request) {
   $events = tribe_get_events( array(
     'posts_per_page' => -1,
     'start_date'     => 'now',
+<<<<<<< HEAD
     // 'meta_key' => '_tribe_ticket_capacity',
     // 'meta_value' => 0,
+=======
+    // 'meta_key' => '_EventCost',
+    // 'meta_value' => 0, 
+>>>>>>> 83232f218f3ab3cff023ecf5ceac8393efc31ace
     // 'meta_compare' => '>',
     'tax_query'=> array(
        array(
        'taxonomy' => 'tribe_events_cat',
+<<<<<<< HEAD
        'field' => 'slug',
          'terms' => 'badge-classes,workshops'
        ))
+=======
+       'field' => 'term_id',
+       'terms' => array(3099, 3102)
+    ))
+>>>>>>> 83232f218f3ab3cff023ecf5ceac8393efc31ace
   ));
   $all_events = false;
   if($events) :
@@ -109,6 +120,7 @@ function make_events($request) {
     foreach($events as $event) :
 
       $event_capacity = get_post_meta($event->ID, '_tribe_ticket_capacity', true);
+      // $all_meta = get_post_meta($event->ID);
 
       $attendees = tribe_tickets_get_attendees( $event->ID );
       $all_events[] = array(
@@ -120,6 +132,7 @@ function make_events($request) {
         'image' => get_the_post_thumbnail_url($event->ID, 'full' ),
         'excerpt' => get_the_excerpt($event->ID),
         'permalink' => get_permalink($event->ID)
+        // 'meta' => $all_meta,
       );
     endforeach;
   endif;
