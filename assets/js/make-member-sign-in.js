@@ -137,12 +137,11 @@
         $(document).on('click', '.sign-in-done', function() {
             
             var badges = [];
-            var userID = $('.profile-card').data('user');
+            var userID = $(this).data('user')
             
             $('.selected').each(function(i, elm) {
                 badges.push($(this).data('badge'));
             }).promise().done( function(){
-
 
                 $.ajax({
                     url : makeMember.ajax_url,

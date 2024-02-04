@@ -10,6 +10,8 @@ function make_sign_in_member() {
 		global $wpdb;
 			
 		$badges = serialize($_REQUEST['badges']);
+		// mapi_write_log($_REQUEST['badges']);
+		// mapi_write_log($_REQUEST['userID']);
 		// $activity = serialize($_REQUEST['activity']);
 		
 		$wpdb->insert( 
@@ -196,7 +198,7 @@ function make_get_member_scan() {
 					$html .= '</div>';
 				endif;
 			
-				$html .='<div class="badge-footer text-center mt-3"><button disabled class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
+				$html .='<div class="badge-footer text-center mt-3"><button disabled data-user="' . $user->ID . '" class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
 			else :
 				$return['status'] = 'nomembership';
 				$html .= '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';		
