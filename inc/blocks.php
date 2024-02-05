@@ -41,7 +41,7 @@ add_action('acf/init', function () {
 			),
 			'enqueue_assets' => function(){
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
-				wp_register_style( 'make-block-styles', MAKESF_URL . 'css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
 				wp_register_script('list-min-js', MAKESF_URL . 'assets/js/list.min.js', array('jquery'), MAKESF_PLUGIN_VERSION, false);
@@ -76,9 +76,9 @@ add_action('acf/init', function () {
 			),
 			'enqueue_assets' => function(){
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
-				wp_register_style( 'make-block-styles', MAKESF_URL . 'css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
-		
+
 
 			})
 		);
@@ -100,7 +100,7 @@ add_action('acf/init', function () {
 			),
 			'enqueue_assets' => function(){
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
-				wp_register_style( 'make-block-styles', MAKESF_URL . 'css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
 
