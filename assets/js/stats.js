@@ -14,12 +14,12 @@
                 datasets: data
             },
             options: {
-            scales: {
-                align: 'start',
-                y: {
-                    beginAtZero: true
+                scales: {
+                    align: 'start',
+                    y: {
+                        beginAtZero: true
+                    }
                 }
-            }
             }
         });
 

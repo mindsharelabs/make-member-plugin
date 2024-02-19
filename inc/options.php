@@ -316,7 +316,7 @@ function makesf_get_signin_data() {
       $label = 'Badge Removed';
     endif;
     $datasets[] = array(
-      'type' => 'line',
+      'type' => 'bar',
       'label' => html_entity_decode($label),
       'data' => $value,
       'borderWidth' => 1,
@@ -326,7 +326,7 @@ function makesf_get_signin_data() {
 
   //add total counts
   $datasets[] = array(
-    'type' => 'bar',
+    'type' => 'line',
     'label' => 'Number of Sign-ins',
     'data' => $number_signins,
     'borderWidth' => 1,
