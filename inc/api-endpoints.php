@@ -130,20 +130,3 @@ function make_events($request) {
 }
 
 
-
-function make_get_active_members(){
-    global $wpdb;
-    // Getting all User IDs and data for a membership plan
-    return $wpdb->get_results( "
-        SELECT DISTINCT um.user_id
-        FROM {$wpdb->prefix}posts AS p
-        LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
-        LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
-        LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
-        WHERE p.post_type = 'wc_user_membership'
-        AND p.post_status IN ('wcm-active')
-        AND p2.post_type = 'wc_membership_plan'
-        LIMIT 999
-    ");
-}
-
