@@ -378,7 +378,7 @@ function get_badge_name_by_id($id) {
 
 
 
-
+//Gets all current members and returns an arrayt of user objects
 function make_get_active_members(){
   global $wpdb;
   // Getting all User IDs and data for a membership plan
@@ -393,5 +393,31 @@ function make_get_active_members(){
       AND p2.post_type = 'wc_membership_plan'
       LIMIT 999
   ");
+}
+
+
+//Get's all current members and returns them as an array of user ids
+function make_get_active_members_array(){
+  global $wpdb;
+  // Getting all User IDs and data for a membership plan
+  $members = $wpdb->get_results( "
+      SELECT DISTINCT um.user_id
+      FROM {$wpdb->prefix}posts AS p
+      LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
+      LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
+      LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
+      WHERE p.post_type = 'wc_user_membership'
+      AND p.post_status IN ('wcm-active')
+      AND p2.post_type = 'wc_membership_plan'
+      LIMIT 999
+  ");
+
+  $members_array = array();
+  foreach($members as $member) {
+    $members_array[] = $member->user_id;
+  }
+
+  return $members_array;
+
 }
 
