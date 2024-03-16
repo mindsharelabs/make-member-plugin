@@ -175,7 +175,14 @@ function make_get_member_scan() {
 
 							$user_badges = get_field('certifications', 'user_' . $user->ID);
 							
-							$html .= '<div class="badge-item ' . (in_array(get_the_id(), $user_badges) ? '' : 'not-allowed') . ' text-center" data-badge="' . get_the_id() . '">';
+							$class = 'not-allowed';
+							if($user_badges) :
+								if(in_array(get_the_id(), $user_badges)) :
+									$class = '';
+								endif;
+							endif;
+
+							$html .= '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
 								$badge_image = get_field('badge_image', get_the_id());
 								$html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
 								$html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
