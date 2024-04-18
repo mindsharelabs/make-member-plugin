@@ -46,7 +46,7 @@ class makeUserBadges {
 		if ( !empty( $users->get_results() ) ) {
 			echo '<div class="user-list-box">';
 			echo '<div class="column col-1">';
-				echo '<h3>Active users with Badge</h3>';
+				echo '<h3>Active members with Badge</h3>';
 				echo '<ul>';
 				foreach ( $users->get_results() as $user ) {
 					echo '<li>';
