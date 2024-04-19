@@ -12,7 +12,6 @@ class makeUserBadges {
 		
 
 		//add appropriate metaboxes
-		mapi_write_log('//add appropriate metaboxes');
 		// add_meta_box( string $id, string $title, callable $callback, string|array|WP_Screen $screen = null, string $context = 'advanced', string $priority = 'default', array $callback_args = null )
 		add_meta_box(
             'users-with-badge',
