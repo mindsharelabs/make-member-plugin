@@ -70,85 +70,83 @@ add_filter('tribe_events_tickets_attendees_table_column', function($value, $item
 add_action( 'save_post', 'make_create_booking_for_event', 999, 2);
 // add_action( 'publish_tribe_events', 'make_create_booking_for_event', 999, 2);
 function make_create_booking_for_event( $post_ID, $post) {
-		if($post->post_type == 'tribe_events') :
 
-			$is_recurring = tribe_is_recurring_event($post_ID);
+	if(!class_exists( 'WC_Bookings' )) :
+		return;
+	endif;
 
-			if($is_recurring) :
-				$events = array();
-				$series_post = tec_event_series($post_ID);
-				if ( !$series_post instanceof WP_Post ) {
-					return;
-				}
+	mapi_write_log('made it');
 
-				$recurring_events_ids = tribe_get_events( [ 
-					'series' => $series_post->ID, 
-					'fields'=> 'ids', 
-					'orderby' => 'event_date'] 
-				);
+	if($post->post_type == 'tribe_events') :
 
-				foreach ($recurring_events_ids as $id) {
-					$events[] = $id;
-				}
+		$is_recurring = tribe_is_recurring_event($post_ID);
 
-			else :
-				$events = array($post_ID);
-			endif;
+		if($is_recurring) :
+			$events = array();
+			$series_post = tec_event_series($post_ID);
+			if ( !$series_post instanceof WP_Post ) {
+				return;
+			}
 
-			mapi_write_log($events);
+			$recurring_events_ids = tribe_get_events( [ 
+				'series' => $series_post->ID, 
+				'fields'=> 'ids', 
+				'orderby' => 'event_date'] 
+			);
 
-			foreach($events as $post_ID) :
-				$start_date = Tribe__Events__Timezones::event_start_timestamp($post_ID, 'America/Denver');
-	    		$end_date = Tribe__Events__Timezones::event_end_timestamp($post_ID, 'America/Denver');
+			foreach ($recurring_events_ids as $id) {
+				$events[] = $id;
+			}
 
-				$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
+		else :
+			$events = array($post_ID);
+		endif;
 
-				//if we have resources and DO NOT have a booking already
-				if($resources) : //if we have resources and DO NOT have a booking already
-					if(class_exists( 'woocommerce' )) :
+		foreach($events as $post_ID) :
+			$start_date = Tribe__Events__Timezones::event_start_timestamp($post_ID, 'America/Denver');
+			$end_date = Tribe__Events__Timezones::event_end_timestamp($post_ID, 'America/Denver');
 
-						
-						
-							foreach($resources as $resource) :
+			$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
 
-								//remove all dates that are in the past
-								make_clean_bookable_resource($resource);
+			//if we have resources and DO NOT have a booking already
+			if($resources) : //if we have resources and DO NOT have a booking already
+				foreach($resources as $resource) :
+					//remove all dates that are in the past
+					make_clean_bookable_resource($resource);
 
-								$data = array(
-									'start_date' => $start_date,
-									'end_date' => $end_date,
-									'post_id' => $post_ID
-								);
+					$data = array(
+						'start_date' => $start_date,
+						'end_date' => $end_date,
+						'post_id' => $post_ID
+					);
 
-								$has_booking = make_check_for_booking($resource, $data);
-								if($has_booking) :
-									return;
-								endif;	
+					$has_booking = make_check_for_booking($resource, $data);
+					if($has_booking) :
+						return;
+					endif;	
 
-								$start_date_obj = new DateTime();
-								$end_date_obj = new DateTime();
+					$start_date_obj = new DateTime();
+					$end_date_obj = new DateTime();
 
-								$start_date_obj->setTimestamp($start_date);
-								$end_date_obj->setTimestamp($end_date);
+					$start_date_obj->setTimestamp($start_date);
+					$end_date_obj->setTimestamp($end_date);
 
-								$booking_availability = get_post_meta($resource, '_wc_booking_availability', true);
-								$booking_availability[] = array(
-									'type' => 'custom:daterange',
-									'bookable' => 'no',
-									'priority' => 1,
-									'from' => $start_date_obj->format('H:s'),
-									'to' => $end_date_obj->format('H:s'),
-									'from_date' => $start_date_obj->format('Y-m-d'),
-									'to_date' => $end_date_obj->format('Y-m-d')
-								);
-								update_post_meta($resource, '_wc_booking_availability', $booking_availability);
-							endforeach;
-						
-					endif;
-				endif; //end if we have resources and DO NOT have a booking already
-			endforeach; //end foreach event
-			
-		endif; //end if post type is tribe_events
+					$booking_availability = get_post_meta($resource, '_wc_booking_availability', true);
+					$booking_availability[] = array(
+						'type' => 'custom:daterange',
+						'bookable' => 'no',
+						'priority' => 1,
+						'from' => $start_date_obj->format('H:s'),
+						'to' => $end_date_obj->format('H:s'),
+						'from_date' => $start_date_obj->format('Y-m-d'),
+						'to_date' => $end_date_obj->format('Y-m-d')
+					);
+					update_post_meta($resource, '_wc_booking_availability', $booking_availability);
+				endforeach;
+			endif; //end if we have resources and DO NOT have a booking already
+		endforeach; //end foreach event
+		
+	endif; //end if post type is tribe_events
 
 
 }
