@@ -74,9 +74,7 @@ function make_create_booking_for_event( $post_ID, $post) {
 	if(!class_exists( 'WC_Bookings' )) :
 		return;
 	endif;
-
-	mapi_write_log('made it');
-
+	
 	if($post->post_type == 'tribe_events') :
 
 		$is_recurring = tribe_is_recurring_event($post_ID);
