@@ -10,7 +10,7 @@ add_filter('block_categories_all', function ($categories, $post) {
 			array(
 				'slug' 	=> 'make-blocks',
 				'title' => __('MAKE Santa Fe Blocks', 'mindshare'),
-				// 'icon' 	=> file_get_contents(CCA_ABSPATH . 'inc/img/logo-sm.svg'),
+				'icon' 	=> MAKE_LOGO,
 			),
 
 		)
@@ -31,7 +31,7 @@ add_action('acf/init', function () {
 			'description'       => __('A block that allows a user to sign in.'),
 			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-member-sign-in.php',
 			'category'          => 'make-blocks',
-			// 'icon'              => file_get_contents(MAKESF_URL . 'inc/img/logo-sm.svg'),
+			'icon'              => MAKE_LOGO,
 			'keywords'          => array( 'make', 'sign', 'member', 'mind', 'Mindshare'),
 			'align'             => 'full',
 			'mode'            	=> 'edit',
@@ -66,7 +66,7 @@ add_action('acf/init', function () {
 			'description'       => __('A block that displays a selection of blog categories.'),
 			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-blog-categories.php',
 			'category'          => 'make-blocks',
-			// 'icon'              => file_get_contents(MAKESF_URL . 'inc/img/logo-sm.svg'),
+			'icon'              => MAKE_LOGO,
 			'keywords'          => array( 'blog', 'categories', 'posts', 'mind', 'Mindshare'),
 			'align'             => 'full',
 			'mode'            	=> 'edit',
@@ -90,7 +90,7 @@ add_action('acf/init', function () {
 			'description'       => __('A block that displays all the Badges in a card-list format.'),
 			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-badge-list.php',
 			'category'          => 'make-blocks',
-			// 'icon'              => file_get_contents(MAKESF_URL . 'inc/img/logo-sm.svg'),
+			'icon'              => MAKE_LOGO,
 			'keywords'          => array( 'badge', 'list', 'diciplines', 'make', 'mind', 'Mindshare'),
 			'align'             => 'full',
 			'mode'            	=> 'edit',
