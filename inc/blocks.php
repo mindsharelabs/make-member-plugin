@@ -59,6 +59,37 @@ add_action('acf/init', function () {
 			})
 		);
 
+		acf_register_block_type(array(
+			'name'              => 'make-upcoming-events',
+			'title'             => __('Upcoming Events'),
+			'description'       => __('A block that displays upcoming events with available tickets.'),
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-upcoming-events.php',
+			'category'          => 'make-blocks',
+			'icon'              => MAKE_LOGO,
+			'keywords'          => array( 'make', 'events', 'upcoming', 'tickets', 'mind', 'Mindshare'),
+			'align'             => 'full',
+			'mode'            	=> 'edit',
+			'multiple'          => false,
+			'supports'			=> array(
+				'align' => false,
+			),
+			'enqueue_assets' => function(){
+				// We're just registering it here and then with the action get_footer we'll enqueue it.
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+
+				// wp_register_script('make-sign-in-scripts', MAKESF_URL . 'assets/js/make-member-sign-in.js', array('jquery', 'list-min-js'), MAKESF_PLUGIN_VERSION, true);
+				// wp_enqueue_script('make-sign-in-scripts');
+				// wp_localize_script( 'make-sign-in-scripts', 'makeMember', array(
+				// 	'ajax_url' => admin_url( 'admin-ajax.php' ),
+				// 	'postID' => get_the_id(),
+				// 	'data' => array()
+				// ));
+
+
+			})
+		);
+
 
 		acf_register_block_type(array(
 			'name'              => 'make-blog-categories',

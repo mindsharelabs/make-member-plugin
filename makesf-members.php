@@ -45,6 +45,7 @@
     }
   private function includes() {
     //General
+    include_once MAKESF_ABSPATH . 'inc/utilities.php';
     include_once MAKESF_ABSPATH . 'inc/options.php';
     include_once MAKESF_ABSPATH . 'inc/profile.class.php';
     include_once MAKESF_ABSPATH . 'inc/blocks.php';

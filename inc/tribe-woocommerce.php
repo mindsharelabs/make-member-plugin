@@ -259,3 +259,16 @@ if( function_exists('acf_add_local_field_group') ):
 		'show_in_rest' => 0,
 	));
 endif;		
+
+
+
+
+function make_event_has_available_tickets($event_id) {
+    $tickets = Tribe__Tickets__Tickets::get_all_event_tickets($event_id);
+    foreach ($tickets as $ticket) {
+        if ($ticket->available() > 0) {
+            return true;
+        }
+    }
+    return false;
+}
