@@ -52,12 +52,12 @@ $upcoming_events = make_get_upcoming_events($settings['num_events'] ?? 3, true, 
 if($upcoming_events) :
 echo '<div class="' . $className . '" id= "' . $id .'">';
     echo '<div class="row gy-3">';
-    foreach($upcoming_events as $event) :
+    foreach($upcoming_events as $event => $title) :
         echo '<div class="col-12 col-md-6 col-lg-4">';
             echo '<div class="card">';
             mapi_write_log(has_post_thumbnail( $event ));
                 if(has_post_thumbnail( $event ) && $settings['show_image']) {
-                    echo get_the_post_thumbnail( $event, 'medium', array('class' => 'card-img-top w-100') );
+                    echo get_the_post_thumbnail( $event, 'horizontal-media-image', array('class' => 'card-img-top w-100') );
                 }
                 echo '<div class="card-body">';
                     echo '<a href="' . get_the_permalink($event) . '">';

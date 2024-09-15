@@ -423,6 +423,11 @@ function make_get_active_members_array(){
 
 function make_get_upcoming_events($num = 3, $ticketed = true, $args, $page = 1, $upcoming_events = array()) {
   $current_date = current_time( 'Y-m-d H:i:s' );
+  $date = strtotime($current_date);
+  $date = strtotime("+7 day", $date);
+  $date = date('Y-m-d H:i:s', $date);
+
+
   $default_args = array(
       'post_type' => 'tribe_events',
       'posts_per_page' => ($num > 12 ? $num : 12),
@@ -433,7 +438,7 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args, $page = 1, 
       'meta_query'     => array(
           array(
               'key'     => '_EventStartDate',
-              'value'   => $current_date,
+              'value'   => $date,
               'compare' => '>=', // Only get events starting after the current date
               'type'    => 'DATETIME',
           ),
@@ -443,18 +448,16 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args, $page = 1, 
   $events = new WP_Query($args);
   
   if($events->have_posts()) :
-      $i = 0;
       while($events->have_posts()) :
           $events->the_post();
-          if($i <= $num && count($upcoming_events) < $num) :
+          if(count($upcoming_events) < $num) :
               if($ticketed) :
                   if(make_event_has_available_tickets(get_the_id())) :
-                      $upcoming_events[] = get_the_id();
+                      $upcoming_events[get_the_id()] = get_the_title();
                   endif;
               else :
-                  $upcoming_events[] = get_the_id();
+                  $upcoming_events[get_the_id()] = get_the_title();
               endif;
-              $i++;
           else :
               break;    
           endif;
@@ -462,8 +465,7 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args, $page = 1, 
       
   endif;
   if(count($upcoming_events) < $num) :
-      write_message_to_log('getting_more');
-      $page = $page +1;
+      $page = $page + 1;
       if($events->max_num_pages >= $page) :
           $upcoming_events = make_get_upcoming_events($num, $ticketed, $args, $page, $upcoming_events);
       else :
