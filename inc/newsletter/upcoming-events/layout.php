@@ -17,7 +17,7 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
     .title,  {
         font-family: 'Courier New', Courier, monospace;
         font-weight: bold;
-        font-size: 24px;
+        font-size: 22px;
         padding-bottom: 20px;
         text-align: center;
         color: #111111;
@@ -25,7 +25,7 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
     .title-link {
         font-family: 'Courier New', Courier, monospace;
         font-weight: bold;
-        font-size: 24px;
+        font-size: 22px;
         padding-bottom: 20px;
         text-align: center;
         color: #111111;
@@ -36,6 +36,9 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
         padding-bottom: 15px;
     }
     .date {
+        font-size: 14px;
+        padding-top: 15px;
+        font-family: 'Courier New', Courier, monospace;
         color: #444444;
         padding-bottom: 15px;
         font-weight: bold;
@@ -43,6 +46,7 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
     }
 
     .location {
+        font-size: 14px;
         line-height: normal!important;
         padding-bottom: 20px;
         font-weight: bold;
@@ -53,34 +57,29 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
         font-weight: bold;
     }
     .town {
+        font-size: 14px;
         font-family: 'Montserrat', sans-serif;
         line-height: normal!important;
         font-weight: bold;
     }
     .address {
+        font-size: 14px;
         font-family: 'Montserrat', sans-serif;
         line-height: normal!important;
         font-weight: bold;
     }
     .excerpt {
+        font-size: 14px;
         font-family: 'Montserrat', sans-serif;
         line-height: 1.2em!important;
         padding-bottom:20px;
         text-align: center;
     }
-    .button a{
-        font-family: 'Courier New', Courier, monospace;
-        text-align: center;
-        padding-bottom:30px;
-        background-color: #be202e;
-        background: #be202e;
-        color:#e6e6e6;
-        padding: 10px 20px;
-    }
+
 </style>
 
-<?php foreach ($items as $item) { ?>
-    <?php
+<?php foreach ($items as $item) { 
+    mapi_write_log($item);
     if ($item->image) {
         $item->image->set_width($column_width);
     }
