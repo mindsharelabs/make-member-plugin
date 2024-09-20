@@ -55,8 +55,8 @@
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
 
     //Meetup
-    include_once MAKESF_ABSPATH . 'inc/meetup/meetupOptions.class.php';
-    include_once MAKESF_ABSPATH . 'inc/meetup/meetupAPI.class.php';
+    // include_once MAKESF_ABSPATH . 'inc/meetup/meetupOptions.class.php';
+    // include_once MAKESF_ABSPATH . 'inc/meetup/meetupAPI.class.php';
 
 
 

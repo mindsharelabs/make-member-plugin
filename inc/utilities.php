@@ -81,7 +81,7 @@ if(!function_exists('make_output_member_card')) :
                   if($image = get_field('badge_image', $badge)) :
                     $html .= '<a class="badge-image-holder m-1" href="' . get_permalink($badge) . '">';
                       $html .= wp_get_attachment_image($image);
-                      $html .= '<span class="badge-name">' . get_the_title($badge) . '</span>';
+                      $html .= '<span class="badge-name d-block text-center">' . get_the_title($badge) . '</span>';
                     $html .= '</a>';
                   endif;
                 endforeach;
