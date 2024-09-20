@@ -79,7 +79,7 @@ $title_style = TNP_Composer::get_style($options, 'title', $composer, 'title', ['
 </style>
 
 <?php foreach ($items as $item) { 
-    mapi_write_log($item);
+    $button_options['button_url'] = $item->url;
     if ($item->image) {
         $item->image->set_width($column_width);
     }

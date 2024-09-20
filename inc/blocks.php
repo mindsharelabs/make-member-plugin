@@ -140,6 +140,31 @@ add_action('acf/init', function () {
 
 
 
+		acf_register_block_type(array(
+			'name'              => 'make-instructor-bios',
+			'title'             => __('Instructor Bios'),
+			'description'       => __('A block that displays a bio for each instructor configured with the event.'),
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-instructor-bios.php',
+			'category'          => 'make-blocks',
+			'icon'              => MAKE_LOGO,
+			'keywords'          => array( 'instructor', 'bios','bio', 'make', 'mind', 'Mindshare'),
+			'align'             => 'full',
+			'mode'            	=> 'preview',
+			'multiple'          => false,
+			'supports'					=> array(
+				'align' => false,
+			),
+			'enqueue_assets' => function(){
+				// We're just registering it here and then with the action get_footer we'll enqueue it.
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+
+
+			})
+		);
+
+
+
 	endif;
 });
 

@@ -51,9 +51,17 @@
     include_once MAKESF_ABSPATH . 'inc/blocks.php';
     include_once MAKESF_ABSPATH . 'inc/scripts.php';
     include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
+    include_once MAKESF_ABSPATH . 'inc/tribe-events.php';
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
-    // include_once MAKESF_ABSPATH . 'inc/meetupAPI.class.php';
+
+    //Meetup
+    include_once MAKESF_ABSPATH . 'inc/meetup/meetupOptions.class.php';
+    include_once MAKESF_ABSPATH . 'inc/meetup/meetupAPI.class.php';
+
+
+
     include_once MAKESF_ABSPATH . 'inc/userBadge.class.php';
+
     include_once MAKESF_ABSPATH . 'inc/newsletter/newsletter-blocks.php';
   }
 

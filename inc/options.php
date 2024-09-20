@@ -421,7 +421,7 @@ function make_get_active_members_array(){
 
 
 
-function make_get_upcoming_events($num = 3, $ticketed = true, $args, $page = 1, $upcoming_events = array()) {
+function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $page = 1, $upcoming_events = array()) {
   $current_date = current_time( 'Y-m-d H:i:s' );
   $date = strtotime($current_date);
   $date = strtotime("+7 day", $date);
