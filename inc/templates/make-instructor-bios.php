@@ -44,7 +44,7 @@ else :
     echo '<div class="' . $className . '" id= "' . $id .'">';
 
         if($instructors) :
-            echo '<div class="row"><div class="col-12"><h2>Your Instructor' . (count($instructors) > 1 ? 's' : '') . '</h2></div></div>';
+            echo '<div class="row"><div class="col-12"><h2 class="mt-4">Your Instructor' . (count($instructors) > 1 ? 's' : '') . '</h2></div></div>';
             echo '<section class="row makers">';
             foreach($instructors as $instructor) :
                 $args = array(

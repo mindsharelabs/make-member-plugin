@@ -91,7 +91,7 @@ if(!function_exists('make_output_member_card')) :
   
               if($gallery) :
                 $html .= '<div class="maker-gallery d-flex justify-content-center flex-wrap w-100">';
-                  $html .= '<div class="row w-100 my-3">';
+                  $html .= '<div class="row w-100 my-3 gy-2">';
                   foreach ($gallery as $image) :
                     if($image['image'] != '') :
                       $image_elem = wp_get_attachment_image( $image['image']['ID'], array(100,100), false, array('class' => 'gallery-image'));
