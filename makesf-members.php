@@ -58,6 +58,9 @@
     // include_once MAKESF_ABSPATH . 'inc/meetup/meetupOptions.class.php';
     // include_once MAKESF_ABSPATH . 'inc/meetup/meetupAPI.class.php';
 
+    //Custom Notification Classes
+    include_once MAKESF_ABSPATH . 'inc/notifications.class.php';
+
 
 
     include_once MAKESF_ABSPATH . 'inc/userBadge.class.php';

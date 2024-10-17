@@ -14,7 +14,7 @@
 
 <div class="tnp-field-row">
     <div class="tnp-field-col-2">
-        <?php $fields->select_number('max', 'Max events', 1, 20) ?>
+        <?php $fields->select_number('max', 'Max events', 1, 30) ?>
     </div>
     <div class="tnp-field-col-2">
         <?php $fields->select('order', 'Order by time', ['' => 'from far to near', '1' => 'from near to far']) ?>
