@@ -10,14 +10,15 @@
  */
 
 
-function write_message_to_log($message) {
-    if ( is_array($message) || is_object($message) ) {
-        error_log( print_r($message, true) );
-    } else {
-        error_log( $message );
+if(!function_exists('write_message_to_log')) {
+    function write_message_to_log($message) {
+        if ( is_array($message) || is_object($message) ) {
+            error_log( print_r($message, true) );
+        } else {
+            error_log( $message );
+        }
     }
 }
-
 
 // Create id attribute allowing for custom "anchor" value.
 $id = 'make-upcoming-events-' . $block['id'];
@@ -55,7 +56,6 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
     foreach($upcoming_events as $event => $title) :
         echo '<div class="col-12 col-md-6 col-lg-4">';
             echo '<div class="card">';
-            mapi_write_log(has_post_thumbnail( $event ));
                 if(has_post_thumbnail( $event ) && $settings['show_image']) {
                     echo get_the_post_thumbnail( $event, 'horizontal-media-image', array('class' => 'card-img-top w-100') );
                 }

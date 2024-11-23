@@ -1,12 +1,12 @@
 <?php
-add_action( 'admin_menu', 'makesf_support_settings_page' );
-add_action( 'admin-init', 'makesf_api_settings_init' );
+// add_action( 'admin_menu', 'makesf_support_settings_page' );
+// add_action( 'admin-init', 'makesf_api_settings_init' );
 
 
 function makesf_support_settings_page() {
     add_options_page(
       'Make SF Member Plugin Options',
-      'Make SF Member Plugin Optionss',
+      'Make SF Member Plugin Options',
       'manage_options', //permisions
       'makesf-api-settings', //page slug
       'makesf_support_settings' //callback for display
@@ -457,16 +457,15 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
                   endif;
               else :
                   $upcoming_events[get_the_id()] = get_the_title();
-              endif;
-          else :
-              break;    
+              endif;  
           endif;
+          
       endwhile;
-      
   endif;
   if(count($upcoming_events) < $num) :
       $page = $page + 1;
       if($events->max_num_pages >= $page) :
+          $args['paged'] = $page;
           $upcoming_events = make_get_upcoming_events($num, $ticketed, $args, $page, $upcoming_events);
       else :
           return $upcoming_events;    

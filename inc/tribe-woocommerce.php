@@ -104,8 +104,11 @@ function make_create_booking_for_event( $post_ID, $post) {
 			$start_date = Tribe__Events__Timezones::event_start_timestamp($post_ID, 'America/Denver');
 			$end_date = Tribe__Events__Timezones::event_end_timestamp($post_ID, 'America/Denver');
 
-			$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
-
+			if(exists($_POST['acf'])) :
+				$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
+			else : 
+				$resources = false;
+			endif;
 			//if we have resources and DO NOT have a booking already
 			if($resources) : //if we have resources and DO NOT have a booking already
 				foreach($resources as $resource) :

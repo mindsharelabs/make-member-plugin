@@ -97,10 +97,10 @@ if ($options['language']) {
 
 // https://theeventscalendar.com/knowledgebase/k/using-tribe_get_events/
 
-$event_list = make_get_upcoming_events($options['max'], ($options['tickets'] == 'all' ? false : true), $filters );
-$events = tribe_get_events(array(
-    'post__in' => array_keys($event_list),
-));
+$events = make_get_upcoming_events($options['max'], ($options['tickets'] == 'all' ? false : true), $filters );
+// $events = tribe_get_events(array(
+//     'post__in' => array_keys($event_list),
+// ));
 
 // This is only for Automated Addon: if there are no events after the last sent newsletter
 // block the generation or skip this block
@@ -142,7 +142,8 @@ if (!empty($events)) {
 <?php
 // Build a list of items later rendered with different layouts
 $items = [];
-foreach ($events as $event) {
+foreach ($events as $event_id => $event_title) {
+    $event = get_post($event_id);
     $item = new stdClass();
 
     $item->show_date = !empty($options['show_date']);
