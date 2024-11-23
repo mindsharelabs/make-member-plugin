@@ -463,6 +463,7 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
       endwhile;
   endif;
   if(count($upcoming_events) < $num) :
+      write_message_to_log('getting_more');
       $page = $page + 1;
       if($events->max_num_pages >= $page) :
           $args['paged'] = $page;

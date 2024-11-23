@@ -109,8 +109,8 @@ function make_create_booking_for_event( $post_ID, $post) {
 			else : 
 				$resources = false;
 			endif;
-			//if we have resources and DO NOT have a booking already
-			if($resources) : //if we have resources and DO NOT have a booking already
+			//if we have resources 
+			if($resources) :
 				foreach($resources as $resource) :
 					//remove all dates that are in the past
 					make_clean_bookable_resource($resource);
@@ -144,7 +144,7 @@ function make_create_booking_for_event( $post_ID, $post) {
 					);
 					update_post_meta($resource, '_wc_booking_availability', $booking_availability);
 				endforeach;
-			endif; //end if we have resources and DO NOT have a booking already
+			endif; //end if we have resources
 		endforeach; //end foreach event
 		
 	endif; //end if post type is tribe_events
