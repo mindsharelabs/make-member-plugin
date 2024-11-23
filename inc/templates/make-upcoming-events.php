@@ -10,15 +10,6 @@
  */
 
 
-function write_message_to_log($message) {
-    if ( is_array($message) || is_object($message) ) {
-        error_log( print_r($message, true) );
-    } else {
-        error_log( $message );
-    }
-}
-
-
 // Create id attribute allowing for custom "anchor" value.
 $id = 'make-upcoming-events-' . $block['id'];
 if( !empty($block['anchor']) ) {

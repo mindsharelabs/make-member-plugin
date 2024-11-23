@@ -143,10 +143,10 @@ add_action('acf/init', function () {
 			'name'              => 'make-image-slider',
 			'title'             => __('Image Slider'),
 			'description'       => __('Simple image slider with optional arrows and dots.'),
-			'render_template'   => CHILD_ABSPATH . '/inc/block-templates/child-image-slider.php',
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-image-slider.php',
 			'category'          => 'make-blocks',
 			'icon'              => MAKE_LOGO,
-			'keywords'          => array( 'image', 'slider', 'gallery', 'slideshow', 'childrens', 'museum', 'mind', 'Mindshare' ),
+			'keywords'          => array( 'image', 'slider', 'gallery', 'slideshow', 'make', 'mind', 'Mindshare' ),
 			'post_types' 				=> array('post', 'page', 'exhibits', 'tribe_events'),
 			'align'             => 'full', //The default block alignment. Available settings are “left”, “center”, “right”, “wide” and “full”. Defaults to an empty string.
 			// 'align_text'        => 'left', //The default block text alignment (see supports setting for more info). Available settings are “left”, “center” and “right”.
@@ -163,7 +163,7 @@ add_action('acf/init', function () {
 			),
 			'enqueue_assets' => function(){
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
-				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/block-styles.css' );
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/styles.css' );
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
 				wp_register_style( 'make-slick-theme', MAKESF_URL . 'assets/css/slick-theme.css' );
@@ -174,7 +174,7 @@ add_action('acf/init', function () {
 				wp_register_script('make-slick-slider', MAKESF_URL . 'assets/js/slick.min.js', array('jquery'), MAKESF_PLUGIN_VERSION, true);
 				wp_enqueue_script('make-slick-slider');
 
-				wp_register_script('make-slider-init', MAKESF_URL . 'assets/js/image-slider-init.js', array('jquery', 'child-slick-slider'), MAKESF_PLUGIN_VERSION, true);
+				wp_register_script('make-slider-init', MAKESF_URL . 'assets/js/image-slider-init.js', array('jquery', 'make-slick-slider'), MAKESF_PLUGIN_VERSION, true);
 				wp_enqueue_script('make-slider-init');
 	
 
@@ -492,5 +492,161 @@ add_action( 'acf/include_fields', function() {
 		'description' => '',
 		'show_in_rest' => 0,
 	) );
+
+	
+	acf_add_local_field_group( array(
+		'key' => 'group_61e99f9925444',
+		'title' => 'Block: Image Slider',
+		'fields' => array(
+			array(
+				'key' => 'field_61e99f9e62b36',
+				'label' => 'Block: Image Slider',
+				'name' => 'block_image_slider',
+				'aria-label' => '',
+				'type' => 'group',
+				'instructions' => '',
+				'required' => 0,
+				'conditional_logic' => 0,
+				'wrapper' => array(
+					'width' => '',
+					'class' => '',
+					'id' => '',
+				),
+				'layout' => 'block',
+				'sub_fields' => array(
+					array(
+						'key' => 'field_61e99fa962b37',
+						'label' => 'Gallery Title',
+						'name' => 'gallery_title',
+						'aria-label' => '',
+						'type' => 'text',
+						'instructions' => '',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'default_value' => '',
+						'placeholder' => '',
+						'prepend' => '',
+						'append' => '',
+						'maxlength' => '',
+					),
+					array(
+						'key' => 'field_61e99faf62b38',
+						'label' => 'Gallery Description',
+						'name' => 'gallery_description',
+						'aria-label' => '',
+						'type' => 'textarea',
+						'instructions' => '',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'default_value' => '',
+						'placeholder' => '',
+						'maxlength' => '',
+						'rows' => '',
+						'new_lines' => '',
+					),
+					array(
+						'key' => 'field_61e99fb562b39',
+						'label' => 'Images',
+						'name' => 'images',
+						'aria-label' => '',
+						'type' => 'repeater',
+						'instructions' => '',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'collapsed' => '',
+						'min' => 1,
+						'max' => 10,
+						'layout' => 'table',
+						'button_label' => 'Add Image',
+						'sub_fields' => array(
+							array(
+								'key' => 'field_61e99fbb62b3a',
+								'label' => 'Image',
+								'name' => 'image',
+								'aria-label' => '',
+								'type' => 'image',
+								'instructions' => '',
+								'required' => 0,
+								'conditional_logic' => 0,
+								'wrapper' => array(
+									'width' => '',
+									'class' => '',
+									'id' => '',
+								),
+								'return_format' => 'array',
+								'preview_size' => 'medium',
+								'library' => 'all',
+								'min_width' => '',
+								'min_height' => '',
+								'min_size' => '',
+								'max_width' => '',
+								'max_height' => '',
+								'max_size' => '',
+								'mime_types' => '',
+								'parent_repeater' => 'field_61e99fb562b39',
+							),
+							array(
+								'key' => 'field_61e99fbf62b3b',
+								'label' => 'Caption',
+								'name' => 'caption',
+								'aria-label' => '',
+								'type' => 'text',
+								'instructions' => '',
+								'required' => 0,
+								'conditional_logic' => 0,
+								'wrapper' => array(
+									'width' => '',
+									'class' => '',
+									'id' => '',
+								),
+								'default_value' => '',
+								'placeholder' => '',
+								'prepend' => '',
+								'append' => '',
+								'maxlength' => '',
+								'parent_repeater' => 'field_61e99fb562b39',
+							),
+						),
+						'rows_per_page' => 20,
+					),
+				),
+			),
+		),
+		'location' => array(
+			array(
+				array(
+					'param' => 'block',
+					'operator' => '==',
+					'value' => 'acf/make-image-slider',
+				),
+			),
+		),
+		'menu_order' => 0,
+		'position' => 'normal',
+		'style' => 'default',
+		'label_placement' => 'top',
+		'instruction_placement' => 'label',
+		'hide_on_screen' => '',
+		'active' => true,
+		'description' => '',
+		'show_in_rest' => 0,
+	) );
+
+
 } );
 
