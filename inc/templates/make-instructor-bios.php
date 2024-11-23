@@ -9,7 +9,6 @@
  * @param   (int|string) $post_id The post ID this block is saved to.
  */
 
-mapi_write_log($post_id);
 
 // Create id attribute allowing for custom "anchor" value.
 $id = 'make-instructor-bios-' . $block['id'];
@@ -28,7 +27,6 @@ if( !empty($block['align']) ) {
 }
 
 $instructors = get_field('instructors', $post_id);
-mapi_write_log($instructors);
 
 if($is_preview) :
     echo '<div class="make-notice" style="padding: 10px; background: ##ebddb9; font-family:monospace; text-align:center; font-size:10px">';

@@ -163,7 +163,7 @@ add_action('acf/init', function () {
 			),
 			'enqueue_assets' => function(){
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
-				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/styles.css' );
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css' );
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
 				wp_register_style( 'make-slick-theme', MAKESF_URL . 'assets/css/slick-theme.css' );
