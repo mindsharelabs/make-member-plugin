@@ -139,6 +139,50 @@ add_action('acf/init', function () {
 		);
 
 
+		acf_register_block_type(array(
+			'name'              => 'make-image-slider',
+			'title'             => __('Image Slider'),
+			'description'       => __('Simple image slider with optional arrows and dots.'),
+			'render_template'   => CHILD_ABSPATH . '/inc/block-templates/child-image-slider.php',
+			'category'          => 'make-blocks',
+			'icon'              => MAKE_LOGO,
+			'keywords'          => array( 'image', 'slider', 'gallery', 'slideshow', 'childrens', 'museum', 'mind', 'Mindshare' ),
+			'post_types' 				=> array('post', 'page', 'exhibits', 'tribe_events'),
+			'align'             => 'full', //The default block alignment. Available settings are “left”, “center”, “right”, “wide” and “full”. Defaults to an empty string.
+			// 'align_text'        => 'left', //The default block text alignment (see supports setting for more info). Available settings are “left”, “center” and “right”.
+			// 'align_content'     => 'left', //The default block content alignment (see supports setting for more info). Available settings are “top”, “center” and “bottom”. When utilising the “Matrix” control type, additional settings are available to specify all 9 positions from “top left” to “bottom right”.
+			'mode'            	=> 'edit',
+			'supports'					=> array(
+				'align' => false,
+				'align_text' => true,
+				'align_content' => false,
+				'full_height' => false,
+				'mode' => false,
+				'multiple' => false,
+				'jsx' => false
+			),
+			'enqueue_assets' => function(){
+				// We're just registering it here and then with the action get_footer we'll enqueue it.
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/block-styles.css' );
+				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+
+				wp_register_style( 'make-slick-theme', MAKESF_URL . 'assets/css/slick-theme.css' );
+				add_action( 'get_footer', function () {wp_enqueue_style('make-slick-theme');});
+
+
+
+				wp_register_script('make-slick-slider', MAKESF_URL . 'assets/js/slick.min.js', array('jquery'), MAKESF_PLUGIN_VERSION, true);
+				wp_enqueue_script('make-slick-slider');
+
+				wp_register_script('make-slider-init', MAKESF_URL . 'assets/js/image-slider-init.js', array('jquery', 'child-slick-slider'), MAKESF_PLUGIN_VERSION, true);
+				wp_enqueue_script('make-slider-init');
+	
+
+				},
+			)
+		);
+
+
 
 	endif;
 });

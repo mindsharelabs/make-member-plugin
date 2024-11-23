@@ -53,7 +53,7 @@ if($upcoming_events) :
 echo '<div class="' . $className . '" id= "' . $id .'">';
     echo '<div class="row gy-3">';
     foreach($upcoming_events as $event) :
-        echo '<div class="col-12 col-md-6 col-lg-4">';
+        echo '<div class="col-12 col-md-6 col-lg-3">';
             echo '<div class="card">';
             mapi_write_log(has_post_thumbnail( $event ));
                 if(has_post_thumbnail( $event ) && $settings['show_image']) {
