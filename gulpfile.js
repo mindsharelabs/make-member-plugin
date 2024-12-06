@@ -42,7 +42,6 @@ gulp.task('clean', () => {
     return deleteAsync([
         'assets/css/style.css', 
         'assets/css/stats.css', 
-        'assets/css/stats.css', 
     ]);
 });
 
