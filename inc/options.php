@@ -1,5 +1,5 @@
 <?php
-// add_action( 'admin_menu', 'makesf_support_settings_page' );
+add_action( 'admin_menu', 'makesf_support_settings_page' );
 // add_action( 'admin-init', 'makesf_api_settings_init' );
 
 
