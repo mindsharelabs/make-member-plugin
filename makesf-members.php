@@ -61,8 +61,6 @@
     //Custom Notification Classes
     include_once MAKESF_ABSPATH . 'inc/notifications.class.php';
 
-
-
     include_once MAKESF_ABSPATH . 'inc/userBadge.class.php';
 
     include_once MAKESF_ABSPATH . 'inc/newsletter/newsletter-blocks.php';

@@ -40,7 +40,7 @@ class makeProfile {
         $this->memberResources = get_field('member_resources', 'options');
       endif;
 
-      add_action('woocommerce_before_my_account', array($this, 'display_member_resources'));
+      add_action('woocommerce_before_my_account', array($this, 'display_member_resources'), 30);
       add_action('woocommerce_account_dashboard', array($this, 'profile_progress'));
 
       add_action('wp_footer', array($this, 'enqueueAssets'));
