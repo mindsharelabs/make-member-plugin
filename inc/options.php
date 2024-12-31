@@ -261,12 +261,19 @@ function makesf_display_stats_page() {
 
 
 function makesf_get_past_year_dates($date = 'now') {
+  
+  $month = date("m", strtotime($date));
+  $year = date("Y", strtotime($date));
   for ($i = 0; $i < 12; $i++) {
+    if($month < 1) :
+      $month = 12;
+      $year = $year - 1;
+    endif;
     $dates[] = array(
-      'month' => date("m", strtotime( $date . " -$i months")),
-      'year' => date("Y", strtotime( $date . " -$i months")),
+      'month' => $month,
+      'year' => $year,
     );
-
+    $month = $month - 1;
   }
   return array_reverse($dates);
 }
@@ -275,7 +282,7 @@ function makesf_get_past_year_dates($date = 'now') {
 function makesf_get_signin_labels() {
   $dates = makesf_get_past_year_dates();
   foreach($dates as $date) {
-    $labels[] = date('F', mktime(0, 0, 0, $date['month'], 10));
+    $labels[] = date('F, Y', mktime(0, 0, 0, $date['month'], 10));
   }
 
   $labels = array_values($labels);
@@ -293,7 +300,6 @@ function makesf_get_signin_data() {
     $month = $date['month'];
     $year = $date['year'];
     $results = $wpdb->get_results("SELECT * FROM `make_signin` WHERE MONTH(time) = $month AND YEAR(time) = $year");
-    
     foreach($results as $result) {
       $badges = unserialize($result->badges);
       foreach($badges as $badge) {
@@ -302,7 +308,6 @@ function makesf_get_signin_data() {
     }
     $number_signins[$labels[$key]] = count($results);
   }
-
   //Badge_signins now has an array of badge signins for each month
   $datasets = array();
   foreach($badge_signins as $key => $value) {
@@ -424,7 +429,7 @@ function make_get_active_members_array(){
 function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $page = 1, $upcoming_events = array()) {
   $current_date = current_time( 'Y-m-d H:i:s' );
   $date = strtotime($current_date);
-  $date = strtotime("+7 day", $date);
+  // $date = strtotime("+7 day", $date);
   $date = date('Y-m-d H:i:s', $date);
 
 
@@ -462,8 +467,9 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
           
       endwhile;
   endif;
+
+
   if(count($upcoming_events) < $num) :
-      write_message_to_log('getting_more');
       $page = $page + 1;
       if($events->max_num_pages >= $page) :
           $args['paged'] = $page;
@@ -472,6 +478,7 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
           return $upcoming_events;    
       endif;    
   endif;
+
   return $upcoming_events;
 }
 

@@ -1,13 +1,7 @@
 <?php
-//Unsets some unuseful columns in thbe attendee table
+
 add_filter('tribe_tickets_attendee_table_columns', function($columns) {
 	unset($columns['security']);
-	return $columns;
-});
-
-
-
-add_filter('tribe_tickets_attendee_table_columns', function($columns) {
 	$columns['is-member'] = 'Membership';
 	$columns['make-badges'] = 'Badges';
 	$columns['safety-waiver'] = 'Safety Waiver';
@@ -269,6 +263,7 @@ endif;
 function make_event_has_available_tickets($event_id) {
     $tickets = Tribe__Tickets__Tickets::get_all_event_tickets($event_id);
     foreach ($tickets as $ticket) {
+		
         if ($ticket->available() > 0) {
             return true;
         }
