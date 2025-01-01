@@ -218,44 +218,54 @@ function makesf_display_stats_page() {
     echo '<div class="sign-ins-by-user">';
       
       $users = get_users_that_sign_in();
+
+      $total_signins = array();
       foreach($users as $key => $value) :
         $user = get_user_by('id', $key);
-        
-        
-        echo '<div class="user">';
-          echo '<div class="top-card">';
-            echo '<div class="user-avatar">';
-              $thumb = get_field('photo', 'user_' . $user->ID);
-              if($thumb) :
-                echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
-              endif;
-            echo '</div>';
-            echo '<div class="user-meta">';
-              echo '<h3 class="name">' . $user->display_name . '</h3>';
-              echo '<div class="user-signins">';
-                echo $value;
+        if($user) :
+          echo '<div class="user">';
+            echo '<div class="top-card">';
+              echo '<div class="user-avatar">';
+                $thumb = get_field('photo', 'user_' . $user->ID);
+                if($thumb) :
+                  echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
+                endif;
+              echo '</div>';
+              echo '<div class="user-meta">';
+                echo '<h3 class="name">' . $user->display_name . '</h3>';
+                echo '<div class="user-signins">';
+                  echo $value;
+                echo '</div>';
               echo '</div>';
             echo '</div>';
-          echo '</div>';
 
-          $sign_ins = get_user_singins($key);
-          echo '<div class="areas">';
-            echo '<ul class="area">';
-              foreach($sign_ins as $key => $value) :
-                
+            $sign_ins = get_user_singins($key);
+            echo '<div class="areas">';
+              echo '<ul class="area">';
+                foreach($sign_ins as $key => $value) :
+                  $total_signins[$key] = (isset($total_signins[$key]) ? $total_signins[$key] + count($value) : count($value));
                   echo '<li>' . $key . ': ' . count($value) . '</li>';
-
-              endforeach;
-            echo '</ul>';
+                endforeach;
+              echo '</ul>';
+            echo '</div>';
+            
           echo '</div>';
           
-        echo '</div>';
+        endif;
       endforeach;
 
     echo '</div>';
-
+    echo '<div class="total-signins">';
+      echo '<h2>Total Sign-ins</h2>';
+      echo '<ul>';
+      arsort($total_signins);
+      foreach($total_signins as $key => $value) :
+        echo '<li><strong>' . $key . '</strong>: ' . $value . '</li>';
+      endforeach;
+      echo '</ul>';
+    echo '</div>';
   echo '</div>';
-  get_users_that_sign_in();
+  // get_users_that_sign_in();
 }
 
 
@@ -264,7 +274,7 @@ function makesf_get_past_year_dates($date = 'now') {
   
   $month = date("m", strtotime($date));
   $year = date("Y", strtotime($date));
-  for ($i = 0; $i < 12; $i++) {
+  for ($i = 0; $i < 24; $i++) {
     if($month < 1) :
       $month = 12;
       $year = $year - 1;
@@ -282,7 +292,7 @@ function makesf_get_past_year_dates($date = 'now') {
 function makesf_get_signin_labels() {
   $dates = makesf_get_past_year_dates();
   foreach($dates as $date) {
-    $labels[] = date('F, Y', mktime(0, 0, 0, $date['month'], 10));
+    $labels[] = date('F, Y', mktime(0, 0, 0, $date['month'], 10, $date['year']));
   }
 
   $labels = array_values($labels);
@@ -317,20 +327,20 @@ function makesf_get_signin_data() {
       $label = 'Badge Removed';
     endif;
     $datasets[] = array(
-      'type' => 'bar',
+      'type' => 'line',
       'label' => html_entity_decode($label),
       'data' => $value,
-      'borderWidth' => 1,
+      'borderWidth' => 3,
     );
     
   }
 
   //add total counts
   $datasets[] = array(
-    'type' => 'line',
+    'type' => 'bar',
     'label' => 'Number of Sign-ins',
     'data' => $number_signins,
-    'borderWidth' => 1,
+    'borderWidth' => 2,
   );
   // mapi_write_log($datasets);
 

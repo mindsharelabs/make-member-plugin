@@ -162,6 +162,14 @@ function make_get_member_scan() {
 				$all_badges = new WP_Query(array(
 					'post_type' => 'certs',
 					'posts_per_page' => -1,
+					'meta_query'    => array(
+						'relation'      => 'AND',
+						array(
+							'key'       => 'use_for_sign_in',
+							'value'     => '1',
+							'compare'   => '=',
+						),
+					)
 				));
 				if($all_badges->have_posts()) :
 					$html .= '<div class="badge-list d-flex">';
@@ -198,6 +206,10 @@ function make_get_member_scan() {
 
 						$html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
 							$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+						$html .= '</div>';
+
+						$html .= '<div class="badge-item w-100 text-center" data-badge="other">';
+							$html .= '<span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
 						$html .= '</div>';
 
 

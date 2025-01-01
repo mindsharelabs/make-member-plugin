@@ -33,11 +33,11 @@
         ctx.update();
       }
     
-      function removeLayer2() {
-        console.log(ctx.getDatasetMeta(1).hidden);
-        ctx.setDatasetVisibility(1, ctx.getDatasetMeta(1).hidden);
-        ctx.update();
-      }
+    function removeLayer2() {
+    console.log(ctx.getDatasetMeta(1).hidden);
+    ctx.setDatasetVisibility(1, ctx.getDatasetMeta(1).hidden);
+    ctx.update();
+    }
 
 
 } ( this, jQuery ));
