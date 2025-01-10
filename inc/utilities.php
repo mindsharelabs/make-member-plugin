@@ -57,7 +57,7 @@ if(!function_exists('make_output_member_card')) :
           } else {
             $image = wp_get_attachment_image( $photo['ID'], 'small-square', false, array('alt' => $name, 'class' => 'rounded-circle'));
           }
-          $html .='<div class="col-6 col-md-4 text-center mb-2">';
+          $html .='<div class="col-6 col-md-4 col-lg-3 text-center mb-2">';
             $html .='<div class="mb-4 text-center card make-member-card d-flex flex-column justify-content-start h-100">';
               if($image) :
                 $html .='<div class="image profile-image p-3 w-75 mx-auto">';
@@ -79,9 +79,8 @@ if(!function_exists('make_output_member_card')) :
                 $html .= '<div class="maker-badges d-flex justify-content-center flex-wrap">';
                 foreach($badges as $badge) :
                   if($image = get_field('badge_image', $badge)) :
-                    $html .= '<a class="badge-image-holder m-1" href="' . get_permalink($badge) . '">';
+                    $html .= '<a class="badge-image-holder m-1" href="' . get_permalink($badge) . '" class="badge-name d-block text-center" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="' . get_the_title($badge) . '" data-bs-placement="top">';
                       $html .= wp_get_attachment_image($image);
-                      $html .= '<span class="badge-name d-block text-center">' . get_the_title($badge) . '</span>';
                     $html .= '</a>';
                   endif;
                 endforeach;
@@ -96,7 +95,7 @@ if(!function_exists('make_output_member_card')) :
                     if($image['image'] != '') :
                       $image_elem = wp_get_attachment_image( $image['image']['ID'], array(100,100), false, array('class' => 'gallery-image'));
                       if($image_elem):
-                        $html .= '<div class="col-3">' . $image_elem . '</div>';
+                        $html .= '<div class="col-3 col-md-2">' . $image_elem . '</div>';
                       endif;
                     endif;
                   endforeach;

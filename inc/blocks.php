@@ -25,6 +25,31 @@ add_action('acf/init', function () {
 	if( function_exists('acf_register_block_type')) :
 
 
+		if(function_exists('tribe_get_events')) :
+			acf_register_block_type(array(
+				'name'              => 'make-event-list',
+				'title'             => __('Make Event List'),
+				'description'       => __('This block displays a list of events by category and date.'),
+				'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-event-list.php',
+				'category'          => 'make-blocks',
+				'icon'              => MAKE_LOGO,
+				'keywords'          => array( 'make', 'events', 'list', 'mind', 'Mindshare'),
+				'align'             => 'full',
+				'mode'            	=> 'edit',
+				'multiple'          => false,
+				'supports'					=> array(
+					'align' => false,
+				),
+				'enqueue_assets' => function(){
+					// We're just registering it here and then with the action get_footer we'll enqueue it.
+					wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
+					add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+
+				})
+			);
+		endif;
+
+
 		acf_register_block_type(array(
 			'name'              => 'make-member-sign-in',
 			'title'             => __('Make Member Sign In'),

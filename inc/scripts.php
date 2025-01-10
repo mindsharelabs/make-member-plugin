@@ -52,7 +52,7 @@ function make_get_all_members() {
 	 	$html = '<div id="member-list">';
 
 	 		$html .= '<div class="search-container w-50 mb-4 mx-auto">';
-		 	$html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name or Email" />';
+		 		$html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name or Email" />';
 		    $html .= '</div>';
 
 		    $all_members = array();
