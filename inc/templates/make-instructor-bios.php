@@ -49,7 +49,7 @@ else :
                     'show_badges' => false,
                     'show_title' => true,
                     'show_bio' => false,
-                    'show_gallery' => true,
+                    'show_gallery' => false,
                     'show_photo' => true,
                   );
                 make_output_member_card($instructor->ID, true, $args);

@@ -57,6 +57,12 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
                         echo '<h3 class="h5 text-center">' . get_the_title() . '</h3>';
                     echo '</a>';
                 echo '</div>';
+                $short_desc = get_field('short_description', get_the_id());
+                if($short_desc) :
+                    echo '<div class="badge__description">';
+                        echo '<p>' . $short_desc . '</p>';
+                    echo '</div>';
+                endif;
             echo '</div>';
         echo '</div>';
     endwhile;

@@ -248,99 +248,6 @@ add_action( 'acf/include_fields', function() {
 		return;
 	}
 
-	//BLOCK: Make Events List
-	acf_add_local_field_group( array(
-		'key' => 'group_678152cb48a04',
-		'title' => 'BLOCK: Make Events List',
-		'fields' => array(
-			array(
-				'key' => 'field_678152cba6351',
-				'label' => 'Make Events List',
-				'name' => 'make_events_list',
-				'aria-label' => '',
-				'type' => 'group',
-				'instructions' => '',
-				'required' => 0,
-				'conditional_logic' => 0,
-				'wrapper' => array(
-					'width' => '',
-					'class' => '',
-					'id' => '',
-				),
-				'layout' => 'block',
-				'sub_fields' => array(
-					array(
-						'key' => 'field_678152d8a6352',
-						'label' => 'Event Categories',
-						'name' => 'categories',
-						'aria-label' => '',
-						'type' => 'taxonomy',
-						'instructions' => 'If not categories are selected this block will display all events.',
-						'required' => 0,
-						'conditional_logic' => 0,
-						'wrapper' => array(
-							'width' => '',
-							'class' => '',
-							'id' => '',
-						),
-						'taxonomy' => 'tribe_events_cat',
-						'add_term' => 0,
-						'save_terms' => 0,
-						'load_terms' => 0,
-						'return_format' => 'id',
-						'field_type' => 'checkbox',
-						'allow_in_bindings' => 0,
-						'bidirectional' => 0,
-						'multiple' => 0,
-						'allow_null' => 0,
-						'bidirectional_target' => array(
-						),
-					),
-					array(
-						'key' => 'field_6781541776eaf',
-						'label' => 'Events per page',
-						'name' => 'events_per_page',
-						'aria-label' => '',
-						'type' => 'number',
-						'instructions' => '',
-						'required' => 0,
-						'conditional_logic' => 0,
-						'wrapper' => array(
-							'width' => '',
-							'class' => '',
-							'id' => '',
-						),
-						'default_value' => '',
-						'min' => '',
-						'max' => '',
-						'allow_in_bindings' => 0,
-						'placeholder' => '',
-						'step' => '',
-						'prepend' => '',
-						'append' => '',
-					),
-				),
-			),
-		),
-		'location' => array(
-			array(
-				array(
-					'param' => 'block',
-					'operator' => '==',
-					'value' => 'acf/make-event-list',
-				),
-			),
-		),
-		'menu_order' => 0,
-		'position' => 'normal',
-		'style' => 'default',
-		'label_placement' => 'top',
-		'instruction_placement' => 'label',
-		'hide_on_screen' => '',
-		'active' => true,
-		'description' => '',
-		'show_in_rest' => 0,
-	) );
 
 
 	acf_add_local_field_group( array(
@@ -578,6 +485,27 @@ add_action( 'acf/include_fields', function() {
 						'key' => 'field_66e1052a571c4',
 						'label' => 'Show Excerpt',
 						'name' => 'show_excerpt',
+						'aria-label' => '',
+						'type' => 'true_false',
+						'instructions' => '',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'message' => '',
+						'default_value' => 1,
+						'allow_in_bindings' => 0,
+						'ui_on_text' => 'Show',
+						'ui_off_text' => 'Hide',
+						'ui' => 1,
+					),
+					array(
+						'key' => 'field_66e367qadfa3c4',
+						'label' => 'Show Price',
+						'name' => 'show_price',
 						'aria-label' => '',
 						'type' => 'true_false',
 						'instructions' => '',

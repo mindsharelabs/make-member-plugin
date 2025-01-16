@@ -56,7 +56,6 @@ if(function_exists('tribe_get_events')) :
                     if($all_tickets) :
                         
                         foreach($all_tickets as $ticket) :
-                            mapi_write_log($ticket);
                             echo '<div class="col-6 col-md-4">';
                             $tickets_available = $ticket->stock > 0 ? true : false;
                             echo '<div class="card d-flex justify-content-between flex-column h-100">';
