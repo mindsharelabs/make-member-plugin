@@ -84,18 +84,22 @@ class makeProfile {
 
             
             if(get_field('enable_member_modal', 'option')) :
-              echo '<div class="alert alert-success" role="alert" id="alert">';
-                echo '<h3 class=" text-center mb-1">' . get_field('member_modal_title', 'option') . '</h3>';
-                echo '<p>' . get_field('member_modal_content', 'option') . '</p>';
-                if($link = get_field('member_modal_button', 'option')) :
-                  echo '<a href="' . $link['url'] . '" class="btn btn-primary btn-block mt-auto">' . $link['title'] . '</a>';
-                endif;
-              echo '</div>';
-            else :
               echo '<div class="col-12 text-center mt-2 mb-2">';
-                echo '<h3 class="pt-3">Member Resources</h3>';
-              echo '</div>';  
+                echo '<div class="alert alert-success" role="alert" id="alert">';
+                  echo '<h3 class=" text-center mb-1">' . get_field('member_modal_title', 'option') . '</h3>';
+                  echo '<p>' . get_field('member_modal_content', 'option') . '</p>';
+                  if($link = get_field('member_modal_button', 'option')) :
+                    echo '<a href="' . $link['url'] . '" class="btn btn-primary btn-block mt-auto">' . $link['title'] . '</a>';
+                  endif;
+                echo '</div>';
+              echo '</div>';
             endif;
+
+
+            echo '<div class="col-12 text-center mt-2 mb-2">';
+              echo '<h3 class="pt-3">Member Resources</h3>';
+            echo '</div>';  
+
             foreach ($resources as $key => $item) :
               echo '<div class="col-12 col-md-4 mb-3">';
                 echo '<div class="card h-100">';
