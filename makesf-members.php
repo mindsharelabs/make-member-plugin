@@ -51,12 +51,10 @@
     include_once MAKESF_ABSPATH . 'inc/blocks.php';
     include_once MAKESF_ABSPATH . 'inc/scripts.php';
     include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
-    include_once MAKESF_ABSPATH . 'inc/tribe-events.php';
+
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
 
-    //Meetup
-    // include_once MAKESF_ABSPATH . 'inc/meetup/meetupOptions.class.php';
-    // include_once MAKESF_ABSPATH . 'inc/meetup/meetupAPI.class.php';
+
 
     //Custom Notification Classes
     include_once MAKESF_ABSPATH . 'inc/notifications.class.php';

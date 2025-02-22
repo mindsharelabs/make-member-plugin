@@ -1,7 +1,6 @@
 <?php
 
-add_filter('tribe_tickets_attendee_table_columns', function($columns) {
-	unset($columns['security']);
+add_filter('mindevents_attendee_columns', function($columns) {
 	$columns['is-member'] = 'Membership';
 	$columns['make-badges'] = 'Badges';
 	$columns['safety-waiver'] = 'Safety Waiver';
@@ -10,53 +9,49 @@ add_filter('tribe_tickets_attendee_table_columns', function($columns) {
 });
 
 
-add_filter('tribe_events_tickets_attendees_table_column', function($value, $item, $column) {
-	if($column == 'is-member') :
-		if(function_exists('wc_memberships_get_user_active_memberships')) :
-			$active_memberships = wc_memberships_get_user_active_memberships($item['user_id']);
-			$value = '';
-			if($active_memberships) :
-				foreach($active_memberships as $membership) :
-					$value .= $membership->plan->name;
-					if(next($active_memberships)) :
-						$value .= ' & ';
-					endif;
-				endforeach;
-			endif;
+add_filter('mindevents_attendee_data', function($data) {
+	$membership = '';
+	$badges = '';
+	$has_waiver = get_user_meta( $data['user_id'], 'waiver_complete', true );
+
+	if(function_exists('wc_memberships_get_user_active_memberships')) :
+		$active_memberships = wc_memberships_get_user_active_memberships($data['user_id']);
+		if($active_memberships) :
+			foreach($active_memberships as $membership) :
+				$membership .= $membership->plan->name;
+				if(next($active_memberships)) :
+					$membership .= ' & ';
+				endif;
+			endforeach;
 		endif;
-		return $value;
 	endif;
+	$data['is-member'] = $membership;
 
-	if($column == 'make-badges') :
-		if(function_exists('wc_memberships_get_user_active_memberships')) :
-			$user_badges = get_field('certifications', 'user_' . $item['user_id']);
-			$value = '';
-			if($user_badges) :
-				foreach($user_badges as $badge) :
-					$value .= '<small class="small">' . get_the_title($badge) . '</small>';
-					if(next($user_badges)) :
-						$value .= ', ';
-					endif;
-				endforeach;
-			else :
-				$value = '<small class="badge badge-danger">No Badges</small>';	
+
+	$user_badges = get_field('certifications', 'user_' . $data['user_id']);	
+	if($user_badges) :
+		foreach($user_badges as $badge) :
+			$badges .= '<small class="small">' . get_the_title($badge) . '</small>';
+			if(next($user_badges)) :
+				$badges .= ', ';
 			endif;
-		endif;
-		return $value;
+		endforeach;
+	else :
+		$badges = '<small class="badge badge-danger">No Badges</small>';	
 	endif;
+	$data['make-badges'] = $badges;
 
-	if($column == 'safety-waiver') :
-		$has_waiver = get_user_meta( $item['user_id'], 'waiver_complete', true );
-		if($has_waiver != true) :
-			$value = '<span class="badge badge-success text-red">Incomplete</span>';
-		else :
-			$value = '<span class="badge badge-success">Signed</span>';
-		endif;	
-		return $value;
-	endif;
 
-	return $value;
+	
+	if($has_waiver != true) :
+		$waiver_value = '<span class="badge badge-success text-red">Incomplete</span>';
+	else :
+		$waiver_value = '<span class="badge badge-success">Signed</span>';
+	endif;	
 
+	$data['safety-waiver'] = $waiver_value;
+
+	return $data;
 }, 1, 3);
 
 
@@ -69,34 +64,13 @@ function make_create_booking_for_event( $post_ID, $post) {
 		return;
 	endif;
 	
-	if($post->post_type == 'tribe_events') :
+	if($post->post_type == 'events') :
 
-		$is_recurring = tribe_is_recurring_event($post_ID);
+		$sub_events = get_post_meta('sub_events', $post_ID);
 
-		if($is_recurring) :
-			$events = array();
-			$series_post = tec_event_series($post_ID);
-			if ( !$series_post instanceof WP_Post ) {
-				return;
-			}
-
-			$recurring_events_ids = tribe_get_events( [ 
-				'series' => $series_post->ID, 
-				'fields'=> 'ids', 
-				'orderby' => 'event_date'] 
-			);
-
-			foreach ($recurring_events_ids as $id) {
-				$events[] = $id;
-			}
-
-		else :
-			$events = array($post_ID);
-		endif;
-
-		foreach($events as $post_ID) :
-			$start_date = Tribe__Events__Timezones::event_start_timestamp($post_ID, 'America/Denver');
-			$end_date = Tribe__Events__Timezones::event_end_timestamp($post_ID, 'America/Denver');
+		foreach($sub_events as $post_ID) :
+			$start_date = get_post_meta($post_ID, 'event_start_time_stamp', true);
+			$end_date = get_post_meta($post_ID, 'event_end_time_stamp', true);
 
 			if(isset($_POST['acf'])) :
 				$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
@@ -241,7 +215,7 @@ if( function_exists('acf_add_local_field_group') ):
 				array(
 					'param' => 'post_type',
 					'operator' => '==',
-					'value' => 'tribe_events',
+					'value' => 'events',
 				),
 			),
 		),

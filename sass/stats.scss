@@ -74,3 +74,51 @@ $dark:          rgba(1, 1, 1, 1);
     }
 } 
 
+#makesfSchedule {
+    .day-container {
+        overflow-x: scroll;
+        h2 {
+            text-align: center;
+            font-size: 3em;
+            margin-top: 30px;
+        }
+        .daily-signins {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            .signin {
+                padding: 10px;
+                flex-grow: 1;
+                margin-right: 10px;
+                background: linear-gradient(to bottom, rgb(163, 199, 238), rgba(150, 204, 222, 0));
+                h3.name {
+                    margin: 0;
+                    
+                }
+                .time {
+
+                }
+                ul.badges {
+                    list-style: none;
+                    padding: 0;
+                    margin: 10px 0;
+                    display: flex;
+                    flex-wrap: wrap;
+                    li {
+                        margin-right: 5px;
+                        padding: 5px;
+                        border: 1px solid $light;
+                        border-radius: 5px;
+                        &:last-child {
+                            margin-right: 0;
+                        }
+                    } 
+                }
+                &:hover {
+                    background: linear-gradient(to bottom, rgb(163, 199, 238), rgba(163, 199, 238, 0.5));
+                }
+            }
+        }
+    }
+    
+}

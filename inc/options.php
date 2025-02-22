@@ -177,17 +177,30 @@ add_action( 'gform_after_submission_27', function ( $entry, $form ) {
  * Register a custom menu page.
  */
 add_action( 'admin_menu', function () {
-	$menu = add_menu_page(
-		__( 'Space Sign-in Stats', 'textdomain' ),
-		'Sign-in Stats',
-		'manage_options',
-		'makesf-stats',
-		'makesf_display_stats_page',
-		'dashicons-chart-pie',
-		76
+	$sign_in = add_menu_page(
+		__( 'Space Sign-in Stats', 'makesantafe' ), //page title
+		'Sign-in Stats', //menu title
+		'manage_options', //capability
+		'makesf-stats', //menu slug
+		'makesf_display_stats_page', //callback
+		'dashicons-chart-pie', //icon
+		76 //position
 	);
 
-  add_action( 'admin_print_scripts-' . $menu, 'makesf_stats_enqueue_scripts' );
+  $schedule = add_submenu_page( 
+    'makesf-stats', //string $parent_slug,
+    __( 'Sign-in Schedule', 'makesantafe' ), //string $page_title,
+    __( 'Sign-in Schedule', 'makesantafe' ), //string $menu_title,
+    'manage_options',  //string $capability,
+    'sign-in-schedule', //string $menu_slug,
+    'makesf_display_signin_schedule', //callable $callback = '',
+    null  //int|float $position = null
+  );
+
+
+
+  add_action( 'admin_print_scripts-' . $sign_in, 'makesf_stats_enqueue_scripts' );
+  add_action( 'admin_print_scripts-' . $schedule, 'makesf_schedule_enqueue_scripts' );
 });
 
 
@@ -203,6 +216,9 @@ function makesf_stats_enqueue_scripts() {
       'data' => makesf_get_signin_data(),
     ),
   ));
+}
+function makesf_schedule_enqueue_scripts() {
+  wp_enqueue_style( 'makesf-stats', MAKESF_URL . 'assets/css/stats.css', array(), MAKESF_PLUGIN_VERSION);
 }
 
 
@@ -269,6 +285,67 @@ function makesf_display_stats_page() {
 }
 
 
+/*
+This function displays a schedule of sign ins for the past 30 days. 
+*/
+function makesf_display_signin_schedule() {
+  global $wpdb;
+  $timezone = new DateTimeZone('America/Denver');
+  $today = new DateTimeImmutable('now', $timezone);
+  $interval = new DateInterval('P1D');
+  $period = new DatePeriod($today->sub(new DateInterval('P29D')), $interval, 30);
+    echo '<div id="makesfSchedule">';
+    echo '<h1>Sign-in Schedule</h1>';
+      foreach (array_reverse(iterator_to_array($period)) as $date) :
+      
+        $month = $date->format('m');
+        $year = $date->format('Y');
+        $day = $date->format('d');
+
+        $results = $wpdb->get_results("SELECT * FROM `make_signin` WHERE MONTH(time) = $month AND YEAR(time) = $year AND DAY(time) = $day");
+        if(!$results) :
+          continue;
+        endif;
+
+
+        $first_signin = $results[0]->time;
+        $first_signin_time = new DateTime($first_signin, $timezone);
+        $first_signinminutes_since_1am = ($first_signin_time->format('H')) * 60 + $first_signin_time->format('i');
+        echo '<div class="day-container">';
+        
+          echo '<h2>' . $date->format('D, M j') . '</h2>';
+          echo '<div class="daily-signins">'; 
+            foreach ($results as $signin) :
+              $badges = unserialize($signin->badges);
+              $user = get_user_by('id', $signin->user);
+              if($user) :
+                $signin_time = new DateTime($signin->time, $timezone);
+                $minutes_since_1am = ($signin_time->format('H')) * 60 + $signin_time->format('i');
+                
+                $margin = $minutes_since_1am - $first_signinminutes_since_1am;
+                // mapi_write_log($margin);
+                echo '<div class="signin" style="margin-top:' . $margin . 'px">';
+                  echo '<div class="user-meta">';
+                    echo '<h3 class="name">' . $user->display_name . '</h3>';
+                    echo '<div class="time">';
+                      echo date('g:i a', strtotime($signin->time));
+                    echo '</div>';
+
+                    echo '<ul class="badges">';
+                    foreach($badges as $badge) :
+                      echo '<li>' . get_badge_name_by_id($badge) . '</li>';
+                    endforeach;
+                    echo '</ul>';
+
+                  echo '</div>';
+                echo '</div>';
+              endif;
+            endforeach; //daily results
+          echo '</div>';
+        echo '</div>';
+      endforeach; //day
+  echo '</div>';
+}
 
 function makesf_get_past_year_dates($date = 'now') {
   
@@ -306,6 +383,7 @@ function makesf_get_signin_data() {
   $number_signins = array();
   $badge_signins = array();
   $dates = makesf_get_past_year_dates();
+  
   foreach($dates as $key => $date) {
     $month = $date['month'];
     $year = $date['year'];
@@ -381,6 +459,8 @@ function get_badge_name_by_id($id) {
     $title ='Attended Workshop';
   elseif($id == 'volunteer') :
     $title ='Volunteered';
+  elseif($id == 'other') :
+    $title ='Other';
   else :
     $title = get_the_title($id);
   endif;

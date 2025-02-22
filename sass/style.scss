@@ -108,6 +108,20 @@ $dark:          rgba(1, 1, 1, 1);
 
       }
     }
+    button:disabled {
+      opacity: .25;
+    }
+    .badge-list {
+      margin-bottom: 300px;
+    }
+    .badge-footer {
+      position: fixed;
+      width: 100%;
+      background: white;
+      bottom: 0;
+      padding: 30px;
+      box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
+    }
   }
   // #reader__dashboard {
   //   display: none;

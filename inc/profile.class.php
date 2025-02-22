@@ -77,8 +77,6 @@ class makeProfile {
 
     if($resources) :
       echo '<div id="memberResources" class="row member-resources">';
-
-
         echo '<div class="col-12 col-md">';
           echo '<div class="row">';
 
