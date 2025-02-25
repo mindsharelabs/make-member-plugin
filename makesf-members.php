@@ -50,7 +50,7 @@
     include_once MAKESF_ABSPATH . 'inc/profile.class.php';
     include_once MAKESF_ABSPATH . 'inc/blocks.php';
     include_once MAKESF_ABSPATH . 'inc/scripts.php';
-    include_once MAKESF_ABSPATH . 'inc/tribe-woocommerce.php';
+    include_once MAKESF_ABSPATH . 'inc/woocommerce.php';
 
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
 

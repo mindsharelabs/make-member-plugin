@@ -10,7 +10,7 @@ add_filter('mindevents_attendee_columns', function($columns) {
 
 
 add_filter('mindevents_attendee_data', function($data) {
-	$membership = '';
+	$membership_text = '';
 	$badges = '';
 	$has_waiver = get_user_meta( $data['user_id'], 'waiver_complete', true );
 
@@ -18,14 +18,14 @@ add_filter('mindevents_attendee_data', function($data) {
 		$active_memberships = wc_memberships_get_user_active_memberships($data['user_id']);
 		if($active_memberships) :
 			foreach($active_memberships as $membership) :
-				$membership .= $membership->plan->name;
+				$membership_text .= $membership->plan->name;
 				if(next($active_memberships)) :
-					$membership .= ' & ';
+					$membership_text .= ' & ';
 				endif;
 			endforeach;
 		endif;
 	endif;
-	$data['is-member'] = $membership;
+	$data['is-member'] = $membership_text;
 
 
 	$user_badges = get_field('certifications', 'user_' . $data['user_id']);	
@@ -65,56 +65,87 @@ function make_create_booking_for_event( $post_ID, $post) {
 	endif;
 	
 	if($post->post_type == 'events') :
-
-		$sub_events = get_post_meta('sub_events', $post_ID);
-
-		foreach($sub_events as $post_ID) :
-			$start_date = get_post_meta($post_ID, 'event_start_time_stamp', true);
-			$end_date = get_post_meta($post_ID, 'event_end_time_stamp', true);
-
-			if(isset($_POST['acf'])) :
-				$resources = (get_field('create_booking', $post_ID) ? get_field('create_booking', $post_ID) : $_POST['acf']['field_63a1325d5221c']);
-			else : 
-				$resources = false;
-			endif;
-			//if we have resources 
-			if($resources) :
-				foreach($resources as $resource) :
-					//remove all dates that are in the past
-					make_clean_bookable_resource($resource);
-
-					$data = array(
-						'start_date' => $start_date,
-						'end_date' => $end_date,
-						'post_id' => $post_ID
-					);
-
-					$has_booking = make_check_for_booking($resource, $data);
-					if($has_booking) :
-						return;
-					endif;	
-
-					$start_date_obj = new DateTime();
-					$end_date_obj = new DateTime();
-
-					$start_date_obj->setTimestamp($start_date);
-					$end_date_obj->setTimestamp($end_date);
-
-					$booking_availability = get_post_meta($resource, '_wc_booking_availability', true);
-					$booking_availability[] = array(
-						'type' => 'custom:daterange',
-						'bookable' => 'no',
-						'priority' => 1,
-						'from' => $start_date_obj->format('H:s'),
-						'to' => $end_date_obj->format('H:s'),
-						'from_date' => $start_date_obj->format('Y-m-d'),
-						'to_date' => $end_date_obj->format('Y-m-d')
-					);
-					update_post_meta($resource, '_wc_booking_availability', $booking_availability);
-				endforeach;
-			endif; //end if we have resources
-		endforeach; //end foreach event
 		
+
+
+		$defaults = array(
+			'meta_query' => array(
+			  'relation' => 'AND',
+			  'start_clause' => array(
+				'key' => 'starttime',
+				'compare' => 'EXISTS',
+			  ),
+			  'date_clause' => array(
+				'key' => 'event_date',
+				'compare' => 'EXISTS',
+			  ),
+			),
+			'orderby' => 'meta_value',
+			'meta_key' => 'event_time_stamp',
+			'meta_type' => 'DATETIME',
+			'order'            => 'ASC',
+			'post_type'        => 'sub_event',
+			'post_parent'      => $post_ID,
+			'suppress_filters' => true,
+			'posts_per_page'   => -1
+		);
+		$sub_events = get_posts($defaults);
+
+
+
+		if(count($sub_events) > 0) :
+			foreach($sub_events as $post) :
+				$start_date = get_post_meta($post->ID, 'event_start_time_stamp', true);
+				$end_date = get_post_meta($post->ID, 'event_end_time_stamp', true);
+				$start_date_obj = new DateTimeImmutable($start_date);
+				$end_date_obj = new DateTimeImmutable($end_date);
+				$today = new DateTimeImmutable();
+
+
+				//if the event is in the past, don't do anything
+				if($today->getTimestamp() > $end_date_obj->getTimestamp()) :
+					continue;
+				endif;
+
+				if(isset($_POST['acf'])) :
+					$resources = (get_field('create_booking', $post->ID) ? get_field('create_booking', $post->ID) : $_POST['acf']['field_63a1325d5221c']);
+				else : 
+					$resources = false;
+				endif;
+				//if we have resources 
+				if($resources) :
+					foreach($resources as $resource) :
+						//remove all dates that are in the past
+						make_clean_bookable_resource($resource);
+
+						$data = array(
+							'start_date' => $start_date_obj->getTimestamp(),
+							'end_date' => $end_date_obj->getTimestamp(),
+							'post_id' => $post->ID
+						);
+			
+						$has_booking = make_check_for_booking($resource, $data);
+						if($has_booking) :
+							continue;
+						endif;	
+
+					
+						$booking_availability = get_post_meta($resource, '_wc_booking_availability', true);
+						$booking_availability[] = array(
+							'type' => 'custom:daterange',
+							'bookable' => 'no',
+							'priority' => 1,
+							'from' => $start_date_obj->format('H:s'),
+							'to' => $end_date_obj->format('H:s'),
+							'from_date' => $start_date_obj->format('Y-m-d'),
+							'to_date' => $end_date_obj->format('Y-m-d')
+						);
+						
+						update_post_meta($resource, '_wc_booking_availability', $booking_availability);
+					endforeach;
+				endif; //end if we have resources
+			endforeach; //end foreach event
+		endif; //end if we have sub events
 	endif; //end if post type is tribe_events
 
 
@@ -141,18 +172,10 @@ function make_check_for_booking($resource, $data) {
 	
 	else :
 		foreach($booking_availability as $availability) :
-			$avail_from_date = new DateTime();
-			$avail_to_date = new DateTime();
-			$avail_from_date->setTimestamp(strtotime($availability['from_date'] . ' ' . $availability['from']));
-			$avail_to_date->setTimestamp(strtotime($availability['to_date'] . ' ' . $availability['to']));
-			
-			
-			$event_start_date = new DateTime();
-			$event_end_date = new DateTime();
-			$event_start_date->setTimestamp($data['start_date']);
-			$event_end_date->setTimestamp($data['end_date']);
+			$avail_from_date = strtotime($availability['from_date'] . ' ' . $availability['from']);
+			$avail_to_date = strtotime($availability['to_date'] . ' ' . $availability['to']);
 
-			if($avail_from_date == $event_start_date && $avail_to_date == $event_end_date) :
+			if($avail_from_date == $data['start_date'] && $avail_to_date == $data['end_date']) :
 				$has_booking = true;
 				break;
 			endif;
