@@ -323,7 +323,7 @@ function makesf_display_signin_schedule() {
                 $minutes_since_1am = ($signin_time->format('H')) * 60 + $signin_time->format('i');
                 
                 $margin = $minutes_since_1am - $first_signinminutes_since_1am;
-                // mapi_write_log($margin);
+                
                 echo '<div class="signin" style="margin-top:' . $margin . 'px">';
                   echo '<div class="user-meta">';
                     echo '<h3 class="name">' . $user->display_name . '</h3>';
@@ -420,7 +420,7 @@ function makesf_get_signin_data() {
     'data' => $number_signins,
     'borderWidth' => 2,
   );
-  // mapi_write_log($datasets);
+  
 
   return $datasets;
 

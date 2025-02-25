@@ -10,10 +10,7 @@ function make_sign_in_member() {
 		global $wpdb;
 			
 		$badges = serialize($_REQUEST['badges']);
-		// mapi_write_log($_REQUEST['badges']);
-		// mapi_write_log($_REQUEST['userID']);
-		// $activity = serialize($_REQUEST['activity']);
-		
+
 		$wpdb->insert( 
 			'make_signin', 
 			array( 
@@ -126,23 +123,20 @@ add_action('wp_ajax_nopriv_makeGetMember', 'make_get_member_scan');
 add_action('wp_ajax_makeGetMember', 'make_get_member_scan');
 function make_get_member_scan() {
 	if($_REQUEST['action'] == 'makeGetMember') :
-		// mapi_write_log($_REQUEST);
 
 		$userEmail = ($_REQUEST['userEmail'] === 'false' ? false : $_REQUEST['userEmail']);
 		$userID = ($_REQUEST['userID'] === 'false' ? false : $_REQUEST['userID']);
 
-		// mapi_write_log($userID);
+
 		if($userEmail) :
 			$user = get_user_by('email', $userEmail);
-			// mapi_write_log('user by email');
+			
 		elseif($userID) :
 			$user = get_user_by('id', $userID);
-			// mapi_write_log('user by id');
+			
 		endif;
 
 
-
-		// mapi_write_log($user);
 		$html = '';
 		$return = array();
 		// User Loop
