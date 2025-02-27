@@ -8,7 +8,7 @@
     $fields->select('automated', __('If there are no new events...', 'newsletter'), ['' => 'Show the message below', '1' => 'Do not send the newsletter', '2' => 'Remove the block'],
             ['description' => 'Works only on automatic newsletter creation'])
     ?>
-    <?php $fields->text('automated_no_events', 'No events text') ?>
+    <?php $fields->text('automated_no_events', 'There are no new events.') ?>
 
 <?php } ?>
 
@@ -47,7 +47,7 @@
 
 <?php $fields->language(); ?>
 
-<?php $fields->terms('tribe_events_cat') ?>
+<?php $fields->terms('event_category') ?>
 
 <?php
 $fields->select('tickets', __('Tickets', 'newsletter'),

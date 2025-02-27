@@ -517,23 +517,19 @@ function make_get_active_members_array(){
 
 
 function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $page = 1, $upcoming_events = array()) {
-  $current_date = current_time( 'Y-m-d H:i:s' );
-  $date = strtotime($current_date);
-  // $date = strtotime("+7 day", $date);
-  $date = date('Y-m-d H:i:s', $date);
 
 
   $default_args = array(
-      'post_type' => 'tribe_events',
+      'post_type' => 'sub_event',
       'posts_per_page' => ($num > 12 ? $num : 12),
-      'meta_key'       => '_EventStartDate', // Meta field for the event start date
+      'meta_key'       => 'event_time_stamp', // Meta field for the event start date
       'orderby'        => 'meta_value', // Order by the event start date
       'order'          => 'ASC', // Ascending order (earliest events first)
       'paged'          => $page,
       'meta_query'     => array(
           array(
-              'key'     => '_EventStartDate',
-              'value'   => $date,
+              'key'     => 'event_time_stamp',
+              'value'   => date('Y-m-d H:i:s'),
               'compare' => '>=', // Only get events starting after the current date
               'type'    => 'DATETIME',
           ),

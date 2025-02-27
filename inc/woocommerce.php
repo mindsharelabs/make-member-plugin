@@ -258,12 +258,19 @@ endif;
 
 
 function make_event_has_available_tickets($event_id) {
-    $tickets = Tribe__Tickets__Tickets::get_all_event_tickets($event_id);
-    foreach ($tickets as $ticket) {
-		
-        if ($ticket->available() > 0) {
-            return true;
-        }
-    }
+	if(!function_exists('wc_get_product')) :
+		return false;
+	endif;
+	//get_linked_product
+	$product_id = get_post_meta($event_id, 'linked_product', true);
+
+	if($product_id) :
+		$product = wc_get_product($product_id);
+		if(!$product) :
+			return false;
+		else :
+			return $product->is_in_stock();
+		endif;
+	endif;
     return false;
 }
