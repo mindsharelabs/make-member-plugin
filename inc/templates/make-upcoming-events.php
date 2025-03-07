@@ -59,7 +59,7 @@ if(!$is_preview) :
                         }
                         echo '<div class="card-body">';
                             echo '<a href="' . get_the_permalink($parent) . '">';
-                                echo '<h5 class="card-title text-center fw-bold">' . get_the_title($event) . '</h5>';
+                                echo '<h5 class="card-title text-center fw-bold">' . get_the_title($parent) . '</h5>';
                             echo '</a>';    
                             echo '<p class="card-tex text-center strong fw-bold">' . $start_date->format('M j @ g:i a') . '</p>';
                             
