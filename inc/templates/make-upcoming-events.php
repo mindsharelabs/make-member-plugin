@@ -31,9 +31,9 @@ if(!$is_preview) :
     $settings = get_field('make_upcoming_events');
     $args = array();
     if($settings['event_categories']) {
-        $args['tax_query'] = array(
+        $args['tax_query'][] = array(
             'taxonomy' => 'event_category',
-            'field' => 'term-id',
+            'field' => 'term_id',
             'terms' => $settings['event_categories'],
         );
     }
@@ -72,7 +72,7 @@ if(!$is_preview) :
                             
                             
                             if($settings['show_excerpt']):
-                                echo '<p class="excerpt">' . get_the_excerpt( $event ) . '</h5>';
+                                echo '<p class="excerpt">' . get_the_excerpt( $parent ) . '</h5>';
                             endif;
                             
                             

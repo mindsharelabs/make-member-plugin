@@ -536,6 +536,7 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
       ),
   );
   $args = wp_parse_args($args, $default_args);
+  
   $events = new WP_Query($args);
   
   if($events->have_posts()) :

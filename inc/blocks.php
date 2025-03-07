@@ -398,7 +398,7 @@ add_action( 'acf/include_fields', function() {
 							'class' => '',
 							'id' => '',
 						),
-						'taxonomy' => 'tribe_events_cat',
+						'taxonomy' => 'event_category',
 						'add_term' => 0,
 						'save_terms' => 0,
 						'load_terms' => 0,
