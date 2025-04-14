@@ -277,26 +277,27 @@ class makeProfile {
       // Updated compatibility with WooCommerce 3+
       $order_id = method_exists( $customer_order, 'get_id' ) ? $customer_order->get_id() : $customer_order->id;
       $order = wc_get_order( $customer_order );
-
+      if($order) :
       // Iterating through each current customer products bought in the order
-      foreach ($order->get_items() as $item) {
-          // WC 3+ compatibility
-          if ( version_compare( WC_VERSION, '3.0', '<' ) ) :
-              $product_id = $item['product_id'];
-          else :
-              $product_id = $item->get_product_id();
-          endif;
+        foreach ($order->get_items() as $item) :
+            // WC 3+ compatibility
+            if ( version_compare( WC_VERSION, '3.0', '<' ) ) :
+                $product_id = $item['product_id'];
+            else :
+                $product_id = $item->get_product_id();
+            endif;
 
-          $terms = get_the_terms( $product_id, 'product_cat' );
-          if($terms) :
-            foreach ($terms as $term) :
-              if($this->workshopCategory == $term->slug) :
-                $bought = true;
-                break;
-              endif;
-            endforeach;
-          endif;
-      }
+            $terms = get_the_terms( $product_id, 'product_cat' );
+            if($terms) :
+              foreach ($terms as $term) :
+                if($this->workshopCategory == $term->slug) :
+                  $bought = true;
+                  break;
+                endif;
+              endforeach;
+            endif;
+        endforeach;
+      endif;
     }
     // return "true" if one the specifics products have been bought before by customer
     return $bought;

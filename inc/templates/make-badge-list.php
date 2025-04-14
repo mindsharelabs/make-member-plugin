@@ -50,7 +50,7 @@ echo '<div class="' . $className . '" id= "' . $id .'">';
         $badge_icon = wp_get_attachment_image( get_field('badge_image', get_the_id()), 'thumbnail', false );
 
         echo '<div class="col-6 col-md-4 col-lg-3">';
-            echo '<div class="card p-2 badge-card text-center d-flex flex-column justify-content-center h-100">';
+            echo '<div class="card p-2 badge-card text-center d-flex flex-column h-100">';
                 echo ($badge_icon ? '<div class="badge-image">' . $badge_icon . '</div>' : null);
                 echo '<div class="badge__title">';
                     echo '<a href="' . get_the_permalink() . '">';

@@ -8,7 +8,6 @@ add_filter('mindevents_attendee_columns', function($columns) {
 	return $columns;
 });
 
-
 add_filter('mindevents_attendee_data', function($data) {
 	$membership_text = '';
 	$badges = '';
