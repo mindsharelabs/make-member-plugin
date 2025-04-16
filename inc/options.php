@@ -401,15 +401,16 @@ function makesf_get_signin_data() {
   foreach($badge_signins as $key => $value) {
     
     $label = (is_int($key) ? get_the_title($key) : $key);
-    if(!$label) :
-      $label = 'Badge Removed';
+    $exists = post_exists($label);
+    if($exists) :
+      $datasets[] = array(
+        'type' => 'line',
+        'label' => html_entity_decode($label),
+        'data' => $value,
+        'borderWidth' => 3,
+      );
     endif;
-    $datasets[] = array(
-      'type' => 'line',
-      'label' => html_entity_decode($label),
-      'data' => $value,
-      'borderWidth' => 3,
-    );
+    
     
   }
 
