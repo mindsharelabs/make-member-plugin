@@ -135,7 +135,7 @@ function make_get_member_scan() {
 			$user = get_user_by('id', $userID);
 			
 		endif;
-
+		mapi_write_log('User ID: ' . $userID);
 
 		$html = '';
 		$return = array();
@@ -146,75 +146,57 @@ function make_get_member_scan() {
 	
 			// $html .= make_output_profile_container($user);
 
-			$has_waiver = make_check_user_waiver($user->ID);
+			$has_waiver = make_check_form_submission($user->ID, 27, 34);
+			$has_member_agreement = make_check_form_submission($user->ID, 45, 16);
 			
+
 			//if we still don't have a waiver, send a notice. 
 			if(!$has_waiver) :	
-				$html .= '<div class="alert alert-danger text-center"><h1>No Safety Waiver!</h1><h2>Please log into your online profile and sign our safety waiver.</h2></div>';	
-				$return['status'] = 'nosafety';
-			elseif(!empty($memberships)) :
-				$all_badges = new WP_Query(array(
-					'post_type' => 'certs',
-					'posts_per_page' => -1,
-					'meta_query'    => array(
-						'relation'      => 'AND',
-						array(
-							'key'       => 'use_for_sign_in',
-							'value'     => '1',
-							'compare'   => '=',
-						),
-					)
-				));
-				if($all_badges->have_posts()) :
-					$html .= '<div class="badge-list d-flex">';
-					$html .=	'<div class="badge-header text-center">';
-						$html .= '<h3 class="name">Hi, ' . $user->data->display_name . '</h3>';
-						$html .= '<h4>Which of your badges are you using today?</h3>';
-					$html .= '</div>';
-								
-						while($all_badges->have_posts()) :
-							$all_badges->the_post();
+				$return['html'] = '<div class="alert alert-danger text-center"><h1>No Safety Waiver!</h1><h2>Please log into your online profile and sign our safety waiver.</h2></div>';	
+				$return['status'] = 'failed';
+				$return['code'] = 'waiver';
+				wp_send_json_success( $return );
+			endif;	
 
-							$user_badges = get_field('certifications', 'user_' . $user->ID);
-							
-							$class = 'not-allowed';
-							if($user_badges) :
-								if(in_array(get_the_id(), $user_badges)) :
-									$class = '';
-								endif;
-							endif;
+			if(!$has_member_agreement) :	
+				$return['html'] = '<div class="alert alert-danger text-center"><h1>No Member Agreement!</h1><h2>Please log into your online profile and sign our member agreement.</h2></div>';	
+				$return['status'] = 'failed';
+				$return['code'] = 'memberagreement';
+				wp_send_json_success( $return );
+			endif;
 
-							$html .= '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
-								$badge_image = get_field('badge_image', get_the_id());
-								$html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
-								$html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
-							$html .= '</div>';
-
-						endwhile;
+			if(empty($memberships)) :
+				$return['html'] = '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';		
+				$return['status'] = 'failed';
+				$return['code'] = 'nomembership';
+				wp_send_json_success( $return );
+			endif;
 
 
-						// Add additional activities that are not badges
-						$html .= '<div class="badge-item w-100 text-center" data-badge="volunteer">';
-							$html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
-						$html .= '</div>';
+			if(!empty($memberships)) :
+				$html .= '<div class="badge-header text-center">';
+					$html .= '<h3 class="name">Hi, ' . $user->data->display_name . '</h3>';
+					$html .= '<h4>Which of your badges are you using today?</h3>';
+				$html .= '</div>';
 
-						$html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
-							$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
-						$html .= '</div>';
+				$html .= make_list_sign_in_badges($user);
+				
+				// Add additional activities that are not badges
+				$html .= '<div class="badge-item w-100 text-center" data-badge="volunteer">';
+					$html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
+				$html .= '</div>';
 
-						$html .= '<div class="badge-item w-100 text-center" data-badge="other">';
-							$html .= '<span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
-						$html .= '</div>';
+				$html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
+					$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+				$html .= '</div>';
 
+				$html .= '<div class="badge-item w-100 text-center" data-badge="other">';
+					$html .= '<span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
+				$html .= '</div>';
 
-
-					$html .= '</div>';
-				endif;
+				$html .= '</div>';
 			
 				$html .='<div class="badge-footer text-center mt-3"><button disabled data-user="' . $user->ID . '" class="btn btn-primary btn-lg sign-in-done">Done!</button></div>';
-			else :
-				$return['status'] = 'nomembership';
-				$html .= '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';		
 			endif;
 
 	
@@ -227,9 +209,52 @@ function make_get_member_scan() {
 		$return['html'] = $html;
 	
 		wp_send_json_success( $return );
+		
 	endif;
 	
 
+}
+
+
+function make_list_sign_in_badges($user) {
+	$all_badges = new WP_Query(array(
+		'post_type' => 'certs',
+		'posts_per_page' => -1,
+		'meta_query'    => array(
+			'relation'      => 'AND',
+			array(
+				'key'       => 'use_for_sign_in',
+				'value'     => '1',
+				'compare'   => '=',
+			),
+		)
+	));
+	$html = '<div class="badge-list d-flex">';
+	if($all_badges->have_posts()) :
+	
+				
+		while($all_badges->have_posts()) :
+			$all_badges->the_post();
+
+			$user_badges = get_field('certifications', 'user_' . $user->ID);
+			
+			$class = 'not-allowed';
+			if($user_badges) :
+				if(in_array(get_the_id(), $user_badges)) :
+					$class = '';
+				endif;
+			endif;
+
+			$html .= '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
+				$badge_image = get_field('badge_image', get_the_id());
+				$html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
+				$html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
+			$html .= '</div>';
+
+		endwhile;
+	endif;
+
+	return $html;
 }
 
 
@@ -307,7 +332,7 @@ function make_output_profile_container($user) {
 }
 
 
-function make_check_user_waiver($user_id) {
+function make_check_form_submission($user_id, $form_id, $field_id) {
 	
 	if(class_exists('GFAPI')) :
 		$user_info = get_userdata($user_id);
@@ -323,17 +348,15 @@ function make_check_user_waiver($user_id) {
 	              'value' => $user_id
 	          ),
 	          array(
-	              'key'   => '34',
+	              'key'   => $field_id,
 	              'value' => $user_email
 	          )
 	      )
 	    );
-	    $entries = $form->get_entries( 27, $search_criteria);
+	    $entries = $form->get_entries( $form_id, $search_criteria);
 	    if(count($entries) > 0) {
-	      update_user_meta( $user_id, 'waiver_complete', true );
 	      return true;
 	    } else {
-	      update_user_meta( $user_id, 'waiver_complete', false );
 	      return false;
 	    }
 	endif;

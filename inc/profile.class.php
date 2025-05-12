@@ -8,6 +8,7 @@ class makeProfile {
   private $options = '';
   private $waiverURL = '';
   private $membershipURL = '';
+  private $agreementURL = '';
   private $badgesURL = '';
   // private $forumURL = '';
   private $workshopsURL = '';
@@ -25,16 +26,16 @@ class makeProfile {
     $this->userID = get_current_user_id();
 
     $this->options = get_option( 'makesf_support_settings' );
+    mapi_write_log($this->options);
 
     if($this->userID) :
       $this->waiverURL = (isset($this->options['makesf_waiver_url']) ? $this->options['makesf_waiver_url'] : false);
+      $this->agreementURL = (isset($this->options['makesf_agreement_url']) ? $this->options['makesf_agreement_url'] : false);
       $this->membershipURL = (isset($this->options['makesf_membership_url']) ? $this->options['makesf_membership_url'] : false);
-      $this->badgesURL = (isset($this->options['makesf_badges_url']) ? $this->options['makesf_badges_url'] : false);
+      $this->badgesURL = (isset($this->options['makesf_badge_url']) ? $this->options['makesf_badge_url'] : false);
 
-      $this->workshopsURL = (isset($this->options['makesf_workshops_url']) ? $this->options['makesf_workshops_url'] : false);
       $this->sharingURL = (isset($this->options['makesf_share_url']) ? $this->options['makesf_share_url'] : false);
 
-      $this->workshopCategory = (isset($this->options['makesf_workshop_category']) ? $this->options['makesf_workshop_category'] : false);
 
       if(function_exists('get_field')) :
         $this->memberResources = get_field('member_resources', 'options');
@@ -142,7 +143,7 @@ class makeProfile {
       $max = 100/$count;
       echo '<div class="progress-container d-flex flex-column flex-md-row mt-3 mb-3">';
       foreach ($maker_steps as $key => $step) :
-        echo $this->get_progress_bar($step['label'], $max, 0, $step['complete'], $step['link']);
+        echo $this->get_progress_bar($step['label'], $step['complete'], $step['link']);
         if(next($maker_steps)) :
           echo '<span class="d-block p-2"><i class="fas fa-arrow-right"></i></span>';
         endif;
@@ -151,7 +152,7 @@ class makeProfile {
     endif;
   }
 
-  private function get_progress_bar($label, $max, $min, $complete, $link) {
+  private function get_progress_bar($label, $complete, $link) {
     $color = ($complete) ? 'bg-success' : 'bg-danger';
     $icon = ($complete) ? 'fas fa-check-circle' : 'fas fa-times-circle';
 
@@ -165,31 +166,33 @@ class makeProfile {
 
   private function get_profile_steps() {
     return array(
+      'waiver' => array(
+        'label' => 'Sign a safety waiver',
+        'complete' => $this->has_form_submission(27, 34),
+        'link' => $this->waiverURL
+      ),
       'membership' => array(
         'label' => 'Start your membership',
         'complete' => $this->has_membership(),
         'link' => $this->membershipURL
-      ),
-      'waiver' => array(
-        'label' => 'Sign a safety waiver',
-        'complete' => $this->has_waiver(),
-        'link' => $this->waiverURL
-      ),
-      'profile' => array(
-        'label' => 'Share your profile',
-        'complete' => $this->has_profile(),
-        'link' => $this->profileURL
       ),
       'badge' => array(
         'label' => 'Get a badge',
         'complete' => $this->has_badge(),
         'link' => $this->badgesURL
       ),
-      'workshop' => array(
-        'label' => 'Take a workshop',
-        'complete' => $this->has_workshop(),
-        'link' => $this->workshopsURL
+      'membership_agreement' => array(
+        'label' => 'Sign the membership agreement',
+        // 'complete' => $this->has_form_submission(43, 16), //staging site
+        'complete' => $this->has_form_submission(45, 16),//live site
+        'link' => $this->agreementURL
       ),
+      'profile' => array(
+        'label' => 'Share your profile',
+        'complete' => $this->has_profile(),
+        'link' => $this->profileURL
+      ),
+
     );
   }
 
@@ -203,7 +206,7 @@ class makeProfile {
   }
 
 
-  private function has_waiver(){
+  private function has_form_submission($form_id, $field_id) {
     // bail if Gravity Forms isn't active
     if (! class_exists ('GFAPI')) {
       return;
@@ -220,19 +223,12 @@ class makeProfile {
               'value' => $this->userID 
           ),
           array(
-              'key'   => '34',
+              'key'   => $field_id, //34 is the email field in the waiver
               'value' => $user_email
           )
       )
     );
-    $entries = $form->get_entries( 27, $search_criteria);
-    if(count($entries) > 0) {
-      update_user_meta( $this->userID, 'waiver_complete', true );
-      return true;
-    } else {
-      update_user_meta( $this->userID, 'waiver_complete', false );
-      return false;
-    }
+    $entries = $form->get_entries( $form_id, $search_criteria); //27 is the waiver
   }
 
   private function has_profile() {
@@ -249,61 +245,6 @@ class makeProfile {
   }
 
 
-  private function has_forum(){
-    $posts = get_posts(array(
-      'post_type' => array('reply', 'topic'),
-      'author' => $this->userID
-    ));
-    if(count($posts) > 0) :
-      return true;
-    else :
-      return false;
-    endif;
-  }
-
-
-  function has_workshop() {
-    $bought = false;
-
-    // Get all customer orders
-    $customer_orders = get_posts( array(
-        'numberposts' => -1,
-        'meta_key'    => '_customer_user',
-        'meta_value'  => $this->userID,
-        'post_type'   => 'shop_order', // WC orders post type
-        'post_status' => 'wc-completed' // Only orders with status "completed"
-    ));
-    foreach ( $customer_orders as $customer_order ) {
-      // Updated compatibility with WooCommerce 3+
-      $order_id = method_exists( $customer_order, 'get_id' ) ? $customer_order->get_id() : $customer_order->id;
-      $order = wc_get_order( $customer_order );
-      if($order) :
-      // Iterating through each current customer products bought in the order
-        foreach ($order->get_items() as $item) :
-            // WC 3+ compatibility
-            if ( version_compare( WC_VERSION, '3.0', '<' ) ) :
-                $product_id = $item['product_id'];
-            else :
-                $product_id = $item->get_product_id();
-            endif;
-
-            $terms = get_the_terms( $product_id, 'product_cat' );
-            if($terms) :
-              foreach ($terms as $term) :
-                if($this->workshopCategory == $term->slug) :
-                  $bought = true;
-                  break;
-                endif;
-              endforeach;
-            endif;
-        endforeach;
-      endif;
-    }
-    // return "true" if one the specifics products have been bought before by customer
-    return $bought;
-  }
-
-
 
 
 
@@ -315,3 +256,54 @@ add_action('init', 'makesf_start_er_up');
 function makesf_start_er_up(){
   new makeProfile();
 }
+
+
+
+
+
+
+
+
+//if the current user fills out the Waiver and Release of Liability, then we add this user meta
+add_action( 'gform_after_submission_27', function ( $entry, $form ) {
+  if (! class_exists ('GFAPI')) {
+    return;
+  }
+
+  if($entry['created_by']) :
+    update_user_meta( $entry['created_by'], 'waiver_complete', true );
+  else :
+    $user = get_user_by('email', $entry['34']);
+    if($user) :
+      $forms = new GFAPI();
+      $forms->update_entry_property( $entry['id'], 'created_by', $user->ID );
+      update_user_meta( $user->ID, 'waiver_complete', true );
+    endif;
+  endif;
+
+
+}, 10, 2 );
+
+
+
+//if the current user fills out the Member Agreement, then we add this user meta
+add_action( 'gform_after_submission_45', function ( $entry, $form ) {
+  if (! class_exists ('GFAPI')) {
+    return;
+  }
+
+  if($entry['created_by']) :
+    update_user_meta( $entry['created_by'], 'agreement_complete', true );
+  else :
+    $user = get_user_by('email', $entry['16']);
+    if($user) :
+      $forms = new GFAPI();
+      $forms->update_entry_property( $entry['id'], 'created_by', $user->ID );
+      update_user_meta( $user->ID, 'agreement_complete', true );
+    endif;
+  endif;
+
+}, 10, 2 );
+
+
+

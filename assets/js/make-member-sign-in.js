@@ -64,42 +64,23 @@
                     $('#member-list').addClass('d-none');
                     $('#memberSearch').val('');
                     metaContainer.html('<div class="loading"><div><i class="fas fa-spinner fa-spin"></i></div></div>');
-                   
+                    console.log('Loading user data...');
                 },
                 success: function(response) {
                   
-                   
                     if(response.data.status == 'userfound') {
                         metaContainer.html(response.data.html);
 
-                    } else if(response.data.status == 'nomembership') {
+                    } else {
                         metaContainer.html(response.data.html);
 
                         setTimeout(function() { 
                             metaContainer.html('');
                             $('#member-list').removeClass('d-none');
-        
+                            loadMembers();
                         }, 10000);
 
 
-                    } else if(response.data.status == 'nouser') {
-                        metaContainer.html(response.data.html);
-                        
-                        setTimeout(function() { 
-                            metaContainer.html('');
-                            $('#member-list').removeClass('d-none');
-
-                        }, 10000);
-
-                    } else if(response.data.status == 'nosafety') {
-                        metaContainer.html(response.data.html);
-                        
-
-                        setTimeout(function() { 
-                            metaContainer.html('');
-                            $('#member-list').removeClass('d-none');
-          
-                        }, 10000);
                     }
 
                 },
