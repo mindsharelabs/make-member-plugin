@@ -39,22 +39,41 @@ add_action('acf/init', function () {
 				'align' => false,
 			),
 			'enqueue_assets' => function(){
+				// Only enqueue scripts on frontend pages, not admin pages
+				if (is_admin()) {
+					return;
+				}
+				
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
 				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
 
+				// Volunteer styles
+				wp_register_style( 'make-volunteer-styles', MAKESF_URL . 'assets/css/volunteer.css', array('make-block-styles'),  MAKESF_PLUGIN_VERSION);
+				add_action( 'get_footer', function () {wp_enqueue_style('make-volunteer-styles');});
+
+				// Use unified sign-in JavaScript implementation
 				wp_register_script('list-min-js', MAKESF_URL . 'assets/js/list.min.js', array('jquery'), MAKESF_PLUGIN_VERSION, false);
-				wp_enqueue_script('list-min-js');
+				add_action( 'get_footer', function () {wp_enqueue_script('list-min-js');});
 
-				wp_register_script('make-sign-in-scripts', MAKESF_URL . 'assets/js/make-member-sign-in.js', array('jquery', 'list-min-js'), MAKESF_PLUGIN_VERSION, true);
-				wp_enqueue_script('make-sign-in-scripts');
-				wp_localize_script( 'make-sign-in-scripts', 'makeMember', array(
-					'ajax_url' => admin_url( 'admin-ajax.php' ),
-					'postID' => get_the_id(),
-					'data' => array()
-				));
+				wp_register_script('make-sign-in-scripts', MAKESF_URL . 'assets/js/make-member-sign-in-unified.js', array('jquery', 'list-min-js'), MAKESF_PLUGIN_VERSION, true);
+				add_action( 'get_footer', function () {wp_enqueue_script('make-sign-in-scripts');});
 
+				// Volunteer scripts
+				wp_register_script('make-volunteer-scripts', MAKESF_URL . 'assets/js/volunteer.js', array('jquery', 'make-sign-in-scripts'), MAKESF_PLUGIN_VERSION, true);
+				add_action( 'get_footer', function () {wp_enqueue_script('make-volunteer-scripts');});
 
+				// Defer script localization to footer to ensure scripts are enqueued first
+				add_action( 'get_footer', function () {
+					wp_localize_script( 'make-sign-in-scripts', 'makeMember', array(
+						'ajax_url' => admin_url( 'admin-ajax.php' ),
+						'postID' => get_the_id(),
+						'volunteer_nonce' => wp_create_nonce('makesf_volunteer_nonce'),
+						'signin_nonce' => wp_create_nonce('makesf_signin_nonce'),
+						'config' => MakeSF_Config::get_js_config(),
+						'data' => array()
+					));
+				});
 			})
 		);
 
@@ -76,14 +95,6 @@ add_action('acf/init', function () {
 				// We're just registering it here and then with the action get_footer we'll enqueue it.
 				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(),  MAKESF_PLUGIN_VERSION);
 				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
-
-				// wp_register_script('make-sign-in-scripts', MAKESF_URL . 'assets/js/make-member-sign-in.js', array('jquery', 'list-min-js'), MAKESF_PLUGIN_VERSION, true);
-				// wp_enqueue_script('make-sign-in-scripts');
-				// wp_localize_script( 'make-sign-in-scripts', 'makeMember', array(
-				// 	'ajax_url' => admin_url( 'admin-ajax.php' ),
-				// 	'postID' => get_the_id(),
-				// 	'data' => array()
-				// ));
 
 
 			})

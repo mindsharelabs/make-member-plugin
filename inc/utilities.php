@@ -121,103 +121,139 @@ endif;
 
 
 
-//Gets all current members and returns an arrayt of user objects
+/**
+ * Gets all current members and returns an array of user objects
+ *
+ * @return array|null Array of user objects or null on failure
+ */
 function make_get_active_members(){
+ try {
   global $wpdb;
+  
   // Getting all User IDs and data for a membership plan
-  return $wpdb->get_results( "
-      SELECT DISTINCT um.user_id
-      FROM {$wpdb->prefix}posts AS p
-      LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
-      LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
-      LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
-      WHERE p.post_type = 'wc_user_membership'
-      AND p.post_status IN ('wcm-active')
-      AND p2.post_type = 'wc_membership_plan'
-      LIMIT 999
-  ");
+  $results = $wpdb->get_results( $wpdb->prepare("
+  	SELECT DISTINCT um.user_id
+  	FROM {$wpdb->prefix}posts AS p
+  	LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
+  	LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
+  	LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
+  	WHERE p.post_type = %s
+  	AND p.post_status IN (%s)
+  	AND p2.post_type = %s
+  	LIMIT 999
+  ", 'wc_user_membership', 'wcm-active', 'wc_membership_plan'));
+  
+  return $results;
+  
+ } catch (Exception $e) {
+  error_log('Make Get Active Members Error: ' . $e->getMessage());
+  return null;
+ }
 }
 
 
-//Get's all current members and returns them as an array of user ids
+/**
+ * Gets all current members and returns them as an array of user IDs
+ *
+ * @return array Array of user IDs
+ */
 function make_get_active_members_array(){
-  global $wpdb;
-  // Getting all User IDs and data for a membership plan
-  $members = $wpdb->get_results( "
-      SELECT DISTINCT um.user_id
-      FROM {$wpdb->prefix}posts AS p
-      LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
-      LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
-      LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
-      WHERE p.post_type = 'wc_user_membership'
-      AND p.post_status IN ('wcm-active')
-      AND p2.post_type = 'wc_membership_plan'
-      LIMIT 999
-  ");
+	try {
+		global $wpdb;
+		
+		// Getting all User IDs and data for a membership plan
+		$members = $wpdb->get_results( $wpdb->prepare("
+			SELECT DISTINCT um.user_id
+			FROM {$wpdb->prefix}posts AS p
+			LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
+			LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
+			LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
+			WHERE p.post_type = %s
+			AND p.post_status IN (%s)
+			AND p2.post_type = %s
+			LIMIT 999
+		", 'wc_user_membership', 'wcm-active', 'wc_membership_plan'));
 
-  $members_array = array();
-  foreach($members as $member) {
-    $members_array[] = $member->user_id;
-  }
+		if (!$members) {
+			return array();
+		}
 
-  return $members_array;
+		$members_array = array();
+		foreach($members as $member) {
+			$members_array[] = intval($member->user_id);
+		}
 
+		return $members_array;
+		
+	} catch (Exception $e) {
+		error_log('Make Get Active Members Array Error: ' . $e->getMessage());
+		return array();
+	}
 }
 
 
 
 
 
+/**
+ * Get upcoming events with optional ticket filtering
+ *
+ * @param int $num Number of events to return
+ * @param bool $ticketed Whether to filter by available tickets
+ * @param array $args Additional WP_Query arguments
+ * @param int $page Current page for pagination
+ * @param array $upcoming_events Accumulated events (for recursion)
+ * @return array Array of upcoming events
+ */
 function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $page = 1, $upcoming_events = array()) {
+	try {
+		$default_args = array(
+			'post_type' => 'sub_event',
+			'posts_per_page' => ($num > 12 ? $num : 12),
+			'meta_key'       => 'event_time_stamp',
+			'orderby'        => 'meta_value',
+			'order'          => 'ASC',
+			'paged'          => $page,
+			'meta_query'     => array(
+				array(
+					'key'     => 'event_time_stamp',
+					'value'   => current_time('Y-m-d H:i:s'),
+					'compare' => '>=',
+					'type'    => 'DATETIME',
+				),
+			),
+		);
+		$args = wp_parse_args($args, $default_args);
+		
+		$events = new WP_Query($args);
+		
+		if($events->have_posts()) :
+			while($events->have_posts()) :
+				$events->the_post();
+				if(count($upcoming_events) < $num) :
+					if($ticketed) :
+						if(function_exists('make_event_has_available_tickets') && make_event_has_available_tickets(get_the_id())) :
+							$upcoming_events[get_the_id()] = esc_html(get_the_title());
+						endif;
+					else :
+						$upcoming_events[get_the_id()] = esc_html(get_the_title());
+					endif;
+				endif;
+			endwhile;
+			wp_reset_postdata();
+		endif;
 
+		// Recursive pagination if we need more events
+		if(count($upcoming_events) < $num && $events->max_num_pages >= ($page + 1)) :
+			$args['paged'] = $page + 1;
+			$upcoming_events = make_get_upcoming_events($num, $ticketed, $args, $page + 1, $upcoming_events);
+		endif;
 
-  $default_args = array(
-      'post_type' => 'sub_event',
-      'posts_per_page' => ($num > 12 ? $num : 12),
-      'meta_key'       => 'event_time_stamp', // Meta field for the event start date
-      'orderby'        => 'meta_value', // Order by the event start date
-      'order'          => 'ASC', // Ascending order (earliest events first)
-      'paged'          => $page,
-      'meta_query'     => array(
-          array(
-              'key'     => 'event_time_stamp',
-              'value'   => date('Y-m-d H:i:s'),
-              'compare' => '>=', // Only get events starting after the current date
-              'type'    => 'DATETIME',
-          ),
-      ),
-  );
-  $args = wp_parse_args($args, $default_args);
-  
-  $events = new WP_Query($args);
-  
-  if($events->have_posts()) :
-      while($events->have_posts()) :
-          $events->the_post();
-          if(count($upcoming_events) < $num) :
-              if($ticketed) :
-                  if(make_event_has_available_tickets(get_the_id())) :
-                      $upcoming_events[get_the_id()] = get_the_title();
-                  endif;
-              else :
-                  $upcoming_events[get_the_id()] = get_the_title();
-              endif;  
-          endif;
-          
-      endwhile;
-  endif;
-
-
-  if(count($upcoming_events) < $num) :
-      $page = $page + 1;
-      if($events->max_num_pages >= $page) :
-          $args['paged'] = $page;
-          $upcoming_events = make_get_upcoming_events($num, $ticketed, $args, $page, $upcoming_events);
-      else :
-          return $upcoming_events;    
-      endif;    
-  endif;
-
-  return $upcoming_events;
+		return $upcoming_events;
+		
+	} catch (Exception $e) {
+		error_log('Make Get Upcoming Events Error: ' . $e->getMessage());
+		return $upcoming_events; // Return what we have so far
+	}
 }
 

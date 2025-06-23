@@ -1,0 +1,848 @@
+/* Volunteer Admin Styles */
+
+.volunteer-admin {
+  max-width: 1200px;
+}
+
+/* Dashboard Stats Grid */
+.volunteer-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card:hover,
+.stat-card.hover {
+  border-color: #2271b1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.stat-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #646970;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: #2271b1;
+  margin: 10px 0;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #646970;
+  margin: 0;
+}
+
+/* Dashboard Grid */
+.volunteer-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.dashboard-section {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.dashboard-section h2 {
+  margin: 0 0 20px 0;
+  padding: 0 0 10px 0;
+  border-bottom: 1px solid #c3c4c7;
+  font-size: 18px;
+  color: #1d2327;
+}
+
+/* Status Indicators */
+.status-active {
+  color: #00a32a;
+  font-weight: bold;
+}
+
+.status-completed {
+  color: #646970;
+}
+
+.active-session {
+  color: #d63638;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+.calculating {
+  color: #dba617;
+  font-style: italic;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Schedule Status */
+.schedule-status {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.schedule-status.on-time {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.schedule-status.early {
+  background: #cff4fc;
+  color: #055160;
+}
+
+.schedule-status.late {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.schedule-status.unscheduled {
+  background: #fff3cd;
+  color: #664d03;
+}
+
+/* Priority Indicators */
+.priority-urgent {
+  color: #d63638;
+  font-weight: bold;
+}
+
+.priority-high {
+  color: #d63638;
+}
+
+.priority-medium {
+  color: #dba617;
+}
+
+.priority-low {
+  color: #00a32a;
+}
+
+/* Task Count */
+.task-count {
+  background: #2271b1;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+/* Schedule Grid */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.day-schedule {
+  background: #f6f7f7;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 15px;
+  min-height: 150px;
+}
+
+.day-schedule h3 {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #1d2327;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #c3c4c7;
+}
+
+.schedule-item {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 3px;
+  padding: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.volunteer-name {
+  font-weight: bold;
+  color: #1d2327;
+  margin-bottom: 4px;
+}
+
+.schedule-time {
+  color: #646970;
+  font-size: 11px;
+}
+
+.no-schedules {
+  color: #646970;
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Report Filters */
+.report-filters {
+  background: #f6f7f7;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-filters select {
+  min-width: 150px;
+}
+
+/* Report Stats */
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+/* Chart Containers */
+.report-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 30px 0;
+}
+
+.chart-container {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.chart-container h3 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  color: #1d2327;
+  text-align: center;
+}
+
+.chart-container canvas {
+  max-height: 300px;
+}
+
+/* Table Enhancements */
+.volunteer-admin .wp-list-table {
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.volunteer-admin .wp-list-table th {
+  background: #f6f7f7;
+  border-bottom: 1px solid #c3c4c7;
+  font-weight: 600;
+}
+
+.volunteer-admin .wp-list-table tbody tr:hover,
+.volunteer-admin .wp-list-table tbody tr.hover {
+  background: #f6f7f7;
+}
+
+.volunteer-admin .wp-list-table td {
+  vertical-align: middle;
+}
+
+/* Task Description */
+.task-description {
+  font-size: 12px;
+  color: #646970;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* Button Enhancements */
+.volunteer-admin .button-small {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-right: 5px;
+}
+
+.volunteer-admin .button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Search Box */
+.table-search {
+  margin-bottom: 15px;
+}
+
+.table-search input {
+  width: 300px;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+  margin-bottom: 15px;
+  padding: 10px;
+  background: #f6f7f7;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+}
+
+.bulk-actions select {
+  margin-right: 10px;
+}
+
+/* Notices */
+.volunteer-admin .notice {
+  margin: 15px 0;
+  border-left-width: 4px;
+  border-left-style: solid;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.volunteer-admin .notice-success {
+  border-left-color: #00a32a;
+}
+
+.volunteer-admin .notice-error {
+  border-left-color: #d63638;
+}
+
+/* Loading States */
+.loading-overlay {
+  position: relative;
+}
+
+.loading-overlay::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .volunteer-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .schedule-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .volunteer-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .schedule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .report-filters select,
+  .report-filters button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .table-search input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .volunteer-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .volunteer-admin .wp-list-table {
+    font-size: 12px;
+  }
+
+  .volunteer-admin .button-small {
+    padding: 1px 4px;
+    font-size: 10px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .volunteer-admin .button,
+  .report-filters,
+  .bulk-actions,
+  .table-search {
+    display: none !important;
+  }
+
+  .volunteer-admin .wp-list-table {
+    border: 1px solid #000;
+  }
+
+  .volunteer-admin .wp-list-table th,
+  .volunteer-admin .wp-list-table td {
+    border: 1px solid #000;
+    padding: 5px;
+  }
+
+  .stat-card {
+    border: 1px solid #000;
+    break-inside: avoid;
+  }
+}
+
+/* Accessibility Enhancements */
+.volunteer-admin .button:focus,
+.volunteer-admin select:focus,
+.volunteer-admin input:focus {
+  outline: 2px solid #2271b1;
+  outline-offset: 2px;
+}
+
+.volunteer-admin .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .stat-card {
+    border-width: 2px;
+  }
+
+  .schedule-status {
+    border: 1px solid currentColor;
+  }
+
+  .task-count {
+    border: 1px solid #fff;
+  }
+}
+
+/* Session Modal Styles */
+.volunteer-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100000;
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.modal-container {
+  position: relative;
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  margin: 5vh auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background: #f6f7f7;
+  border-bottom: 1px solid #c3c4c7;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #1d2327;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #646970;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #c3c4c7;
+  color: #1d2327;
+}
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Session Details Styles */
+.session-details {
+  max-width: 100%;
+}
+
+.session-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #c3c4c7;
+}
+
+.volunteer-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  color: #1d2327;
+}
+
+.volunteer-email {
+  margin: 0;
+  color: #646970;
+  font-size: 14px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.status-active {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.status-badge.status-completed {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+/* Session Times */
+.session-times {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 25px;
+}
+
+.time-field {
+  margin-bottom: 15px;
+}
+
+.time-field:last-of-type {
+  margin-bottom: 20px;
+}
+
+.time-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #1d2327;
+}
+
+.time-field input[type="datetime-local"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.time-field input[readonly] {
+  background: #f6f7f7;
+  color: #646970;
+}
+
+.duration-display {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.duration-display strong {
+  color: #1d2327;
+}
+
+/* Session Tasks */
+.session-tasks {
+  margin-bottom: 25px;
+}
+
+.session-tasks h4 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #1d2327;
+}
+
+.tasks-list {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 15px;
+  min-height: 60px;
+}
+
+.task-item {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-item:last-child {
+  margin-bottom: 0;
+}
+
+.task-name {
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.task-category {
+  background: #2271b1;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.no-tasks {
+  color: #646970;
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Session Notes */
+.session-notes {
+  margin-bottom: 25px;
+}
+
+.session-notes h4 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #1d2327;
+}
+
+.session-notes textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #8c8f94;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Session Actions */
+.session-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #c3c4c7;
+}
+
+.session-actions .button {
+  min-width: 120px;
+}
+
+/* Loading and Error States */
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: #646970;
+}
+
+.loading-spinner::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #c3c4c7;
+  border-top: 2px solid #2271b1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px;
+  color: #d63638;
+  background: #f8d7da;
+  border: 1px solid #f5c2c7;
+  border-radius: 4px;
+}
+
+/* Body class when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Responsive Modal */
+@media (max-width: 768px) {
+  .modal-container {
+    width: 95%;
+    margin: 2vh auto;
+    max-height: 96vh;
+  }
+
+  .modal-header,
+  .modal-body {
+    padding: 15px;
+  }
+
+  .session-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .session-actions {
+    flex-direction: column;
+  }
+
+  .session-actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-container {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  .time-field input[type="datetime-local"] {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card,
+  .active-session {
+    transition: none;
+    animation: none;
+  }
+
+  .loading-spinner::before {
+    animation: none;
+  }
+
+  .modal-close {
+    transition: none;
+  }
+}

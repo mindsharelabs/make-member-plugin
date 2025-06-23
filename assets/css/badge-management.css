@@ -1,0 +1,141 @@
+/**
+ * Badge Management Styles for Make Member Plugin
+ * Styles for badge award/remove functionality in attendee tables
+ */
+
+/* Badge toggle buttons */
+.make-attendee-badge-toggle {
+  background: #0073aa;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  margin-top: 5px;
+  transition: all 0.3s ease;
+}
+
+.make-attendee-badge-toggle:hover {
+  background: #005a87;
+  transform: translateY(-1px);
+}
+
+.make-attendee-badge-toggle:active {
+  transform: translateY(0);
+}
+
+.make-attendee-badge-toggle:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Badged state (when user has the badge) */
+.make-attendee-badge-toggle.badged {
+  background: #dc3232;
+}
+
+.make-attendee-badge-toggle.badged:hover {
+  background: #a00;
+}
+
+/* Badge status text */
+.make-attendee-badge-toggle .badge-status {
+  font-weight: 500;
+}
+
+/* Badge display in table cells */
+.event-attendees td {
+  vertical-align: top;
+}
+
+.event-attendees td em {
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .make-attendee-badge-toggle {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
+
+/* Integration with existing table styles */
+.wp-list-table .make-attendee-badge-toggle {
+  margin: 2px 0;
+}
+
+/* Loading state */
+.make-attendee-badge-toggle.loading,
+.make-attendee-badge-toggle.processing {
+  background: #666;
+  cursor: wait;
+}
+
+.make-attendee-badge-toggle.loading:hover,
+.make-attendee-badge-toggle.processing:hover {
+  background: #666;
+}
+
+/* Success/Error states */
+.make-attendee-badge-toggle.success {
+  background: #46b450;
+}
+
+.make-attendee-badge-toggle.error {
+  background: #dc3232;
+}
+
+/* Hover effects */
+.make-attendee-badge-toggle.hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Badge column specific styles */
+.event-attendees th:nth-child(4),
+.event-attendees td:nth-child(4) {
+  min-width: 120px;
+}
+
+/* Just updated state - visual feedback after successful action */
+.make-attendee-badge-toggle.just-updated {
+  background: #46b450 !important;
+  box-shadow: 0 0 10px rgba(70, 180, 80, 0.5);
+  transform: scale(1.05);
+}
+
+.make-attendee-badge-toggle.badged.just-updated {
+  background: #46b450 !important;
+}
+
+/* Just updated state for table cells */
+td.just-updated {
+  background: #d4edda !important;
+  transition: background-color 0.3s ease;
+  box-shadow: inset 0 0 5px rgba(70, 180, 80, 0.3);
+}
+
+/* Smooth transitions for dynamic updates */
+.event-attendees td {
+  transition: background-color 0.3s ease;
+}
+
+/* Small badge indicators */
+.badge-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.badge-indicator.has-badge {
+  background: #46b450;
+}
+
+.badge-indicator.no-badge {
+  background: #dc3232;
+}

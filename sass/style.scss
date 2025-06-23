@@ -1,12 +1,12 @@
-$primary:       rgb(190, 32, 46);
-$secondary:     rgb(179, 175, 172);
-$success:       rgba(75,175,7, 1);
-$background:    rgba(250, 251, 252, 1);
-$info:          rgb(225, 233, 214);
-$warning:       rgba(201,169,56, 1);
-$danger:        rgba(201,73,73, 1);
-$light:         rgb(230, 230, 230);
-$dark:          rgba(1, 1, 1, 1);
+$primary: rgb(190, 32, 46);
+$secondary: rgb(179, 175, 172);
+$success: rgba(75, 175, 7, 1);
+$background: rgba(250, 251, 252, 1);
+$info: rgb(225, 233, 214);
+$warning: rgba(201, 169, 56, 1);
+$danger: rgba(201, 73, 73, 1);
+$light: rgb(230, 230, 230);
+$dark: rgba(1, 1, 1, 1);
 
 @mixin transition($speed) {
   -webkit-transition: all $speed ease-in-out;
@@ -15,10 +15,6 @@ $dark:          rgba(1, 1, 1, 1);
   -o-transition: all $speed ease-in-out;
   transition: all $speed ease-in-out;
 }
-
-
-
-
 
 #makesf {
   .makesf-text-field {
@@ -41,21 +37,19 @@ $dark:          rgba(1, 1, 1, 1);
         &:hover {
           background-color: darken($danger, 15%) !important;
         }
-
       }
     }
   }
 }
 
 #memberResources {
-  
   .member-badge {
     border: 1px dashed black;
     .badge-header {
       background: $primary;
       text-align: center;
       padding: 15px;
-      img { 
+      img {
         width: 33%;
         margin: 0 auto;
         height: auto;
@@ -64,7 +58,7 @@ $dark:          rgba(1, 1, 1, 1);
     .badge-body {
       text-align: center;
       h2 {
-        font-size: 1.7em ;
+        font-size: 1.7em;
       }
       h3 {
         font-size: 1.2em;
@@ -97,19 +91,17 @@ $dark:          rgba(1, 1, 1, 1);
       color: $primary;
       width: 100%;
       height: 100%;
-      background: rgba(255, 255, 255, .5);
+      background: rgba(255, 255, 255, 0.5);
     }
     .no-user {
-      
     }
     .email-form {
       width: 500px;
       form {
-
       }
     }
     button:disabled {
-      opacity: .25;
+      opacity: 0.25;
     }
     .badge-list {
       margin-bottom: 300px;
@@ -120,13 +112,13 @@ $dark:          rgba(1, 1, 1, 1);
       background: white;
       bottom: 0;
       padding: 30px;
-      box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
+      box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.1);
     }
   }
   // #reader__dashboard {
   //   display: none;
   // }
-  .profile-container {   
+  .profile-container {
     display: flex;
     cursor: pointer;
     margin-top: 40px;
@@ -142,17 +134,24 @@ $dark:          rgba(1, 1, 1, 1);
       text-align: center;
       border-radius: 10px;
       padding: 15px;
-      -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.2);
-      box-shadow: 0 0 10px 0 rgba(1,1,1,.2);
+      -webkit-box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.2);
+      box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.2);
       img.profile-image {
-        margin-top: -75px; 
+        margin-top: -75px;
         width: 150px;
         height: 150px;
         border-radius: 75px;
         border: 2px solid #eeeeee;
+
+        // Green glow for signed-in volunteers
+        &.volunteer-signed-in {
+          border: 3px solid #28a745;
+          box-shadow: 0 0 15px rgba(40, 167, 69, 0.4);
+        }
       }
       .profile-info {
-        h3 { //name
+        h3 {
+          //name
           margin: 10px 0 0 0;
           font-size: 24px;
         }
@@ -163,42 +162,39 @@ $dark:          rgba(1, 1, 1, 1);
           color: #4f4f4f;
         }
       }
-      
+
       &.selected {
         border: 3px solid #be202e;
-        
       }
     }
-    
-  } 
+  }
   .badge-list {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      .badge-item {
-        width: 100px;
-        margin: 6px;
-        border: 4px solid $light;
-        img.badge-image {
-          width: 100%;
-        }
-        span {
-          line-height: 15px;
-          font-size: 13px;
-          display: inline-block;
-        }
-        &.not-allowed {
-          opacity: .4;
-        }
-        &.selected {
-          border: 4px solid $primary;
-        }
-
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    .badge-item {
+      width: 100px;
+      margin: 6px;
+      border: 4px solid $light;
+      img.badge-image {
+        width: 100%;
+      }
+      span {
+        line-height: 15px;
+        font-size: 13px;
+        display: inline-block;
+      }
+      &.not-allowed {
+        opacity: 0.4;
+      }
+      &.selected {
+        border: 4px solid $primary;
       }
     }
-    .badge-header {
-      width: 100%;
-    }
+  }
+  .badge-header {
+    width: 100%;
+  }
   .sign-in-footer {
     button {
       &.removed {
@@ -208,29 +204,23 @@ $dark:          rgba(1, 1, 1, 1);
   }
 }
 
-
-
-
 //Blocks
 
 .make-badge-list {
   .badge-card {
     @include transition(500ms);
-    -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
-    box-shadow: 0 0 10px 0 rgba(1,1,1,.1);
+    -webkit-box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.1);
+    box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.1);
     a {
       text-decoration: none;
     }
     &:hover {
       @include transition(100ms);
-      -webkit-box-shadow: 0 0 10px 0 rgba(1,1,1,.4);
-      box-shadow: 0 0 10px 0 rgba(1,1,1,.4);    
+      -webkit-box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.4);
+      box-shadow: 0 0 10px 0 rgba(1, 1, 1, 0.4);
     }
   }
 }
-
-
-
 
 .make-image-slider {
   overflow-x: hidden;
@@ -268,7 +258,7 @@ $dark:          rgba(1, 1, 1, 1);
           border-radius: 0px 8px 8px 0;
         }
         &:hover {
-          background-color: #EFEFEF;
+          background-color: #efefef;
           cursor: pointer;
         }
         &.slick-disabled {
@@ -282,8 +272,8 @@ $dark:          rgba(1, 1, 1, 1);
       padding: 0 10px;
       .caption {
         padding: 0 10px;
-        color: #4A4A4A;
-        font-size: .8em;
+        color: #4a4a4a;
+        font-size: 0.8em;
       }
     }
   }

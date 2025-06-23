@@ -3,18 +3,36 @@
  * Plugin Name: Make Santa Fe Membership Awesomeness
  * Plugin URI:https://mind.sh/are
  * Description: A plugin that drastically improves the Make Santa Fe membership experience
- * Version: 1.2.0
+ * Version: 1.4.0
  * Author: Mindshare Labs, Inc
  * Author URI: https://mind.sh/are
  */
 
 
- class makeMember {
-   private $userID = '';
+class makeMember {
+    /**
+     * Single instance of the class
+     * @var makeMember
+     */
+    private static $instance = null;
+    
+    /**
+     * Current user ID
+     * @var int
+     */
+    private $userID = 0;
 
+    /**
+     * Plugin version
+     * @var string
+     */
+    const VERSION = '1.4.0';
 
-   public function __construct() {
-     $this->userId = get_current_user_id();
+    /**
+     * Constructor - private to enforce singleton pattern
+     */
+    private function __construct() {
+        $this->userID = get_current_user_id();
      global $wpdb;
      if ( !defined( 'MAKESF_PLUGIN_FILE' ) ) {
      	define( 'MAKESF_PLUGIN_FILE', __FILE__ );
@@ -44,6 +62,9 @@
       }
     }
   private function includes() {
+    // Configuration system (load first)
+    include_once MAKESF_ABSPATH . 'inc/config.php';
+    
     //General
     include_once MAKESF_ABSPATH . 'inc/utilities.php';
     include_once MAKESF_ABSPATH . 'inc/options.php';
@@ -55,7 +76,16 @@
 
     include_once MAKESF_ABSPATH . 'inc/api-endpoints.php';
 
+    // Performance Optimizations
+    include_once MAKESF_ABSPATH . 'inc/member-search-optimization.php';
+    include_once MAKESF_ABSPATH . 'inc/performance-admin.php';
 
+    //Volunteer System
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-database.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-cpt.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-functions.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-ajax.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-admin.php';
 
     //Custom Notification Classes
     include_once MAKESF_ABSPATH . 'inc/notifications.class.php';
@@ -73,7 +103,8 @@
  }//end of class
 
 
-new makeMember();
+// Initialize the plugin using singleton pattern
+makeMember::get_instance();
 
 
 
@@ -84,6 +115,7 @@ function make_install() {
  
   $charset_collate = $wpdb->get_charset_collate();
 
+  // Original sign-in table
   $sql = "CREATE TABLE make_signin (
     id INT NOT NULL AUTO_INCREMENT,
     time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
@@ -94,6 +126,9 @@ function make_install() {
 
   require_once ABSPATH . 'wp-admin/includes/upgrade.php';
   dbDelta( $sql );
+
+  // Initialize volunteer system
+  make_init_volunteer_system();
 
 }
 
