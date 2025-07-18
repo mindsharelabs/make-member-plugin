@@ -257,3 +257,29 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
 	}
 }
 
+
+
+function make_get_event_instructors($parent_id) {
+  $instructors = array();
+  $sub_events = get_posts(array(
+    'post_type' => 'sub_event',
+    'posts_per_page' => -1,
+    'post_parent' => $parent_id,
+    'fields' => 'ids',
+  ));
+  if ($sub_events) {
+    foreach ($sub_events as $sub_event_id) {
+      $instructorEmail = get_post_meta($sub_event_id, 'instructorEmail', true);
+      if ($instructorEmail) {
+        $user = get_user_by('email', $instructorEmail);
+        if ($user) {
+          //if not already in the array, add it
+          if (!in_array($user, $instructors)) {
+            $instructors[] = $user;
+          }
+        }
+      }
+    }
+  }
+  return $instructors;
+}

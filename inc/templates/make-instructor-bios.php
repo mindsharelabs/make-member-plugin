@@ -26,7 +26,7 @@ if( !empty($block['align']) ) {
   $className .= ' align' . $block['align'];
 }
 
-$instructors = get_field('instructors', $post_id);
+$instructors = make_get_event_instructors(get_the_id());
 
 if($is_preview) :
     echo '<div class="make-notice" style="padding: 10px; background: ##ebddb9; font-family:monospace; text-align:center; font-size:10px">';
@@ -42,7 +42,8 @@ else :
     echo '<div class="' . $className . '" id= "' . $id .'">';
 
         if($instructors) :
-            echo '<div class="row"><div class="col-12"><h2 class="mt-4">Your Instructor' . (count($instructors) > 1 ? 's' : '') . '</h2></div></div>';
+            
+            echo '<div class="row"><div class="col-12"><h2 class="mt-4">Your Instructor</h2></div></div>';
             echo '<section class="row makers">';
             foreach($instructors as $instructor) :
                 $args = array(
