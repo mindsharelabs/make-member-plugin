@@ -26,7 +26,6 @@ class makeProfile {
     $this->userID = get_current_user_id();
 
     $this->options = get_option( 'makesf_support_settings' );
-    mapi_write_log($this->options);
 
     if($this->userID) :
       $this->waiverURL = (isset($this->options['makesf_waiver_url']) ? $this->options['makesf_waiver_url'] : false);
@@ -176,17 +175,18 @@ class makeProfile {
         'complete' => $this->has_membership(),
         'link' => $this->membershipURL
       ),
-      'badge' => array(
-        'label' => 'Get a badge',
-        'complete' => $this->has_badge(),
-        'link' => $this->badgesURL
-      ),
       'membership_agreement' => array(
         'label' => 'Sign the membership agreement',
         // 'complete' => $this->has_form_submission(43, 16), //staging site
         'complete' => $this->has_form_submission(45, 16),//live site
         'link' => $this->agreementURL
       ),
+      'badge' => array(
+        'label' => 'Get a badge',
+        'complete' => $this->has_badge(),
+        'link' => $this->badgesURL
+      ),
+     
       'profile' => array(
         'label' => 'Share your profile',
         'complete' => $this->has_profile(),
