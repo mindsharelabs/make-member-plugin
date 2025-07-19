@@ -136,33 +136,68 @@ class makeProfile {
 
 
   function profile_progress() {
-    $maker_steps = $this->get_profile_steps();
-    if($maker_steps) :
-      $count = count($maker_steps);
-      $max = 100/$count;
-      echo '<div class="progress-container d-flex flex-column flex-md-row mt-3 mb-3">';
-      foreach ($maker_steps as $key => $step) :
-        echo $this->get_progress_bar($step['label'], $step['complete'], $step['link']);
-        if(next($maker_steps)) :
-          echo '<span class="d-block p-2"><i class="fas fa-arrow-right"></i></span>';
-        endif;
-      endforeach;
-      echo '</div>';
-    endif;
+      $maker_steps = $this->get_profile_steps();
+      if ($maker_steps) :
+          $total_steps = count($maker_steps);
+          $completed_steps = 0;
+          $incomplete_items = [];
+          $completed_items = [];
+
+          foreach ($maker_steps as $step) {
+              if ($step['complete']) {
+                  $completed_steps++;
+                  $completed_items[] = $step;
+              } else {
+                  $incomplete_items[] = $step;
+              }
+          }
+
+          $percent_complete = round(($completed_steps / $total_steps) * 100);
+
+          echo '<div class="progress-container mt-3 mb-3">';
+          echo '<h6>Profile Completion: ' . $percent_complete . '%</h6>';
+          echo '<div class="progress" style="height: 2rem;">';
+
+          // Each completed step gets a segment
+          if ($completed_items) {
+              $segment_width = 100 / $total_steps;
+              foreach ($completed_items as $step) {
+                  echo '<div class="progress-bar bg-success me-1" role="progressbar" style="width: ' . $segment_width . '%;" aria-valuenow="' . $segment_width . '" aria-valuemin="0" aria-valuemax="100">';
+                  echo '<span class="d-none d-md-inline">' . esc_html($step['label']) . '</span>';
+                  echo '</div>';
+              }
+          }
+          // Each incomplete step gets a faded segment
+          if ($incomplete_items) {
+              $segment_width = 100 / $total_steps;
+              foreach ($incomplete_items as $step) {
+                  echo '<div class="progress-bar bg-danger text-light me-1" role="progressbar" style="width: ' . $segment_width . '%;" aria-valuenow="' . $segment_width . '" aria-valuemin="0" aria-valuemax="100">';
+                  echo '<span class="d-none d-md-inline">' . esc_html($step['label']) . '</span>';
+                  echo '</div>';
+              }
+          }
+
+          echo '</div>';
+
+          // List incomplete items
+          if (!empty($incomplete_items)) {
+              echo '<div class="mt-3">';
+              echo '<h6>Incomplete Steps:</h6>';
+              echo '<ul class="list-group">';
+              foreach ($incomplete_items as $step) {
+                  echo '<li class="list-group-item d-flex justify-content-between align-items-center">';
+                  echo '<span><i class="fas fa-times-circle text-danger me-2"></i>' . esc_html($step['label']) . '</span>';
+                  if ($step['link']) {
+                      echo '<a href="' . esc_url($step['link']) . '" class="btn btn-sm btn-primary">Complete Now</a>';
+                  }
+                  echo '</li>';
+              }
+              echo '</ul>';
+              echo '</div>';
+          }
+          echo '</div>';
+      endif;
   }
-
-  private function get_progress_bar($label, $complete, $link) {
-    $color = ($complete) ? 'bg-success' : 'bg-danger';
-    $icon = ($complete) ? 'fas fa-check-circle' : 'fas fa-times-circle';
-
-    $return = '<div class="progress-item ' . $color . ' flex-grow-1 p-2 text-center border border-white">';
-      $return .= ($link) ? '<a class="text-white" href="' . $link . '">' : '';
-        $return .= '<span><i class="' . $icon . '"></i> ' . $label . '</span>';
-      $return .= ($link) ? '</a>' : '';
-    $return .= '</div>';
-    return $return;
-  }
-
   private function get_profile_steps() {
     return array(
       'waiver' => array(
