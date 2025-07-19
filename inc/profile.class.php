@@ -228,7 +228,7 @@ class makeProfile {
           )
       )
     );
-    $entries = $form->get_entries( $form_id, $search_criteria); //27 is the waiver
+    return $form->get_entries( $form_id, $search_criteria); //27 is the waiver
   }
 
   private function has_profile() {
