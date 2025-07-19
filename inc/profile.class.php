@@ -223,12 +223,12 @@ class makeProfile {
               'value' => $this->userID 
           ),
           array(
-              'key'   => $field_id, //34 is the email field in the waiver
+              'key'   => $field_id, 
               'value' => $user_email
           )
       )
     );
-    return $form->get_entries( $form_id, $search_criteria); //27 is the waiver
+    return (count($form->get_entries( $form_id, $search_criteria)) > 0) ? true : false;
   }
 
   private function has_profile() {
