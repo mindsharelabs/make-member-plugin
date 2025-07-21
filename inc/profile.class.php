@@ -156,7 +156,7 @@ class makeProfile {
 
           echo '<div class="progress-container mt-3 mb-3">';
           echo '<h6>Profile Completion: ' . $percent_complete . '%</h6>';
-          echo '<div class="progress" style="height: 2rem;">';
+          echo '<div class="progress bg-white" style="height: 2rem;">';
 
           // Each completed step gets a segment
           if ($completed_items) {

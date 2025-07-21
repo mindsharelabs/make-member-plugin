@@ -30,11 +30,7 @@ $instructors = make_get_event_instructors(get_the_id());
 
 if($is_preview) :
     echo '<div class="make-notice" style="padding: 10px; background: ##ebddb9; font-family:monospace; text-align:center; font-size:10px">';
-    if(!$instructors) :
-        echo 'Select instructors in the right sidebar to display their bios.';
-    else :
         echo 'Instructor Bios will appear here when the event is published on the front end.';
-    endif;
     echo '</div>'; 
 else :
 

@@ -269,15 +269,10 @@ function make_get_event_instructors($parent_id) {
   ));
   if ($sub_events) {
     foreach ($sub_events as $sub_event_id) {
-      $instructorEmail = get_post_meta($sub_event_id, 'instructorEmail', true);
-      if ($instructorEmail) {
-        $user = get_user_by('email', $instructorEmail);
-        if ($user) {
-          //if not already in the array, add it
-          if (!in_array($user, $instructors)) {
-            $instructors[] = $user;
-          }
-        }
+      $instructorID = get_post_meta($sub_event_id, 'instructorID', true);
+      if ($instructorID) {
+        $user = get_user_by('id', $instructorID);
+        $instructors[$user->ID] = $user;
       }
     }
   }
