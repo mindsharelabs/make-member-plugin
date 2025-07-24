@@ -167,12 +167,12 @@ function make_log_auto_signout_activity($message, $level = 'info') {
 
 /**
  * Get auto sign-out logs
- * 
+ *
  * @param int $limit Maximum number of log entries to return
  * @return array Array of log entries
  */
 function make_get_auto_signout_logs($limit = 50) {
-    $logs = get_option('makesf_auto_signout_logs', array());
+    $logs = get_option('make_auto_signout_log', array());
     return array_slice($logs, 0, $limit);
 }
 
@@ -225,44 +225,45 @@ function make_notify_volunteer_auto_signout($user_id, $session) {
 
 /**
  * Get auto sign-out settings
- * 
+ *
  * @return array Settings array
  */
 function make_get_auto_signout_settings() {
+    $settings = get_option('make_volunteer_settings', array());
     return array(
-        'enabled' => get_option('makesf_auto_signout_enabled', true),
-        'signout_time' => get_option('makesf_auto_signout_time', '20:00'), // 8:00 PM
-        'send_notifications' => get_option('makesf_auto_signout_notifications', true),
-        'log_activity' => get_option('makesf_auto_signout_logging', true)
+        'enabled' => isset($settings['auto_signout_enabled']) ? $settings['auto_signout_enabled'] : true,
+        'signout_time' => isset($settings['auto_signout_time']) ? $settings['auto_signout_time'] : '20:00',
+        'send_notifications' => isset($settings['auto_signout_notification']) ? $settings['auto_signout_notification'] : true,
+        'log_activity' => isset($settings['auto_signout_log_enabled']) ? $settings['auto_signout_log_enabled'] : true
     );
 }
 
 /**
  * Update auto sign-out settings
- * 
+ *
  * @param array $settings Settings to update
  * @return bool Success status
  */
 function make_update_auto_signout_settings($settings) {
-    $updated = true;
+    $current_settings = get_option('make_volunteer_settings', array());
     
     if (isset($settings['enabled'])) {
-        $updated &= update_option('makesf_auto_signout_enabled', (bool)$settings['enabled']);
+        $current_settings['auto_signout_enabled'] = (bool)$settings['enabled'];
     }
     
     if (isset($settings['signout_time'])) {
-        $updated &= update_option('makesf_auto_signout_time', sanitize_text_field($settings['signout_time']));
+        $current_settings['auto_signout_time'] = sanitize_text_field($settings['signout_time']);
     }
     
     if (isset($settings['send_notifications'])) {
-        $updated &= update_option('makesf_auto_signout_notifications', (bool)$settings['send_notifications']);
+        $current_settings['auto_signout_notification'] = (bool)$settings['send_notifications'];
     }
     
     if (isset($settings['log_activity'])) {
-        $updated &= update_option('makesf_auto_signout_logging', (bool)$settings['log_activity']);
+        $current_settings['auto_signout_log_enabled'] = (bool)$settings['log_activity'];
     }
     
-    return $updated;
+    return update_option('make_volunteer_settings', $current_settings);
 }
 
 /**
@@ -282,10 +283,10 @@ function make_trigger_manual_auto_signout() {
 add_action('make_auto_signout_volunteers', 'make_auto_signout_all_volunteers');
 
 // Schedule cron on plugin activation
-register_activation_hook(MAKE_PLUGIN_FILE, 'make_schedule_auto_signout_cron');
+register_activation_hook(MAKESF_PLUGIN_FILE, 'make_schedule_auto_signout_cron');
 
 // Unschedule cron on plugin deactivation
-register_deactivation_hook(MAKE_PLUGIN_FILE, 'make_unschedule_auto_signout_cron');
+register_deactivation_hook(MAKESF_PLUGIN_FILE, 'make_unschedule_auto_signout_cron');
 
 // Add AJAX handler for manual trigger
 add_action('wp_ajax_make_trigger_auto_signout', 'make_handle_manual_auto_signout');
