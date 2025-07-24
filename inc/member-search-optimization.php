@@ -51,19 +51,9 @@ function make_member_search_optimized() {
 }
 
 /**
- * Get members with caching and search filtering
+ * Get members with NO caching - direct database query
  */
 function make_get_members_cached($search_term = '', $limit = 20) {
-    // Create cache key based on search term and time window (5 minutes)
-    $time_window = floor(time() / 300) * 300; // 5-minute windows
-    $cache_key = 'make_member_search_' . md5($search_term) . '_' . $time_window;
-    
-    // Try to get from cache first
-    $cached_members = get_transient($cache_key);
-    if ($cached_members !== false) {
-        return $cached_members;
-    }
-    
     global $wpdb;
     
     // Optimized query with search filtering
@@ -79,7 +69,7 @@ function make_get_members_cached($search_term = '', $limit = 20) {
     }
     
     $query = $wpdb->prepare("
-        SELECT DISTINCT 
+        SELECT DISTINCT
             u.ID,
             u.display_name,
             u.user_email,
@@ -100,8 +90,6 @@ function make_get_members_cached($search_term = '', $limit = 20) {
     $results = $wpdb->get_results($query);
     
     if (empty($results)) {
-        // Cache empty results for 1 minute to prevent repeated queries
-        set_transient($cache_key, array(), 60);
         return array();
     }
     
@@ -123,29 +111,14 @@ function make_get_members_cached($search_term = '', $limit = 20) {
         $members[] = $member_data;
     }
     
-    // Cache results for 5 minutes
-    set_transient($cache_key, $members, 300);
-    
     return $members;
 }
 
 /**
- * Cached version of form submission check
+ * Direct form submission check - NO caching
  */
 function make_check_form_submission_cached($user_id, $form_id, $field_id) {
-    $cache_key = "make_form_check_{$user_id}_{$form_id}_{$field_id}";
-    $cached_result = get_transient($cache_key);
-    
-    if ($cached_result !== false) {
-        return $cached_result === 'true';
-    }
-    
-    $result = make_check_form_submission($user_id, $form_id, $field_id);
-    
-    // Cache for 30 minutes
-    set_transient($cache_key, $result ? 'true' : 'false', 1800);
-    
-    return $result;
+    return make_check_form_submission($user_id, $form_id, $field_id);
 }
 
 /**
@@ -222,7 +195,7 @@ function make_generate_member_card_html($member) {
 }
 
 /**
- * Optimized member details endpoint with pre-loaded data
+ * Optimized member details endpoint with NO caching
  */
 add_action('wp_ajax_makeGetMemberOptimized', 'make_get_member_optimized');
 add_action('wp_ajax_nopriv_makeGetMemberOptimized', 'make_get_member_optimized');
@@ -233,19 +206,9 @@ function make_get_member_optimized() {
     }
     
     $user_id = intval($_REQUEST['userID'] ?? 0);
-    $preloaded = $_REQUEST['preloaded'] ?? false;
     
     if (!$user_id) {
         wp_send_json_error(array('message' => 'Invalid user ID'));
-        return;
-    }
-    
-    // Get cached member data if available
-    $cache_key = "make_member_details_{$user_id}_" . floor(time() / 300) * 300;
-    $cached_data = get_transient($cache_key);
-    
-    if ($cached_data !== false && $preloaded) {
-        wp_send_json_success($cached_data);
         return;
     }
     
@@ -350,29 +313,14 @@ function make_get_member_optimized() {
         'status' => 'userfound'
     );
     
-    // Cache the result for 5 minutes
-    set_transient($cache_key, $return, 300);
-    
     wp_send_json_success($return);
 }
 
 /**
- * Cached version of badge listing
+ * Direct badge listing - NO caching
  */
 function make_list_sign_in_badges_cached($user) {
-    $cache_key = "make_user_badges_{$user->ID}_" . floor(time() / 3600) * 3600; // 1 hour cache
-    $cached_html = get_transient($cache_key);
-    
-    if ($cached_html !== false) {
-        return $cached_html;
-    }
-    
-    $html = make_list_sign_in_badges($user);
-    
-    // Cache for 1 hour
-    set_transient($cache_key, $html, 3600);
-    
-    return $html;
+    return make_list_sign_in_badges($user);
 }
 
 /**
