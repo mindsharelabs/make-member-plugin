@@ -86,6 +86,7 @@ class makeMember {
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-functions.php';
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-ajax.php';
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-admin.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-auto-signout.php';
 
     //Custom Notification Classes
     include_once MAKESF_ABSPATH . 'inc/notifications.class.php';

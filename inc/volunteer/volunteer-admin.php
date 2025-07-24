@@ -86,6 +86,15 @@ function make_volunteer_admin_menu() {
         'volunteer-test',
         'make_volunteer_test_page'
     );
+    
+    add_submenu_page(
+        'volunteer-dashboard',
+        'Volunteer Settings',
+        'Settings',
+        'manage_options',
+        'volunteer-settings',
+        'make_volunteer_settings_page'
+    );
 }
 
 /**
@@ -560,6 +569,221 @@ function make_volunteer_tasks_page() {
             });
         });
         </script>
+    </div>
+    <?php
+}
+
+/**
+ * Volunteer Settings Page
+ */
+function make_volunteer_settings_page() {
+    // Handle form submissions
+    if (isset($_POST['save_volunteer_settings']) && wp_verify_nonce($_POST['settings_nonce'], 'save_volunteer_settings')) {
+        $settings = array(
+            'auto_signout_enabled' => isset($_POST['auto_signout_enabled']) ? 1 : 0,
+            'auto_signout_time' => sanitize_text_field($_POST['auto_signout_time']),
+            'auto_signout_timezone' => sanitize_text_field($_POST['auto_signout_timezone']),
+            'auto_signout_notification' => isset($_POST['auto_signout_notification']) ? 1 : 0,
+            'auto_signout_email_template' => wp_kses_post($_POST['auto_signout_email_template']),
+            'auto_signout_log_enabled' => isset($_POST['auto_signout_log_enabled']) ? 1 : 0
+        );
+        
+        update_option('make_volunteer_settings', $settings);
+        
+        // Reschedule cron job if settings changed
+        if ($settings['auto_signout_enabled']) {
+            make_schedule_auto_signout_cron();
+        } else {
+            wp_clear_scheduled_hook('make_auto_signout_cron');
+        }
+        
+        echo '<div class="notice notice-success"><p>Settings saved successfully!</p></div>';
+    }
+    
+    // Get current settings
+    $settings = get_option('make_volunteer_settings', array(
+        'auto_signout_enabled' => 1,
+        'auto_signout_time' => '20:00',
+        'auto_signout_timezone' => wp_timezone_string(),
+        'auto_signout_notification' => 1,
+        'auto_signout_email_template' => "Hi {name},\n\nYour volunteer session has been automatically ended at {time}.\n\nThank you for your contribution to MakeSF!\n\nBest regards,\nMakeSF Team",
+        'auto_signout_log_enabled' => 1
+    ));
+    
+    $timezones = timezone_identifiers_list();
+    ?>
+    <div class="wrap volunteer-admin">
+        <h1>Volunteer Settings</h1>
+        
+        <form method="post" action="">
+            <?php wp_nonce_field('save_volunteer_settings', 'settings_nonce'); ?>
+            
+            <div class="volunteer-settings-grid">
+                <div class="settings-section">
+                    <h2>Auto Sign-Out Settings</h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_enabled">Enable Auto Sign-Out</label>
+                            </th>
+                            <td>
+                                <input type="checkbox" id="auto_signout_enabled" name="auto_signout_enabled" value="1"
+                                       <?php checked($settings['auto_signout_enabled'], 1); ?>>
+                                <p class="description">Automatically sign out all active volunteers at the specified time.</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_time">Sign-Out Time</label>
+                            </th>
+                            <td>
+                                <input type="time" id="auto_signout_time" name="auto_signout_time"
+                                       value="<?php echo esc_attr($settings['auto_signout_time']); ?>" required>
+                                <p class="description">Time when all active volunteers will be automatically signed out (24-hour format).</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_timezone">Timezone</label>
+                            </th>
+                            <td>
+                                <select id="auto_signout_timezone" name="auto_signout_timezone">
+                                    <?php foreach ($timezones as $timezone): ?>
+                                        <option value="<?php echo esc_attr($timezone); ?>"
+                                                <?php selected($settings['auto_signout_timezone'], $timezone); ?>>
+                                            <?php echo esc_html($timezone); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="description">Timezone used for the sign-out time.</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_notification">Send Email Notifications</label>
+                            </th>
+                            <td>
+                                <input type="checkbox" id="auto_signout_notification" name="auto_signout_notification" value="1"
+                                       <?php checked($settings['auto_signout_notification'], 1); ?>>
+                                <p class="description">Send email notifications to volunteers when they are automatically signed out.</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_log_enabled">Enable Logging</label>
+                            </th>
+                            <td>
+                                <input type="checkbox" id="auto_signout_log_enabled" name="auto_signout_log_enabled" value="1"
+                                       <?php checked($settings['auto_signout_log_enabled'], 1); ?>>
+                                <p class="description">Log all auto sign-out activities for review.</p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="settings-section">
+                    <h2>Email Template</h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">
+                                <label for="auto_signout_email_template">Auto Sign-Out Email</label>
+                            </th>
+                            <td>
+                                <textarea id="auto_signout_email_template" name="auto_signout_email_template"
+                                          rows="8" cols="50" class="large-text"><?php
+                                    echo esc_textarea($settings['auto_signout_email_template']);
+                                ?></textarea>
+                                <p class="description">
+                                    Available placeholders: {name}, {time}, {date}, {duration}, {organization}
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="settings-section">
+                    <h2>System Information</h2>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row">Next Scheduled Run</th>
+                            <td>
+                                <?php
+                                $next_run = wp_next_scheduled('make_auto_signout_cron');
+                                if ($next_run) {
+                                    echo date('Y-m-d H:i:s T', $next_run);
+                                } else {
+                                    echo 'Not scheduled';
+                                }
+                                ?>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">Current Time</th>
+                            <td>
+                                <?php echo date('Y-m-d H:i:s T'); ?>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">WordPress Timezone</th>
+                            <td>
+                                <?php echo wp_timezone_string(); ?>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <th scope="row">Active Sessions</th>
+                            <td>
+                                <?php
+                                $active_sessions = make_get_active_volunteer_sessions();
+                                echo count($active_sessions) . ' active volunteer session(s)';
+                                ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <p class="submit">
+                <input type="submit" name="save_volunteer_settings" class="button button-primary" value="Save Settings">
+            </p>
+        </form>
+        
+        <div class="settings-actions" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd;">
+            <h3>Manual Actions</h3>
+            <p>
+                <button type="button" class="button" onclick="if(confirm('Are you sure you want to run auto sign-out now?')) { window.location.href='<?php echo wp_nonce_url(admin_url('admin.php?page=volunteer-settings&action=run_auto_signout'), 'run_auto_signout'); ?>'; }">
+                    Run Auto Sign-Out Now
+                </button>
+                <button type="button" class="button" onclick="if(confirm('Are you sure you want to clear the log?')) { window.location.href='<?php echo wp_nonce_url(admin_url('admin.php?page=volunteer-settings&action=clear_log'), 'clear_log'); ?>'; }">
+                    Clear Auto Sign-Out Log
+                </button>
+            </p>
+        </div>
+        
+        <?php
+        // Handle manual actions
+        if (isset($_GET['action']) && isset($_GET['_wpnonce'])) {
+            if ($_GET['action'] === 'run_auto_signout' && wp_verify_nonce($_GET['_wpnonce'], 'run_auto_signout')) {
+                $result = make_auto_signout_all_volunteers();
+                if (is_wp_error($result)) {
+                    echo '<div class="notice notice-error"><p>Error: ' . esc_html($result->get_error_message()) . '</p></div>';
+                } else {
+                    echo '<div class="notice notice-success"><p>Auto sign-out completed. ' . esc_html($result) . '</p></div>';
+                }
+            }
+            
+            if ($_GET['action'] === 'clear_log' && wp_verify_nonce($_GET['_wpnonce'], 'clear_log')) {
+                delete_option('make_auto_signout_log');
+                echo '<div class="notice notice-success"><p>Auto sign-out log cleared.</p></div>';
+            }
+        }
+        ?>
     </div>
     <?php
 }
