@@ -21,8 +21,8 @@ class makeProfile {
   //User Info
   private $certifications = '';
 
-  public function __construct() {
-    $this->userID = get_current_user_id();
+  public function __construct($userID = false) {
+    $this->userID = $userID ? $userID : get_current_user_id();
 
     $this->options = get_option( 'makesf_support_settings' );
 

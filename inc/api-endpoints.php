@@ -71,3 +71,33 @@ function make_members($request) {
   return wp_send_json_success($all_members);
 }
 
+add_action('wc_memberships_user_membership_status_changed', 'make_notify_zapier_on_status_change', 10, 3);
+
+function make_notify_zapier_on_status_change($membership, $new_status, $old_status) {
+  $user = get_userdata($membership->get_user_id());
+  $plan = $membership->get_plan();
+  $profile = new makeProfile($user->ID);
+  $start_date = $membership->get_start_date();
+  $end_date = $membership->get_end_date();
+
+  $payload = array(
+    'user_id' => $user->ID,
+    'name' => $user->display_name,
+    'email' => $user->user_email,
+    'new_status' => $new_status,
+    'old_status' => $old_status,
+    'membership_plan' => $plan ? $plan->get_name() : '',
+    'start_date' => $start_date,
+    'end_date' => $end_date,
+    'roles' => $user->roles
+  );
+  
+  $zapier_webhook_url = 'https://hooks.zapier.com/hooks/catch/20748362/u4i3vnc/';
+
+  wp_remote_post($zapier_webhook_url, array(
+    'method' => 'POST',
+    'headers' => array('Content-Type' => 'application/json'),
+    'body' => json_encode($payload),
+    'timeout' => 20,
+  ));
+}
