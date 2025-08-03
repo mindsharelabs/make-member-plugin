@@ -239,6 +239,7 @@ class makeProfile {
     return wc_memberships_is_user_active_member($this->userID);
   }
 
+  
 
   private function has_form_submission($form_id, $field_id) {
     // bail if Gravity Forms isn't active
@@ -263,6 +264,15 @@ class makeProfile {
       )
     );
     return (count($form->get_entries( $form_id, $search_criteria)) > 0) ? true : false;
+  }
+
+
+  public function has_waiver() {
+    return $this->has_form_submission(27, 34);
+  }
+
+  public function has_agreement() {
+    return $this->has_form_submission(45, 16);
   }
 
   private function has_profile() {

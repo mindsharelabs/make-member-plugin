@@ -73,7 +73,8 @@ function make_members($request) {
 
 add_action('wc_memberships_user_membership_status_changed', 'make_notify_zapier_on_status_change', 10, 3);
 
-function make_notify_zapier_on_status_change($membership, $new_status, $old_status) {
+function make_notify_zapier_on_status_change($membership, $old_status, $new_status) {
+
   $user = get_userdata($membership->get_user_id());
   $plan = $membership->get_plan();
   $profile = new makeProfile($user->ID);
@@ -87,11 +88,13 @@ function make_notify_zapier_on_status_change($membership, $new_status, $old_stat
     'new_status' => $new_status,
     'old_status' => $old_status,
     'membership_plan' => $plan ? $plan->get_name() : '',
+    'membership_id' => $membership->get_id(),
     'start_date' => $start_date,
     'end_date' => $end_date,
-    'roles' => $user->roles
+    'roles' => $user->roles,
+    'has_waiver' => $profile->has_waiver(),
+    'has_agreement' => $profile->has_agreement(),
   );
-  
   $zapier_webhook_url = 'https://hooks.zapier.com/hooks/catch/20748362/u4i3vnc/';
 
   wp_remote_post($zapier_webhook_url, array(
