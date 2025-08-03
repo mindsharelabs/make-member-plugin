@@ -116,3 +116,4 @@ if(!function_exists('make_output_member_card')) :
       endif;
     }
   endif;
+
