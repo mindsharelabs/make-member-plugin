@@ -138,10 +138,10 @@ function make_get_active_members(){
   	LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
   	LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
   	WHERE p.post_type = %s
-  	AND p.post_status IN (%s)
+  	AND p.post_status IN (%s, %s)
   	AND p2.post_type = %s
   	LIMIT 999
-  ", 'wc_user_membership', 'wcm-active', 'wc_membership_plan'));
+  ", 'wc_user_membership', 'wcm-active', 'wcm-complimentary', 'wc_membership_plan'));
   
   return $results;
   
@@ -169,10 +169,10 @@ function make_get_active_members_array(){
 			LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
 			LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
 			WHERE p.post_type = %s
-			AND p.post_status IN (%s)
+			AND p.post_status IN (%s, %s)
 			AND p2.post_type = %s
 			LIMIT 999
-		", 'wc_user_membership', 'wcm-active', 'wc_membership_plan'));
+		", 'wc_user_membership', 'wcm-active', 'wcm-complimentary', 'wc_membership_plan'));
 
 		if (!$members) {
 			return array();

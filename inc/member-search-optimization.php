@@ -80,7 +80,7 @@ function make_get_members_cached($search_term = '', $limit = 20) {
         INNER JOIN {$wpdb->posts} p ON p.post_author = u.ID
         INNER JOIN {$wpdb->posts} p2 ON p2.ID = p.post_parent
         WHERE p.post_type = 'wc_user_membership'
-        AND p.post_status = 'wcm-active'
+        AND p.post_status IN ('wcm-active', 'wcm-complimentary')
         AND p2.post_type = 'wc_membership_plan'
         {$search_sql}
         ORDER BY u.display_name
@@ -260,7 +260,10 @@ function make_get_member_optimized() {
     // Check requirements
     $has_waiver = make_check_form_submission_cached($user_id, 27, 34);
     $has_agreement = make_check_form_submission_cached($user_id, 45, 16);
-    $memberships = wc_memberships_get_user_active_memberships($user_id);
+    // Get both active and complimentary memberships
+    $active_memberships = wc_memberships_get_user_active_memberships($user_id);
+    $complimentary_memberships = wc_memberships_get_user_memberships($user_id, array('status' => 'complimentary'));
+    $memberships = array_merge($active_memberships, $complimentary_memberships);
     
     // Validation checks
     if (!$has_waiver) {
@@ -275,7 +278,7 @@ function make_get_member_optimized() {
     
     if (empty($memberships)) {
         $return = array(
-            'html' => '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>',
+            'html' => '<div class="alert alert-danger text-center"><h1>No Active or Complimentary memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>',
             'status' => 'failed',
             'code' => 'nomembership'
         );
@@ -491,7 +494,7 @@ function make_get_active_members_optimized() {
         LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
         LEFT JOIN {$wpdb->prefix}usermeta AS um ON u.id = um.user_id
         WHERE p.post_type = 'wc_user_membership'
-        AND p.post_status IN ('wcm-active')
+        AND p.post_status IN ('wcm-active', 'wcm-complimentary')
         AND p2.post_type = 'wc_membership_plan'
         ORDER BY u.display_name
         LIMIT 999
@@ -512,10 +515,13 @@ function make_get_member_membership_cached($user_id) {
     $memberships = '';
     if (function_exists('wc_memberships_get_user_active_memberships')) {
         $active_memberships = wc_memberships_get_user_active_memberships($user_id);
-        if ($active_memberships) {
-            foreach ($active_memberships as $membership) {
+        $complimentary_memberships = wc_memberships_get_user_memberships($user_id, array('status' => 'complimentary'));
+        $all_memberships = array_merge($active_memberships, $complimentary_memberships);
+        
+        if ($all_memberships) {
+            foreach ($all_memberships as $membership) {
                 $memberships .= $membership->plan->name;
-                if (next($active_memberships)) {
+                if (next($all_memberships)) {
                     $memberships .= ' & ';
                 }
             }
