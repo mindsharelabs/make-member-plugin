@@ -258,11 +258,13 @@ function make_get_all_members() {
 		      
 		      if(function_exists('wc_memberships_get_user_active_memberships') && $member_obj) :
 		        $active_memberships = wc_memberships_get_user_active_memberships($member_obj->ID);
+		        $complimentary_memberships = wc_memberships_get_user_memberships($member_obj->ID, array('status' => 'complimentary'));
+		        $all_memberships = array_merge($active_memberships, $complimentary_memberships);
 		        $memberships = '';
-		        if($active_memberships) :
-		          foreach($active_memberships as $membership) :
+		        if($all_memberships) :
+		          foreach($all_memberships as $index => $membership) :
 		            $memberships .= $membership->plan->name;
-		            if(next($active_memberships)) :
+		            if($index < count($all_memberships) - 1) :
 		              $memberships .= ' & ';
 		            endif;
 		          endforeach;

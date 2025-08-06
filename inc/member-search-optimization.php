@@ -519,9 +519,9 @@ function make_get_member_membership_cached($user_id) {
         $all_memberships = array_merge($active_memberships, $complimentary_memberships);
         
         if ($all_memberships) {
-            foreach ($all_memberships as $membership) {
+            foreach ($all_memberships as $index => $membership) {
                 $memberships .= $membership->plan->name;
-                if (next($all_memberships)) {
+                if ($index < count($all_memberships) - 1) {
                     $memberships .= ' & ';
                 }
             }
