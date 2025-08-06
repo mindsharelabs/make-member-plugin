@@ -549,8 +549,21 @@ function make_output_profile_container($user, $is_volunteering = null) {
 		$user_info = get_userdata($user->ID);
 		$html = '<div class="profile-container">';
 			$html .= '<span class="email hidden d-none">' . $user_info->user_email  . '</span>';
-			$memberships = wc_memberships_get_user_active_memberships($user->ID);
+			// Get both active and complimentary memberships
+			$active_memberships = wc_memberships_get_user_active_memberships($user->ID);
+			$complimentary_memberships = wc_memberships_get_user_memberships($user->ID, array('status' => 'complimentary'));
+			$all_memberships = array_merge($active_memberships, $complimentary_memberships);
 			
+			// Build membership display string
+			$membership_display = '';
+			if($all_memberships) :
+				foreach($all_memberships as $index => $membership) :
+					$membership_display .= get_the_title($membership->plan_id);
+					if($index < count($all_memberships) - 1) :
+						$membership_display .= ' & ';
+					endif;
+				endforeach;
+			endif;
 
 			$html .= '<div class="profile-card mb-5" data-user="' . $user->ID . '">';
 				$image = get_field('photo', 'user_' . $user->ID);
@@ -576,10 +589,8 @@ function make_output_profile_container($user, $is_volunteering = null) {
 				endif;
 				$html .= '<div class="profile-info">';
 					$html .= '<h3 class="name">' . $user->data->display_name . '</h3>';
-					if(!empty($memberships)) :
-						foreach($memberships as $membership) :
-							$html .= '<span class="membership">' . get_the_title($membership->plan_id) . '</span>';
-						endforeach;
+					if(!empty($membership_display)) :
+						$html .= '<span class="membership">' . $membership_display . '</span>';
 					else :
 						$return['status'] = 'nomembership';
 						$html .= '<span class="membership none">No Active Membership</span>';
