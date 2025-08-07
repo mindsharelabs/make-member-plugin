@@ -260,11 +260,25 @@ function make_get_all_members() {
 		        $active_memberships = wc_memberships_get_user_active_memberships($member_obj->ID);
 		        $complimentary_memberships = wc_memberships_get_user_memberships($member_obj->ID, array('status' => 'complimentary'));
 		        $all_memberships = array_merge($active_memberships, $complimentary_memberships);
-		        $memberships = '';
+		        
+		        // Remove duplicates by plan_id to avoid showing the same membership twice
+		        $unique_memberships = array();
+		        $plan_ids_seen = array();
 		        if($all_memberships) :
-		          foreach($all_memberships as $index => $membership) :
+		          foreach($all_memberships as $membership) :
+		            $plan_id = $membership->plan_id;
+		            if(!in_array($plan_id, $plan_ids_seen)) :
+		              $plan_ids_seen[] = $plan_id;
+		              $unique_memberships[] = $membership;
+		            endif;
+		          endforeach;
+		        endif;
+		        
+		        $memberships = '';
+		        if($unique_memberships) :
+		          foreach($unique_memberships as $index => $membership) :
 		            $memberships .= $membership->plan->name;
-		            if($index < count($all_memberships) - 1) :
+		            if($index < count($unique_memberships) - 1) :
 		              $memberships .= ' & ';
 		            endif;
 		          endforeach;
@@ -554,12 +568,25 @@ function make_output_profile_container($user, $is_volunteering = null) {
 			$complimentary_memberships = wc_memberships_get_user_memberships($user->ID, array('status' => 'complimentary'));
 			$all_memberships = array_merge($active_memberships, $complimentary_memberships);
 			
+			// Remove duplicates by plan_id to avoid showing the same membership twice
+			$unique_memberships = array();
+			$plan_ids_seen = array();
+			if($all_memberships) :
+				foreach($all_memberships as $membership) :
+					$plan_id = $membership->plan_id;
+					if(!in_array($plan_id, $plan_ids_seen)) :
+						$plan_ids_seen[] = $plan_id;
+						$unique_memberships[] = $membership;
+					endif;
+				endforeach;
+			endif;
+			
 			// Build membership display string
 			$membership_display = '';
-			if($all_memberships) :
-				foreach($all_memberships as $index => $membership) :
+			if($unique_memberships) :
+				foreach($unique_memberships as $index => $membership) :
 					$membership_display .= get_the_title($membership->plan_id);
-					if($index < count($all_memberships) - 1) :
+					if($index < count($unique_memberships) - 1) :
 						$membership_display .= ' & ';
 					endif;
 				endforeach;

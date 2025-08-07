@@ -518,10 +518,23 @@ function make_get_member_membership_cached($user_id) {
         $complimentary_memberships = wc_memberships_get_user_memberships($user_id, array('status' => 'complimentary'));
         $all_memberships = array_merge($active_memberships, $complimentary_memberships);
         
+        // Remove duplicates by plan_id to avoid showing the same membership twice
+        $unique_memberships = array();
+        $plan_ids_seen = array();
         if ($all_memberships) {
-            foreach ($all_memberships as $index => $membership) {
+            foreach ($all_memberships as $membership) {
+                $plan_id = $membership->plan_id;
+                if (!in_array($plan_id, $plan_ids_seen)) {
+                    $plan_ids_seen[] = $plan_id;
+                    $unique_memberships[] = $membership;
+                }
+            }
+        }
+        
+        if ($unique_memberships) {
+            foreach ($unique_memberships as $index => $membership) {
                 $memberships .= $membership->plan->name;
-                if ($index < count($all_memberships) - 1) {
+                if ($index < count($unique_memberships) - 1) {
                     $memberships .= ' & ';
                 }
             }
