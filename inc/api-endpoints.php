@@ -39,12 +39,14 @@ function make_members($request) {
 
       if(function_exists('wc_memberships_get_user_active_memberships')) :
         $active_memberships = wc_memberships_get_user_active_memberships($member_obj->ID);
+        $complimentary_memberships = wc_memberships_get_user_memberships($member_obj->ID, array('status' => 'complimentary'));
+        $all_memberships = array_merge($active_memberships, $complimentary_memberships);
         $memberships = '';
-        if($active_memberships) :
+        if($all_memberships) :
           
-          foreach($active_memberships as $membership) :
+          foreach($all_memberships as $membership) :
             $memberships .= $membership->plan->name;
-            if(next($active_memberships)) :
+            if(next($all_memberships)) :
               $memberships .= ' & ';
             endif;
           endforeach;
