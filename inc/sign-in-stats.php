@@ -31,6 +31,16 @@ class MakeSF_SignIn_Stats
       null
     );
 
+    $leaderboard = add_submenu_page(
+      'makesf-stats',
+      __('Sign-in Leaderboard', 'makesantafe'),
+      __('Sign-in Leaderboard', 'makesantafe'),
+      'manage_options',
+      'sign-in-leaderboard',
+      [$this, 'display_signin_leaderboard'],
+      null
+    );
+    add_action('admin_print_scripts-' . $leaderboard, [$this, 'stats_enqueue_scripts']);
     add_action('admin_print_scripts-' . $sign_in, [$this, 'stats_enqueue_scripts']);
     add_action('admin_print_scripts-' . $schedule, [$this, 'schedule_enqueue_scripts']);
   }
@@ -60,7 +70,8 @@ class MakeSF_SignIn_Stats
 
   public function ajax_heatmap()
   {
-    if($_POST['action'] != 'makesf_heatmap') return;
+    if ($_POST['action'] != 'makesf_heatmap')
+      return;
     $days = isset($_POST['days']) ? intval($_POST['days']) : 730;
     $badge = isset($_POST['badge']) && $_POST['badge'] !== '' ? wp_unslash($_POST['badge']) : null;
 
@@ -70,51 +81,51 @@ class MakeSF_SignIn_Stats
 
   public static function get_all_badges_for_filter()
   {
-      global $wpdb;
-      $results = $wpdb->get_col("SELECT `badges` FROM `make_signin`");
-      $ids = array();
-      $special = ['workshop', 'volunteer', 'other'];
-      if ($results) {
-          foreach ($results as $serialized) {
-              $arr = @unserialize($serialized);
-              if ($arr === false && $serialized !== 'b:0;')
-                  continue;
-              if (!is_array($arr))
-                  $arr = array($arr);
-              foreach ($arr as $b) {
-                  if ($b === null || $b === '')
-                      continue;
-                  if (in_array($b, $special, true) || get_the_title($b)) {
-                      $ids[(string) $b] = true;
-                  }
-              }
+    global $wpdb;
+    $results = $wpdb->get_col("SELECT `badges` FROM `make_signin`");
+    $ids = array();
+    $special = ['workshop', 'volunteer', 'other'];
+    if ($results) {
+      foreach ($results as $serialized) {
+        $arr = @unserialize($serialized);
+        if ($arr === false && $serialized !== 'b:0;')
+          continue;
+        if (!is_array($arr))
+          $arr = array($arr);
+        foreach ($arr as $b) {
+          if ($b === null || $b === '')
+            continue;
+          if (in_array($b, $special, true) || get_the_title($b)) {
+            $ids[(string) $b] = true;
           }
+        }
       }
-      ksort($ids, SORT_NATURAL);
-      return array_keys($ids);
+    }
+    ksort($ids, SORT_NATURAL);
+    return array_keys($ids);
   }
 
   public static function render_heatmap_filters()
   {
     $badges = self::get_all_badges_for_filter();
     $html = '<form id="heatmapFilters">';
-      $html .= '<label for="badgeFilter" style="margin-right:8px;">Filter by badge:</label>';
-      $html .= '<select id="badgeFilter">';
-      $html .= '<option value="">All badges</option>';
-      foreach ($badges as $b) {
-        $label = esc_html(self::get_badge_name_by_id($b));
-        $val = esc_attr($b);
-        $html .= '<option value="' . $val . '">' . $label . '</option>';
-      }
-      $html .= '</select>';
+    $html .= '<label for="badgeFilter" style="margin-right:8px;">Filter by badge:</label>';
+    $html .= '<select id="badgeFilter">';
+    $html .= '<option value="">All badges</option>';
+    foreach ($badges as $b) {
+      $label = esc_html(self::get_badge_name_by_id($b));
+      $val = esc_attr($b);
+      $html .= '<option value="' . $val . '">' . $label . '</option>';
+    }
+    $html .= '</select>';
 
-      $html .= '<label for="daysFilter" style="margin:0 8px 0 16px;">Range:</label>';
-      $html .= '<select id="daysFilter">';
-      foreach (array(30, 90, 180, 365, 730) as $d) {
-        $sel = $d === 730 ? ' selected' : '';
-        $html .= '<option value="' . intval($d) . '"' . $sel . '>' . intval($d) . ' days</option>';
-      }
-      $html .= '</select>';
+    $html .= '<label for="daysFilter" style="margin:0 8px 0 16px;">Range:</label>';
+    $html .= '<select id="daysFilter">';
+    foreach (array(30, 90, 180, 365, 730) as $d) {
+      $sel = $d === 730 ? ' selected' : '';
+      $html .= '<option value="' . intval($d) . '"' . $sel . '>' . intval($d) . ' days</option>';
+    }
+    $html .= '</select>';
     $html .= '</form>';
     return $html;
   }
@@ -134,58 +145,139 @@ class MakeSF_SignIn_Stats
     echo '<div id="signInHeatMap">';
     echo $this->output_heatmap(730, null);
     echo '</div>';
-
-    echo '<h1>Sign-in Leaderboard</h1>';
-    echo '<div class="sign-ins-by-user">';
-
-    $users = self::get_users_that_sign_in();
-
-    $total_signins = array();
-    foreach ($users as $key => $value):
-      $user = get_user_by('id', $key);
-      if ($user):
-        echo '<div class="user">';
-        echo '<div class="top-card">';
-        echo '<div class="user-avatar">';
-        $thumb = get_field('photo', 'user_' . $user->ID);
-        if ($thumb):
-          //echo wp_get_attachment_image( $thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
-        endif;
-        echo '</div>';
-        echo '<div class="user-meta">';
-        echo '<h3 class="name">' . $user->display_name . '</h3>';
-        echo '<div class="user-signins">';
-        echo $value;
-        echo '</div>';
-        echo '</div>';
-        echo '</div>';
-
-        $sign_ins = self::get_user_signins($key);
-        echo '<div class="areas">';
-        echo '<ul class="area">';
-        foreach ($sign_ins as $key2 => $value2):
-          $total_signins[$key2] = (isset($total_signins[$key2]) ? $total_signins[$key2] + count($value2) : count($value2));
-          echo '<li>' . $key2 . ': ' . count($value2) . '</li>';
-        endforeach;
-        echo '</ul>';
-        echo '</div>';
-
-        echo '</div>';
-      endif;
-    endforeach;
-
-    echo '</div>';
-    echo '<div class="total-signins">';
-    echo '<h2>Total Sign-ins</h2>';
-    echo '<ul>';
-    arsort($total_signins);
-    foreach ($total_signins as $key => $value):
-      echo '<li><strong>' . $key . '</strong>: ' . $value . '</li>';
-    endforeach;
-    echo '</ul>';
-    echo '</div>';
     echo '</div>';
   }
+  public function display_signin_leaderboard()
+  {
+    echo '<div id="makesfLeaderboard">';
+    echo '<h1>Sign-in Leaderboard</h1>';
+    $this->sign_in_leaderboard();
+    echo '</div>';
+  }
+
+
+
+  public function sign_in_leaderboard()
+  {
+    $search_term = isset($_GET['search_user']) ? sanitize_text_field($_GET['search_user']) : '';
+    echo '<form method="get" class="user-search" style="margin-bottom:1em;">';
+      echo '<input type="hidden" name="page" value="sign-in-leaderboard">';
+      echo '<input type="text" name="search_user" placeholder="Search by name or email" value="' . esc_attr($search_term) . '" />';
+      echo '<button type="submit">Search</button>';
+    echo '</form>';
+
+    echo '<div class="sign-ins-by-user">';
+
+    if ($search_term) {
+        // Find users by display name or email
+        $matched_users = get_users([
+            'search'         => '*' . esc_attr($search_term) . '*',
+            'search_columns' => ['user_email', 'display_name'],
+            'fields'         => ['ID'],
+        ]);
+        $matched_ids = wp_list_pluck($matched_users, 'ID');
+        $all_users = self::get_users_that_sign_in_unique_days();
+        $users = [];
+        foreach ($matched_ids as $id) {
+            if (isset($all_users[$id])) {
+                $users[$id] = $all_users[$id];
+            }
+        }
+    } else {
+        $users = self::get_users_that_sign_in_unique_days();
+    }
+
+
+    $per_page = 30;
+    $page = isset($_GET['leaderboard_page']) ? max(1, intval($_GET['leaderboard_page'])) : 1;
+    $total_users = count($users);
+    $total_pages = ceil($total_users / $per_page);
+
+    $users_paged = array_slice($users, ($page - 1) * $per_page, $per_page, true);
+
+    if (empty($users)) :
+        echo '<p>No users found for that email address.</p>';
+    else :
+
+      foreach ($users_paged as $key => $value):
+          $user = get_user_by('id', $key);
+          if ($user):
+              echo '<div class="user">';
+              echo '<div class="top-card">';
+              echo '<div class="user-avatar">';
+              $thumb = get_field('photo', 'user_' . $user->ID);
+              if ($thumb):
+                  echo wp_get_attachment_image($thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
+              endif;
+              echo '</div>';
+              
+              echo '<div class="user-meta">';
+                echo '<h3 class="name">' . $user->display_name . '</h3>';
+                echo '<div class="user-signins">';
+                  echo '<span class="value">' . $value . '</span>';
+                echo '</div>';
+                echo '</div>';
+              echo '</div>';
+
+              $sign_ins = self::get_user_signins($key);
+              echo '<div class="areas">';
+              echo '<ul class="area">';
+              foreach ($sign_ins as $key2 => $value2):
+                  echo '<li>' . $key2 . ': ' . count($value2) . '</li>';
+              endforeach;
+              echo '</ul>';
+              echo '</div>';
+
+              echo '</div>';
+          endif;
+      endforeach;
+    endif;
+
+    echo '</div>';
+
+    // Pagination links
+    if ($total_pages > 1) {
+        echo '<div class="leaderboard-pagination" style="margin:1em 0;">';
+        for ($i = 1; $i <= $total_pages; $i++) {
+            if ($i == $page) {
+                echo '<span style="margin:0 4px;font-weight:bold;">' . $i . '</span>';
+            } else {
+                $url = add_query_arg('leaderboard_page', $i);
+                echo '<a href="' . esc_url($url) . '" style="margin:0 4px;">' . $i . '</a>';
+            }
+        }
+        echo '</div>';
+    }
+  }
+
+
+  public static function get_users_that_sign_in()
+  {
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT user, count(user) AS 'signins' FROM `make_signin` GROUP BY user ORDER BY 2 DESC;");
+    $users = array();
+    foreach ($results as $result) {
+      $users[$result->user] = $result->signins;
+    }
+    return $users;
+  }
+
+  public static function get_users_that_sign_in_unique_days() {
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT user, time FROM `make_signin`");
+    $user_days = array();
+    foreach ($results as $result) {
+        $date = date('Y-m-d', strtotime($result->time));
+        $user_days[$result->user][$date] = true;
+    }
+    $users = array();
+    foreach ($user_days as $user_id => $days) {
+        $users[$user_id] = count($days);
+    }
+    // Sort descending by unique days
+    arsort($users);
+    return $users;
+}
 
   public function output_heatmap($days, $badge)
   {
@@ -356,16 +448,7 @@ class MakeSF_SignIn_Stats
     return $datasets;
   }
 
-  public static function get_users_that_sign_in()
-  {
-    global $wpdb;
-    $results = $wpdb->get_results("SELECT user, count(user) AS 'signins' FROM `make_signin` GROUP BY user ORDER BY 2 DESC;");
-    $users = array();
-    foreach ($results as $result) {
-      $users[$result->user] = $result->signins;
-    }
-    return $users;
-  }
+
 
   public static function get_user_signins($user_id)
   {
@@ -390,10 +473,10 @@ class MakeSF_SignIn_Stats
       $title = 'Volunteered';
     elseif ($id == 'other'):
       $title = 'Other';
-    elseif(get_the_title($id)):
+    elseif (get_the_title($id)):
       $title = get_the_title($id);
-    else :
-      $title = false;  
+    else:
+      $title = false;
     endif;
     return $title;
   }
