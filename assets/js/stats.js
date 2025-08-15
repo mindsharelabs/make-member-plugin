@@ -23,31 +23,31 @@
         });
     });
 
-
-    $.ajax({
-        url : makeSocialSettings.ajaxurl,
-        type : 'post',
-        data : {
-            action : action,
-            destination : destination,
-            eventID : eventID,
-        },
-        beforeSend: function() {
-            container.addClass('loading');
-            noticeContainer.html('<div class="notice notice-info">Sending event to ' + destination + '...</div>');
-        },
-        success: function(response) {
-            if(response.success) {
-                noticeContainer.html('<div class="notice notice-success">' + response.data.message + '</div>');
-            } else {
-                noticeContainer.html('<div class="notice notice-error">' + response.data.message + '</div>');
-            }
-            console.log(response);
-        },
-        error: function (response) {
-            console.log('An error occurred.');
-            console.log(response);
-        },
+    $(document).on('change', '#heatmapFilters', function() {
+        var days = $('#daysFilter').val();
+        var badge = $('#badgeFilter').val();
+        var container = $('#signInHeatMap');
+        
+        $.ajax({
+            url : makeMember.ajax_url,
+            type : 'post',
+            data : {
+                action : 'makesf_heatmap',
+                days : days,
+                badge : badge,
+            },
+            beforeSend: function() {
+                container.addClass('loading');
+                container.html('<div class="loading">Loading...</div>');
+            },
+            success: function(response) {
+                container.html(response.data.html).removeClass('loading');
+            },
+            error: function (response) {
+                console.log('An error occurred.');
+                console.log(response);
+            },
+        });
     });
 
 
