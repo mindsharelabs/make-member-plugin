@@ -227,31 +227,18 @@ function make_get_member_optimized() {
                 error_log('Make Volunteer: Found active session for user ' . $user_id . ', showing sign-out interface (optimized)');
             }
             
-            // Get the volunteer sign-out interface HTML
-            if (function_exists('make_handle_get_volunteer_session')) {
-                // Temporarily set POST data for the volunteer session handler
-                $original_post = $_POST;
-                $_POST['userID'] = $user_id;
-                $_POST['nonce'] = wp_create_nonce('makesf_volunteer_nonce');
-                
-                // Capture the volunteer session response
-                ob_start();
-                make_handle_get_volunteer_session();
-                $volunteer_response = ob_get_clean();
-                
-                // Restore original POST data
-                $_POST = $original_post;
-                
-                // Parse the JSON response
-                $volunteer_data = json_decode($volunteer_response, true);
-                if ($volunteer_data && $volunteer_data['success'] && $volunteer_data['data']['has_active_session']) {
-                    $return = array(
-                        'status' => 'volunteer_signout',
-                        'html' => $volunteer_data['data']['html']
-                    );
-                    wp_send_json_success($return);
-                    return;
-                }
+            // Use shared renderer instead of buffered AJAX call
+            if (function_exists('make_render_volunteer_signout_interface')) {
+                $rendered = make_render_volunteer_signout_interface($user_id, $active_session);
+                $first_name = get_user_meta($user_id, 'first_name', true);
+                if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
+                $return = array(
+                    'status' => 'volunteer_signout',
+                    'html' => $rendered['html'],
+                    'greeting_name' => $first_name
+                );
+                wp_send_json_success($return);
+                return;
             }
         }
     }
@@ -286,9 +273,8 @@ function make_get_member_optimized() {
         return;
     }
     
-    // Generate badge selection HTML
+    // Generate badge selection HTML (no per-user subheader; global heading handles greeting)
     $html = '<div class="badge-header text-center">';
-    $html .= '<h3 class="name">Hi, ' . esc_html($user->display_name) . '</h3>';
     $html .= '<h4>Which of your badges are you using today?</h4>';
     $html .= '</div>';
     
@@ -311,9 +297,12 @@ function make_get_member_optimized() {
     $html .= '<button disabled data-user="' . $user_id . '" class="btn btn-primary btn-lg sign-in-done">Done!</button>';
     $html .= '</div>';
     
+    $first_name = get_user_meta($user_id, 'first_name', true);
+    if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
     $return = array(
         'html' => $html,
-        'status' => 'userfound'
+        'status' => 'userfound',
+        'greeting_name' => $first_name
     );
     
     wp_send_json_success($return);

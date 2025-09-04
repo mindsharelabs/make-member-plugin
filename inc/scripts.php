@@ -75,133 +75,63 @@ function make_sign_in_member() {
 			}
 
 		// Prepare response message
-		if ($is_volunteering && function_exists('make_get_available_volunteer_tasks')) {
-			// Get user info
-			$user = get_user_by('ID', $user_id);
-			$user_name = $user ? $user->display_name : 'Volunteer';
-			
-			// Get available tasks to show as preview
-			$tasks_html = '';
-			$available_tasks = make_get_available_volunteer_tasks($user_id);
-			
-			if (!empty($available_tasks)) {
-				$tasks_html .= '<div class="volunteer-tasks-preview" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">';
-				$tasks_html .= '<h3 style="margin-bottom: 15px; color: #495057;">📋 What needs to be done today:</h3>';
-				
-				// Show up to 8 tasks, prioritized by urgency
-				$priority_order = array('urgent' => 4, 'high' => 3, 'medium' => 2, 'low' => 1);
-				usort($available_tasks, function($a, $b) use ($priority_order) {
-					$a_priority = $priority_order[$a['priority']] ?? 0;
-					$b_priority = $priority_order[$b['priority']] ?? 0;
-					return $b_priority - $a_priority;
-				});
-				
-				$tasks_to_show = array_slice($available_tasks, 0, 8);
-				
-				// Display tasks in a list format similar to sign-out view
-				$tasks_html .= '<div class="tasks-list" style="max-height: 400px; overflow-y: auto;">';
-				
-				foreach ($tasks_to_show as $task) {
-					$priority_color = '';
-					$priority_text = '';
-					switch ($task['priority']) {
-						case 'urgent':
-							$priority_color = '#dc3545';
-							$priority_text = 'URGENT';
-							break;
-						case 'high':
-							$priority_color = '#fd7e14';
-							$priority_text = 'HIGH';
-							break;
-						case 'medium':
-							$priority_color = '#ffc107';
-							$priority_text = 'MEDIUM';
-							break;
-						case 'low':
-							$priority_color = '#28a745';
-							$priority_text = 'LOW';
-							break;
-					}
-					
-					$tasks_html .= '<div class="task-item" style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid ' . $priority_color . '; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
-					
-					// Task header with title and priority
-					$tasks_html .= '<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">';
-					$tasks_html .= '<h4 style="margin: 0; font-size: 16px; font-weight: bold; color: #333;">' . esc_html($task['title']) . '</h4>';
-					$tasks_html .= '<span style="background: ' . $priority_color . '; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: bold;">' . $priority_text . '</span>';
-					$tasks_html .= '</div>';
-					
-					// Task details
-					if (!empty($task['categories'])) {
-						$tasks_html .= '<div style="font-size: 13px; color: #666; margin-bottom: 5px;">📂 ' . esc_html($task['categories'][0]['name']) . '</div>';
-					}
-					
-					if (!empty($task['description'])) {
-						$tasks_html .= '<div style="font-size: 14px; color: #555; margin-bottom: 8px; line-height: 1.4;">' . esc_html(wp_trim_words($task['description'], 20)) . '</div>';
-					}
-					
-					// Task metadata
-					$tasks_html .= '<div style="display: flex; flex-wrap: wrap; gap: 15px; font-size: 12px; color: #777;">';
-					$tasks_html .= '<span>⏱️ ~' . $task['estimated_duration'] . ' min</span>';
-					
-					if (!empty($task['location'])) {
-						$tasks_html .= '<span>📍 ' . esc_html($task['location']) . '</span>';
-					}
-					
-					if ($task['task_type'] === 'recurring') {
-						$tasks_html .= '<span style="color: #28a745;">🔄 Recurring</span>';
-					}
-					$tasks_html .= '</div>';
-					
-					// Assignment and qualification info
-					if (!empty($task['assigned_to']) || !$task['user_qualified']) {
-						$tasks_html .= '<div style="margin-top: 8px; font-size: 12px;">';
-						
-						if (!empty($task['assigned_to'])) {
-							if ($task['is_assigned_to_current_user']) {
-								$tasks_html .= '<span style="color: #0073aa; font-weight: bold;">👤 Assigned to you</span>';
-							} else {
-								$tasks_html .= '<span style="color: #666;">👤 Assigned to ' . esc_html($task['assigned_to_name']) . '</span>';
-							}
-						}
-						
-						if (!$task['user_qualified']) {
-							$tasks_html .= '<span style="color: #dc3545; margin-left: 10px;">🔒 Requires certification</span>';
-						}
-						
-						$tasks_html .= '</div>';
-					}
-					
-					$tasks_html .= '</div>';
-				}
-				
-				$tasks_html .= '</div>';
-				
-				if (count($available_tasks) > 8) {
-					$remaining = count($available_tasks) - 8;
-					$tasks_html .= '<div style="text-align: center; margin-top: 15px; font-size: 13px; color: #666; padding: 10px; background: white; border-radius: 5px;">+ ' . $remaining . ' more task' . ($remaining > 1 ? 's' : '') . ' available</div>';
-				}
-				
-				$tasks_html .= '<div style="text-align: center; margin-top: 15px; font-size: 13px; color: #495057; font-style: italic;">';
-				$tasks_html .= '💡 You\'ll be able to select completed tasks when you sign out';
-				$tasks_html .= '</div>';
-				$tasks_html .= '</div>';
-			} else {
-				$tasks_html .= '<div class="volunteer-tasks-preview" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; text-align: center;">';
-				$tasks_html .= '<h3 style="color: #495057;">📋 No specific tasks available right now</h3>';
-				$tasks_html .= '<p style="color: #6c757d; margin: 0;">Feel free to help with general maintenance, organization, or ask staff what needs attention!</p>';
-				$tasks_html .= '</div>';
-			}
-			
-			$return = array(
-				'html' => '<div class="volunteer-signin-success alert alert-success text-center">' .
-						  '<h1>Welcome, ' . esc_html($user_name) . '!</h1>' .
-						  '<h2>Your volunteer session has started. Don\'t forget to sign out when you\'re done!</h2>' .
-						  '<div class="volunteer-signin-time"><strong>Signed in at:</strong> ' . current_time('g:i A') . '</div>' .
-						  $tasks_html .
-						  '</div>',
-				'status' => 'volunteer_signin_complete'
-			);
+        if ($is_volunteering) {
+            // Get user info
+            $user = get_user_by('ID', $user_id);
+            $user_name = $user ? $user->display_name : 'Volunteer';
+            // Compute monthly totals
+            $tz = wp_timezone();
+            $now = new DateTime('now', $tz);
+            $current_start = new DateTime($now->format('Y-m-01 00:00:00'), $tz);
+            $current_end = new DateTime($now->format('Y-m-t 23:59:59'), $tz);
+            $prev = (clone $current_start)->modify('-1 month');
+            $prev_start = new DateTime($prev->format('Y-m-01 00:00:00'), $tz);
+            $prev_end = new DateTime($prev->format('Y-m-t 23:59:59'), $tz);
+            $sum_minutes = function($uid, $start, $end) {
+                $q = new WP_Query(array(
+                    'post_type' => 'volunteer_session',
+                    'post_status' => 'publish',
+                    'posts_per_page' => -1,
+                    'fields' => 'ids',
+                    'meta_query' => array(
+                        'relation' => 'AND',
+                        array('key' => 'user_id', 'value' => intval($uid), 'compare' => '='),
+                        array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+                        array('key' => 'signin_time', 'value' => array($start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')), 'compare' => 'BETWEEN', 'type' => 'DATETIME'),
+                    ),
+                ));
+                $total = 0;
+                foreach ($q->posts as $pid) { $total += (int) get_post_meta($pid, 'duration_minutes', true); }
+                return $total;
+            };
+            $current_minutes = $sum_minutes($user_id, $current_start, $current_end);
+            $previous_minutes = $sum_minutes($user_id, $prev_start, $prev_end);
+            $first_name = get_user_meta($user_id, 'first_name', true);
+            if (!$first_name && $user) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
+            $return = array(
+                'html' => '<div class="volunteer-signin-success">' .
+                          '<div class="sign-in-confirm text-center" style="font-size:1.25rem;font-weight:600;margin-bottom:10px;">You\'re signed in, ' . esc_html($first_name ?: $user_name) . '!</div>' .
+                          '<div class="makesf-session-timer" id="volunteer-session-timer"></div>' .
+                          '<div class="volunteer-signin-time text-center"><strong>Signed in at:</strong> ' . current_time('g:i A') . '</div>' .
+                          '<div class="volunteer-monthly-totals" style="margin-top:10px;"><div><strong>This month (incl. current):</strong> ' . round($current_minutes/60, 2) . ' hours</div><div><strong>Last month:</strong> ' . round($previous_minutes/60, 2) . ' hours</div></div>' .
+                          '<script>(function(){
+                            var start = Date.now();
+                            function pad(n){return (n<10?"0":"")+n;}
+                            function tick(){
+                              var diff = Math.floor((Date.now() - start)/1000);
+                              var h = Math.floor(diff/3600);
+                              var m = Math.floor((diff%3600)/60);
+                              var s = diff%60;
+                              var el = document.getElementById("volunteer-session-timer");
+                              if(el){ el.innerHTML = "<div class=\\"timer-display\\"><span>"+pad(h)+"</span>:<span>"+pad(m)+"</span>:<span>"+pad(s)+"</span></div><div class=\\"timer-label\\">Session Running</div>"; }
+                            }
+                            tick();
+                            window.makesfVolunteerTimer = setInterval(tick, 1000);
+                          })();</script>' .
+                          '</div>',
+                'status' => 'volunteer_signin_complete',
+                'greeting_name' => $first_name
+            );
 		} else {
 			// Regular sign-in response
 			$tips = get_field('member_tips', 'options');
@@ -375,30 +305,17 @@ function make_get_member_scan() {
 						error_log('Make Volunteer: Found active session for user ' . $user->ID . ', showing sign-out interface');
 					}
 					
-					// Get the volunteer sign-out interface HTML
-					if (function_exists('make_handle_get_volunteer_session')) {
-						// Temporarily set POST data for the volunteer session handler
-						$original_post = $_POST;
-						$_POST['userID'] = $user->ID;
-						$_POST['nonce'] = wp_create_nonce('makesf_volunteer_nonce');
-						
-						// Capture the volunteer session response
-						ob_start();
-						make_handle_get_volunteer_session();
-						$volunteer_response = ob_get_clean();
-						
-						// Restore original POST data
-						$_POST = $original_post;
-						
-						// Parse the JSON response
-						$volunteer_data = json_decode($volunteer_response, true);
-						if ($volunteer_data && $volunteer_data['success'] && $volunteer_data['data']['has_active_session']) {
-							$return['status'] = 'volunteer_signout';
-							$return['html'] = $volunteer_data['data']['html'];
-							wp_send_json_success($return);
-							return;
-						}
-					}
+                // Use shared renderer for the volunteer sign-out interface
+                if (function_exists('make_render_volunteer_signout_interface')) {
+                    $rendered = make_render_volunteer_signout_interface($user->ID, $active_session);
+                    $first_name = get_user_meta($user->ID, 'first_name', true);
+                    if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
+                    $return['status'] = 'volunteer_signout';
+                    $return['html'] = $rendered['html'];
+                    $return['greeting_name'] = $first_name;
+                    wp_send_json_success($return);
+                    return;
+                }
 				}
 			}
 			
@@ -439,10 +356,9 @@ function make_get_member_scan() {
 
 
 				if(!empty($memberships)) :
-					$html .= '<div class="badge-header text-center">';
-						$html .= '<h3 class="name">Hi, ' . esc_html($user->data->display_name) . '</h3>';
-						$html .= '<h4>Which of your badges are you using today?</h4>';
-					$html .= '</div>';
+                    $html .= '<div class="badge-header text-center">';
+                        $html .= '<h4>Which of your badges are you using today?</h4>';
+                    $html .= '</div>';
 
 					$html .= make_list_sign_in_badges($user);
 					
@@ -472,7 +388,10 @@ function make_get_member_scan() {
 				$html .= '</div>';
 			endif; //no users found
 			
-			$return['html'] = $html;
+            $first_name = get_user_meta($user->ID, 'first_name', true);
+            if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
+            $return['html'] = $html;
+            $return['greeting_name'] = $first_name;
 		
 			wp_send_json_success( $return );
 			
@@ -702,4 +621,3 @@ function make_check_form_submission($user_id, $form_id, $field_id) {
 	endif;
 	return false;
 }
-
