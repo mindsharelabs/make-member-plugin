@@ -274,15 +274,15 @@
 .volunteer-signin-success {
   text-align: center;
   padding: 30px;
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
+  background: #eef8ff;
+  border: 1px solid #bfe2ff;
   border-radius: 8px;
-  color: #155724;
+  color: #003e6b;
 }
 
 .volunteer-signout-success h3,
 .volunteer-signin-success h3 {
-  color: #155724;
+  color: #003e6b;
   margin-bottom: 15px;
 }
 
@@ -330,6 +330,48 @@
   padding: 15px;
   border-radius: 6px;
   margin-top: 15px;
+}
+
+/* Prominent session timer */
+.makesf-session-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 12px 0 4px;
+}
+
+.makesf-session-timer .timer-display {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.makesf-session-timer .timer-display span {
+  display: inline-block;
+  min-width: 2ch;
+}
+
+.makesf-session-timer .timer-label {
+  font-size: 13px;
+  color: #2c3e50;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Monthly totals layout within sign-out */
+.volunteer-monthly-totals {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+.volunteer-monthly-totals > div {
+  padding: 10px 14px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
 }
 
 /* Tooltips */
@@ -419,6 +461,18 @@
 
 .make-member-sign-in .volunteer-session-info {
   background: rgba(248, 249, 250, 0.8);
+}
+
+/* Ensure volunteer sign-out footer centers like main badge footer */
+.make-member-sign-in #MAKEMemberSignIn #result .badge-footer {
+  left: 0;
+  right: 0;
+}
+
+/* Prominent session block on signout success */
+.volunteer-signout-success .prominent-session {
+  text-align: center;
+  margin: 8px 0 6px;
 }
 
 /* Animation for task selection */

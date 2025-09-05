@@ -28,6 +28,8 @@
     // Search settings
     searchDebounceMs: 300,
     minSearchLength: 2,
+    // Minimum characters before client-side filtering runs in hybrid/full
+    minClientSearchLength: 2,
     maxSearchResults: 20,
 
     // UI settings
@@ -66,6 +68,59 @@
     var currentSearchTerm = "";
     var isSearching = false;
 
+    // Heading helper (available to all handlers)
+    function setHeading(text) {
+      var $h = $("#makesf-signin-heading");
+      if (!$h.length) {
+        $h = $("#MAKEMemberSignIn h1").first();
+      }
+      if (!$h.length) return;
+      // Prefer updating existing <strong> to preserve styling
+      var $strong = $h.find('strong').first();
+      if ($strong.length) {
+        $strong.text(text);
+      } else {
+        // Fallback: wrap in strong to keep weight consistent
+        $h.html('<strong>' + text + '</strong>');
+      }
+    }
+
+    // Offline helpers
+    function isOffline() {
+      return typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+    }
+    function ensureOfflineBanner() {
+      if ($("#makesf-offline-banner").length) return;
+      var banner =
+        '<div id="makesf-offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:#fff3cd;border-bottom:1px solid #ffeeba;color:#856404;padding:.6rem 1rem;text-align:center;font-weight:600;">' +
+        '<span>No internet connection. Check Wi‑Fi and try again.</span>' +
+        "</div>";
+      $("body").append(banner);
+    }
+    function showOfflineBanner() { ensureOfflineBanner(); $("#makesf-offline-banner").stop(true,true).fadeIn(150); }
+    function hideOfflineBanner() { $("#makesf-offline-banner").stop(true,true).fadeOut(150); }
+    function showOfflineMessage($target) {
+      showOfflineBanner();
+      var html =
+        '<div class="alert alert-warning text-center" style="max-width:720px;margin:2rem auto;">' +
+        '<h3 style="margin-bottom:.5rem;">You appear to be offline</h3>' +
+        '<div>Reconnect to Wi‑Fi to continue. This screen will update once you are back online.</div>' +
+        '<div class="mt-3"><button class="btn btn-secondary" id="makesf-retry-btn" type="button">Retry</button></div>' +
+        "</div>";
+      $target.html(html);
+      $(document).off("click.makesfRetry").on("click.makesfRetry", "#makesf-retry-btn", function(){ if(!isOffline()){ hideOfflineBanner(); returnToInterface(); } });
+    }
+
+    window.addEventListener("offline", function(){ showOfflineBanner(); });
+    window.addEventListener("online", function(){
+      hideOfflineBanner();
+      if (metaContainer.children().length > 0) { returnToInterface(); }
+      if (memberContainer.length && $("#member-list").is(":visible")) {
+        $.ajax({ url: makeMember.ajax_url, type: "post", data: { action: "makeAllGetMembersOptimized" } })
+          .done(function(res){ if(res && res.success && res.data && res.data.html){ memberContainer.html(res.data.html); initializeListJS(); enhanceSearchInterface(); } });
+      }
+    });
+
     // Performance monitoring utility
     var performanceLog = {
       timers: {},
@@ -95,6 +150,11 @@
       // Only initialize if the member sign-in block is present on the page
       if (metaContainer.length > 0 || memberContainer.length > 0) {
         initializeSignInInterface();
+        // Kiosk enhancements
+        startActiveVolunteersPolling();
+        startNonceRotation();
+        startBackgroundMemberRefresh();
+        setupInactivityAutoReset();
       } else {
         if (config.enablePerformanceLogging) {
           console.log(
@@ -299,6 +359,18 @@
         if (config.enableVolunteerIntegration) {
           window.memberList = memberList;
         }
+
+        // Prewarm client-side search to avoid first-keystroke lag
+        setTimeout(function prewarmClientSearch() {
+          try {
+            if (memberList) {
+              memberList.search("\uFFFF"); // unlikely to match anything
+              memberList.search(""); // clear quickly
+            }
+          } catch (e) {
+            // no-op
+          }
+        }, 50);
       }
     }
 
@@ -324,15 +396,6 @@
         );
       }
 
-      // Add search feedback
-      if ($(".search-feedback").length === 0) {
-        $searchInput
-          .closest(".search-container")
-          .append(
-            '<div class="search-feedback text-muted text-center mt-2 small"></div>'
-          );
-      }
-
       bindEnhancedSearchEvents($searchInput);
     }
 
@@ -356,6 +419,15 @@
         }
 
         searchTimeout = setTimeout(function () {
+          var minLen = config.minClientSearchLength || config.minSearchLength || 2;
+          if (searchTerm.length === 0) {
+            performClientSideSearch("");
+            return;
+          }
+          if (searchTerm.length < minLen) {
+            // Avoid heavy DOM updates for single-character searches on large lists
+            return;
+          }
           performClientSideSearch(searchTerm);
         }, config.searchDebounceMs);
       });
@@ -442,11 +514,14 @@
       if (!memberList) return;
 
       performanceLog.start("clientSearch");
+      var minLen = config.minClientSearchLength || config.minSearchLength || 2;
+      if (searchTerm !== "" && searchTerm.length < minLen) {
+        performanceLog.end("clientSearch", "skipped < minLen");
+        return;
+      }
       memberList.search(searchTerm);
       var visibleCount = memberList.visibleItems.length;
       performanceLog.end("clientSearch", visibleCount + " results");
-
-      updateSearchFeedback(searchTerm, visibleCount, memberList.items.length);
     }
 
     /**
@@ -490,15 +565,6 @@
 
           if (response.success) {
             $searchResults.html(response.data.html);
-
-            var helpText =
-              response.data.count > 0
-                ? "Found " +
-                  response.data.count +
-                  " member" +
-                  (response.data.count !== 1 ? "s" : "")
-                : "No members found";
-            $(".search-help").text(helpText);
           } else {
             $searchResults.html(
               '<div class="alert alert-danger">Search failed. Please try again.</div>'
@@ -509,9 +575,11 @@
           isSearching = false;
           performanceLog.end("serverSearch", "error");
           console.error("Search error:", error);
-          $searchResults.html(
-            '<div class="alert alert-danger">Search error. Please try again.</div>'
-          );
+          if (isOffline()) {
+            $searchResults.html('<div class="alert alert-warning text-center">Offline — reconnect to search.</div>');
+          } else {
+            $searchResults.html('<div class="alert alert-danger">Search error. Please try again.</div>');
+          }
         },
       });
     }
@@ -575,7 +643,11 @@
         error: function (xhr, status, error) {
           hideLoadingState();
           performanceLog.end("memberLoad", "error");
-          handleMemberError(error);
+          if (isOffline()) {
+            showOfflineMessage(metaContainer);
+          } else {
+            handleMemberError(error);
+          }
         },
       });
     }
@@ -604,7 +676,11 @@
         error: function (xhr, status, error) {
           hideLoadingState();
           performanceLog.end("memberLoad", "error");
-          handleMemberError(error);
+          if (isOffline()) {
+            showOfflineMessage(metaContainer);
+          } else {
+            handleMemberError(error);
+          }
         },
       });
     }
@@ -616,11 +692,17 @@
       if (response.success) {
         if (response.data.status === "userfound") {
           metaContainer.html(response.data.html);
+          if (response.data.greeting_name) {
+            setHeading("Hi " + response.data.greeting_name);
+          }
         } else if (response.data.status === "volunteer_signout") {
           // Handle volunteer sign-out interface
           metaContainer.html(response.data.html);
           if (config.enableVolunteerIntegration) {
             $("body").addClass("volunteer-signout-mode");
+          }
+          if (response.data.greeting_name) {
+            setHeading("See You Later " + response.data.greeting_name);
           }
         } else {
           // Error states (no waiver, no membership, etc.)
@@ -705,11 +787,17 @@
               }
               // Update volunteer status in member list
               updateVolunteerStatus(userID, true);
+              if (response.data.greeting_name) {
+                setHeading("Hi " + response.data.greeting_name);
+              }
               setTimeout(function () {
                 returnToInterface();
               }, config.autoReturnDelay);
             } else {
               // Regular sign-in - auto-return
+              if (response.data.greeting_name) {
+                setHeading("Hi " + response.data.greeting_name);
+              }
               setTimeout(function () {
                 returnToInterface();
               }, config.autoReturnDelay);
@@ -724,10 +812,12 @@
         error: function (xhr, status, error) {
           hideLoadingState();
           console.error("Sign-in error:", error);
-          showError("Sign-in failed. Please try again.");
-          setTimeout(function () {
-            returnToInterface();
-          }, config.errorDisplayDelay);
+          if (isOffline()) {
+            showOfflineMessage(metaContainer);
+          } else {
+            showError("Sign-in failed. Please try again.");
+            setTimeout(function () { returnToInterface(); }, config.errorDisplayDelay);
+          }
         },
       });
     });
@@ -774,6 +864,8 @@
       $("body").removeClass(
         "volunteer-signout-mode volunteer-signin-mode ajax-loading"
       );
+      // Reset heading to default
+      setHeading("Member Sign In");
 
       if (config.loadingStrategy === "search") {
         $("#search-results").removeClass("d-none");
@@ -781,15 +873,7 @@
       } else {
         $("#member-list").removeClass("d-none");
         $("#memberSearch").focus();
-
-        if (memberList) {
-          memberList.search("");
-          updateSearchFeedback(
-            "",
-            memberList.items.length,
-            memberList.items.length
-          );
-        }
+        if (memberList) { memberList.search(""); }
       }
 
       currentSearchTerm = "";
@@ -815,6 +899,121 @@
           }
         }
       }
+    }
+
+    /**
+     * Poll active volunteers and update glow state (every 45s)
+     */
+    function startActiveVolunteersPolling() {
+      var last = [];
+      function tick() {
+        $.ajax({
+          url: makeMember.ajax_url,
+          type: "post",
+          data: { action: "makeGetActiveVolunteerIds" },
+        })
+          .done(function (res) {
+            if (!res || !res.success || !res.data) return;
+            var ids = res.data.active_user_ids || [];
+            // Build lookup for quick checks
+            var map = {};
+            for (var i = 0; i < ids.length; i++) map[ids[i]] = true;
+
+            // Update currently rendered cards
+            $(".profile-card").each(function () {
+              var uid = parseInt($(this).data("user"), 10);
+              if (!uid) return;
+              updateVolunteerStatus(uid, !!map[uid]);
+            });
+            last = ids;
+          })
+          .always(function () {
+            setTimeout(tick, 45000);
+          });
+      }
+      // Start after initial render
+      setTimeout(tick, 5000);
+    }
+
+    /**
+     * Rolling nonce refresh for long-lived kiosk (every 8 hours)
+     */
+    function startNonceRotation() {
+      function refresh() {
+        $.ajax({
+          url: makeMember.ajax_url,
+          type: "post",
+          data: { action: "makeRefreshNonces" },
+        })
+          .done(function (res) {
+            if (res && res.success && res.data) {
+              makeMember.volunteer_nonce = res.data.volunteer_nonce || makeMember.volunteer_nonce;
+              makeMember.signin_nonce = res.data.signin_nonce || makeMember.signin_nonce;
+              // Sync local cache
+              nonces.volunteer = makeMember.volunteer_nonce;
+              nonces.signin = makeMember.signin_nonce;
+              if (config.enablePerformanceLogging) {
+                console.log("Nonces refreshed at", res.data.generated_at);
+              }
+            }
+          })
+          .always(function () {
+            setTimeout(refresh, 8 * 60 * 60 * 1000);
+          });
+      }
+      // First rotation later to avoid burst on load
+      setTimeout(refresh, 30 * 60 * 1000);
+    }
+
+    /**
+     * Background refresh of member list every 15 minutes
+     */
+    function startBackgroundMemberRefresh() {
+      function refreshList() {
+        // Only refresh if grid is visible and not in a modal/overlay state
+        var inModal = $("body").hasClass("volunteer-signout-mode") || metaContainer.children().length > 0;
+        if (config.loadingStrategy !== "search" && !inModal && memberContainer.length) {
+          $.ajax({
+            url: makeMember.ajax_url,
+            type: "post",
+            data: { action: "makeAllGetMembersOptimized" },
+          })
+            .done(function (res) {
+              if (res && res.success && res.data && res.data.html) {
+                memberContainer.html(res.data.html);
+                initializeListJS();
+                enhanceSearchInterface();
+                if (config.enablePerformanceLogging) {
+                  console.log("Background member list refreshed");
+                }
+              }
+            })
+            .always(function () {
+              setTimeout(refreshList, 15 * 60 * 1000);
+            });
+        } else {
+          setTimeout(refreshList, 15 * 60 * 1000);
+        }
+      }
+      setTimeout(refreshList, 15 * 60 * 1000);
+    }
+
+    /**
+     * Inactivity auto-reset (60s) to return to ready state
+     */
+    function setupInactivityAutoReset() {
+      var timeoutMs = 60000;
+      var timer;
+      function resetTimer() {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(function () {
+          // Only auto-reset if not interacting with search
+          if (!$("#member-list, #search-results").hasClass("d-none")) return;
+          returnToInterface();
+        }, timeoutMs);
+      }
+      $(document).on("click keydown touchstart", resetTimer);
+      resetTimer();
     }
 
     /**
@@ -845,12 +1044,8 @@
      * Global AJAX loading states
      */
     $(document)
-      .ajaxStart(function () {
-        $("body").addClass("ajax-loading");
-      })
-      .ajaxStop(function () {
-        $("body").removeClass("ajax-loading");
-      });
+      .ajaxStart(function () { $("body").addClass("ajax-loading"); })
+      .ajaxStop(function () { $("body").removeClass("ajax-loading"); });
 
     // Expose public API for external integration
     window.MakeSignIn = {

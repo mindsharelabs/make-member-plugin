@@ -42,6 +42,8 @@ class makeProfile {
 
       add_action('woocommerce_before_my_account', array($this, 'display_member_resources'), 30);
       add_action('woocommerce_account_dashboard', array($this, 'profile_progress'));
+      // Add volunteer hours progress section on My Account dashboard
+      add_action('woocommerce_account_dashboard', array($this, 'volunteer_hours_progress'), 35);
 
       add_action('wp_footer', array($this, 'enqueueAssets'));
     endif;
@@ -53,6 +55,26 @@ class makeProfile {
 
     wp_register_style('member-styles', MAKESF_URL . 'assets/css/style.css', array(), MAKESF_PLUGIN_VERSION);
     wp_enqueue_style('member-styles');
+
+    // Add small, focused styles for volunteer progress UI
+    $css = '
+    .volunteer-progress-wrapper{margin:20px 0;}
+    .volunteer-progress-wrapper h3{margin:0 0 12px;color:#2c3e50;text-align:center}
+    .vp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .vp-card{background:#fff;border:1px solid #e9ecef;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:16px}
+    .vp-card-previous{background:#f8f9fa;filter:saturate(.85);}
+    .vp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .vp-title{font-weight:700;color:#2c3e50}
+    .vp-badge{font-size:12px;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#2b3a67;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .vp-progress{margin:10px 0 6px;background:#f1f3f5;border-radius:999px;overflow:hidden;height:14px;position:relative}
+    .vp-bar{height:100%;width:0;transition:width .8s ease;box-shadow:inset 0 0 6px rgba(0,0,0,.12)}
+    .vp-bar-complete{background:#28a745}
+    .vp-bar-incomplete{background:#dc3545}
+    .vp-stats{display:flex;justify-content:space-between;font-size:12px;color:#566573}
+    .vp-score{font-size:28px;font-weight:800;color:#2c3e50}
+    @media (prefers-reduced-motion: reduce){.vp-bar{transition:none}}
+    ';
+    wp_add_inline_style('member-styles', $css);
 
   }
 
@@ -196,6 +218,72 @@ class makeProfile {
           }
           echo '</div>';
       endif;
+  }
+
+  // Volunteer hours progress UI for My Account dashboard
+  public function volunteer_hours_progress() {
+      $user_id = $this->userID;
+      if (!$user_id || !function_exists('make_get_user_volunteer_hours_for_month')) {
+          return;
+      }
+
+      $target = (int) get_option('makesf_volunteer_target_hours', 12);
+      $current_ym = date('Y-m');
+      $prev_ym = date('Y-m', strtotime('first day of last month'));
+
+      $current = make_get_user_volunteer_hours_for_month($user_id, $current_ym, true);
+      $previous = make_get_user_volunteer_hours_for_month($user_id, $prev_ym, false);
+
+      $cur_pct = $target > 0 ? min(100, round(($current['total_hours'] / $target) * 100)) : 0;
+      $pre_pct = $target > 0 ? min(100, round(($previous['total_hours'] / $target) * 100)) : 0;
+
+      // Only show to users who have hours this or last month
+      if ((int) $current['total_minutes'] === 0 && (int) $previous['total_minutes'] === 0) {
+          return;
+      }
+
+      // Gamified badges
+      $badge_for = function($pct){
+          if ($pct >= 100) return 'Goal Met';
+          if ($pct >= 75)  return 'On Track';
+          if ($pct >= 40)  return 'Making Progress';
+          return 'Getting Started';
+      };
+      $cur_label = $badge_for($cur_pct);
+      $pre_label = $badge_for($pre_pct);
+
+      echo '<div class="volunteer-progress-wrapper">';
+      echo '<h3>Volunteer Hours</h3>';
+      echo '<div class="vp-grid">';
+
+      // Compute bar classes (red until complete, then green)
+      $pre_class = ($pre_pct >= 100) ? 'vp-bar-complete' : 'vp-bar-incomplete';
+      $cur_class = ($cur_pct >= 100) ? 'vp-bar-complete' : 'vp-bar-incomplete';
+
+      // Previous month card (left)
+      echo '<div class="vp-card vp-card-previous">';
+      echo '<div class="vp-header">';
+      echo '<div class="vp-title">' . esc_html(date('F Y', strtotime('first day of last month'))) . '</div>';
+      echo '<div class="vp-badge">' . esc_html($pre_label) . '</div>';
+      echo '</div>';
+      echo '<div class="vp-score">' . esc_html($previous['total_hours']) . 'h</div>';
+      echo '<div class="vp-progress"><div class="vp-bar ' . esc_attr($pre_class) . '" style="width:' . esc_attr($pre_pct) . '%"></div></div>';
+      echo '<div class="vp-stats"><span>' . intval($previous['session_count']) . ' sessions</span><span>Target ' . intval($target) . 'h</span></div>';
+      echo '</div>';
+
+      // Current month card (right)
+      echo '<div class="vp-card">';
+      echo '<div class="vp-header">';
+      echo '<div class="vp-title">' . esc_html(date('F Y')) . '</div>';
+      echo '<div class="vp-badge">' . esc_html($cur_label) . '</div>';
+      echo '</div>';
+      echo '<div class="vp-score">' . esc_html($current['total_hours']) . 'h</div>';
+      echo '<div class="vp-progress"><div class="vp-bar ' . esc_attr($cur_class) . '" style="width:' . esc_attr($cur_pct) . '%"></div></div>';
+      echo '<div class="vp-stats"><span>' . intval($current['session_count']) . ' sessions</span><span>Target ' . intval($target) . 'h</span></div>';
+      echo '</div>';
+
+      echo '</div>'; // grid
+      echo '</div>'; // wrapper
   }
   private function get_profile_steps() {
     return array(
@@ -348,6 +436,3 @@ add_action( 'gform_after_submission_45', function ( $entry, $form ) {
   endif;
 
 }, 10, 2 );
-
-
-

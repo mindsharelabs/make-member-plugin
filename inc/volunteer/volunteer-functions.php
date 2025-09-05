@@ -10,6 +10,243 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Benefits status helpers (per user per month)
+ */
+function makesf_get_benefits_status($user_id, $ym) {
+    $key = 'makesf_volunteer_benefits_' . $ym; // e.g., 2025-09
+    $val = get_user_meta($user_id, $key, true);
+    return $val ?: 'pending';
+}
+
+function makesf_set_benefits_status($user_id, $ym, $status) {
+    $allowed = array('approved','denied','pending');
+    if (!in_array($status, $allowed, true)) return false;
+    $key = 'makesf_volunteer_benefits_' . $ym;
+    return update_user_meta($user_id, $key, $status);
+}
+
+/**
+ * Sync WooCommerce Memberships status when benefits are approved/denied.
+ * - Plan slug: make-member
+ * - Approved: set status to complimentary and end-date to last day of next month
+ * - Denied: set end-date to last day of current month and set status to expired
+ *
+ * This is resilient: if WC Memberships is not available, it silently returns.
+ */
+function makesf_sync_benefits_membership($user_id, $ym, $status) {
+    // Only handle approved/denied transitions
+    if (!in_array($status, array('approved','denied'), true)) {
+        return;
+    }
+    // Require WooCommerce Memberships runtime
+    if (!function_exists('wc_memberships_get_user_memberships')) {
+        return;
+    }
+
+    // Resolve plan id for slug "make-member"
+    $plan_id = 0;
+    if (function_exists('wc_memberships_get_membership_plan')) {
+        $plan_obj = wc_memberships_get_membership_plan('make-member');
+        if ($plan_obj && is_object($plan_obj)) {
+            $plan_id = method_exists($plan_obj, 'get_id') ? (int) $plan_obj->get_id() : (int) $plan_obj->id;
+        }
+    }
+    if (!$plan_id) {
+        $plan_post = get_page_by_path('make-member', OBJECT, 'wc_membership_plan');
+        if ($plan_post) $plan_id = (int) $plan_post->ID;
+    }
+    if (!$plan_id) {
+        return; // Can't find the plan, bail quietly
+    }
+
+    // Find existing user membership for that plan (any status)
+    $memberships = wc_memberships_get_user_memberships($user_id);
+    $user_membership = null;
+    $created = false;
+    if (!empty($memberships)) {
+        foreach ($memberships as $m) {
+            $pid = method_exists($m, 'get_plan_id') ? (int) $m->get_plan_id() : (int) $m->plan->get_id();
+            if ($pid === $plan_id) { $user_membership = $m; break; }
+        }
+    }
+    // If none, create one
+    if (!$user_membership && function_exists('wc_memberships_create_user_membership')) {
+        $args = array(
+            'plan_id'   => $plan_id,
+            'user_id'   => $user_id,
+            'is_manual' => true,
+            'status'    => 'complimentary',
+        );
+        $user_membership = wc_memberships_create_user_membership($args);
+        if (is_wp_error($user_membership)) {
+            return false; // creation failed
+        }
+        $created = true;
+    }
+    if (!$user_membership) {
+        return false;
+    }
+
+    // Compute end date per rules
+    // $ym is YYYY-MM representing the month reviewed
+    if (!preg_match('/^\d{4}-\d{2}$/', $ym)) {
+        return false;
+    }
+    try {
+        $tz = wp_timezone();
+    } catch (Exception $e) {
+        $tz = new DateTimeZone('UTC');
+    }
+    $month_start = DateTime::createFromFormat('Y-m-d H:i:s', $ym.'-01 00:00:00', $tz);
+    if (!$month_start) {
+        return false;
+    }
+    if ($status === 'approved') {
+        // Benefits for reviewed month grant through end of the following month
+        $end = (clone $month_start)->modify('first day of next month')->modify('last day of this month')->setTime(23,59,59);
+        $new_status = 'complimentary';
+    } else { // denied
+        // End at last day of reviewed month
+        $end = (clone $month_start)->modify('last day of this month')->setTime(23,59,59);
+        // If end is in the past, mark expired; otherwise keep complimentary until then
+        $now = new DateTime('now', $tz);
+        $new_status = ($end < $now) ? 'expired' : 'complimentary';
+    }
+
+    // Apply changes
+    if (method_exists($user_membership, 'set_end_date')) {
+        $user_membership->set_end_date($end->format('Y-m-d H:i:s'));
+    }
+    if (method_exists($user_membership, 'update_status')) {
+        $user_membership->update_status($new_status);
+    } elseif (method_exists($user_membership, 'set_status')) {
+        $user_membership->set_status($new_status);
+    }
+    if (method_exists($user_membership, 'save')) {
+        $user_membership->save();
+    }
+
+    return array(
+        'end' => $end->format('Y-m-d H:i:s'),
+        'applied_status' => $new_status,
+        'created' => $created,
+        'plan_id' => $plan_id,
+    );
+}
+
+/**
+ * Render volunteer sign-out interface HTML and summary.
+ * Shared renderer for optimized member flow and volunteer session UI.
+ *
+ * @param int   $user_id
+ * @param object $active_session  Object from make_get_active_volunteer_session()
+ * @return array { html: string, session_data: array }
+ */
+function make_render_volunteer_signout_interface($user_id, $active_session) {
+    // Compute current duration using WordPress timezone
+    $timezone = wp_timezone();
+    $signin_time = new DateTime($active_session->signin_time, $timezone);
+    $current_time = new DateTime('now', $timezone);
+    $duration = $signin_time->diff($current_time);
+    $duration_minutes = ($duration->days * 24 * 60) + ($duration->h * 60) + $duration->i;
+
+    // Format duration as hours/mins
+    if ($duration_minutes >= 60) {
+        $hours = floor($duration_minutes / 60);
+        $minutes = $duration_minutes % 60;
+        $duration_display = $hours . 'h ' . $minutes . 'm';
+    } else {
+        $duration_display = $duration_minutes . 'm';
+    }
+
+    // User info
+    $user = get_user_by('ID', $user_id);
+    $user_name = $user ? $user->display_name : 'Volunteer';
+
+    // Monthly totals (current and previous calendar months)
+    $tz = wp_timezone();
+    $now = new DateTime('now', $tz);
+    $current_start = new DateTime($now->format('Y-m-01 00:00:00'), $tz);
+    $current_end = new DateTime($now->format('Y-m-t 23:59:59'), $tz);
+    $prev = (clone $current_start)->modify('-1 month');
+    $prev_start = new DateTime($prev->format('Y-m-01 00:00:00'), $tz);
+    $prev_end = new DateTime($prev->format('Y-m-t 23:59:59'), $tz);
+
+    $sum_minutes = function($uid, $start, $end) {
+        $q = new WP_Query(array(
+            'post_type' => 'volunteer_session',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'meta_query' => array(
+                'relation' => 'AND',
+                array('key' => 'user_id', 'value' => intval($uid), 'compare' => '='),
+                array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+                array('key' => 'signin_time', 'value' => array($start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')), 'compare' => 'BETWEEN', 'type' => 'DATETIME'),
+            ),
+        ));
+        $total = 0;
+        foreach ($q->posts as $pid) {
+            $total += (int) get_post_meta($pid, 'duration_minutes', true);
+        }
+        return $total;
+    };
+
+    $current_minutes = $sum_minutes($user_id, $current_start, $current_end);
+    $previous_minutes = $sum_minutes($user_id, $prev_start, $prev_end);
+
+    // Build HTML
+    $html = '<div class="volunteer-signout-interface">';
+    $html .= '<div class="volunteer-session-info">';
+    // Live timer (matches sign-in styling) using WP timezone timestamp
+    $html .= '<div class="makesf-session-timer" id="volunteer-live-timer" data-start="' . esc_attr($signin_time->getTimestamp() * 1000) . '"></div>';
+    $html .= '<div class="current-session">';
+    $html .= '<p><strong>Signed in:</strong> ' . $signin_time->format('g:i A') . '</p>';
+    $html .= '</div>';
+    $html .= '</div>';
+    // Include the current live session minutes in this month's total
+    $combined_current_minutes = $current_minutes + $duration_minutes;
+    $html .= '<div class="volunteer-monthly-totals" style="margin-top:10px;">';
+    $html .= '<div><strong>This month (incl. current):</strong> ' . round($combined_current_minutes / 60, 2) . ' hours</div>';
+    $html .= '<div><strong>Last month:</strong> ' . round($previous_minutes / 60, 2) . ' hours</div>';
+    $html .= '</div>';
+    // Live timer script
+    $html .= '<script>(function(){
+      var el = document.getElementById("volunteer-live-timer");
+      if(!el) return;
+      var start = parseInt(el.getAttribute("data-start"),10);
+      function pad(n){return (n<10?"0":"")+n;}
+      function tick(){
+        var diff = Math.floor((Date.now() - start)/1000);
+        var h = Math.floor(diff/3600);
+        var m = Math.floor((diff%3600)/60);
+        var s = diff%60;
+        el.innerHTML = "<div class=\\"timer-display\\"><span>"+pad(h)+"</span>:<span>"+pad(m)+"</span>:<span>"+pad(s)+"</span></div><div class=\\"timer-label\\">Session Running</div>";
+      }
+      tick();
+      window.makesfVolunteerLiveTimer = setInterval(tick,1000);
+    })();</script>';
+    // Footer actions (fixed, like badge selection)
+    $html .= '<div class="badge-footer">';
+    $html .= '  <div class="d-flex justify-content-center" style="gap:12px;">';
+    $html .= '    <button type="button" class="btn btn-outline-secondary btn-lg volunteer-back-btn">Back</button>';
+    $html .= '    <button type="button" class="btn btn-primary btn-lg volunteer-sign-out-btn" data-user="' . intval($user_id) . '" data-session="' . intval($active_session->id) . '">Sign Out</button>';
+    $html .= '  </div>';
+    $html .= '</div>';
+    $html .= '</div>';
+
+    return array(
+        'html' => $html,
+        'session_data' => array(
+            'id' => intval($active_session->id),
+            'signin_time' => $active_session->signin_time,
+            'duration_minutes' => $duration_minutes,
+            'schedule_status' => 'unscheduled'
+        )
+    );
+}
+
+/**
  * Mark volunteer orientation as complete
  */
 function make_mark_orientation_complete($user_id, $date = null) {
@@ -37,209 +274,57 @@ function make_get_volunteer_orientation_date($user_id) {
     return get_user_meta($user_id, 'volunteer_orientation_date', true);
 }
 
-/**
- * Set volunteer schedule type
- */
-function make_set_volunteer_schedule_type($user_id, $type) {
-    $valid_types = array('scheduled', 'flexible', 'none');
-    
-    if (!in_array($type, $valid_types)) {
-        return false;
-    }
-    
-    update_user_meta($user_id, 'volunteer_schedule_type', $type);
-    return true;
-}
 
-/**
- * Get volunteer schedule type
- */
-function make_get_volunteer_schedule_type($user_id) {
-    return get_user_meta($user_id, 'volunteer_schedule_type', true) ?: 'none';
-}
-
-/**
- * Get expected volunteers for today
- */
-function make_get_expected_volunteers_today() {
-    global $wpdb;
-    
-    $today_day_of_week = date('w'); // 0 = Sunday
-    $current_time = date('H:i:s');
-    
-    $schedules_table = $wpdb->prefix . 'volunteer_schedules';
-    
-    $results = $wpdb->get_results($wpdb->prepare(
-        "SELECT DISTINCT user_id, start_time, end_time 
-        FROM $schedules_table 
-        WHERE day_of_week = %d 
-        AND is_active = 1 
-        AND start_time <= %s 
-        AND end_time >= %s",
-        $today_day_of_week,
-        $current_time,
-        $current_time
-    ));
-    
-    $expected_volunteers = array();
-    foreach ($results as $result) {
-        $user = get_user_by('ID', $result->user_id);
-        if ($user) {
-            $expected_volunteers[] = array(
-                'user_id' => $result->user_id,
-                'name' => $user->display_name,
-                'start_time' => $result->start_time,
-                'end_time' => $result->end_time,
-                'is_signed_in' => !is_null(make_get_active_volunteer_session($result->user_id))
-            );
-        }
-    }
-    
-    return $expected_volunteers;
-}
-
-/**
- * Get schedule adherence rate for a volunteer
- */
-function make_get_schedule_adherence_rate($user_id, $period = 'month') {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    // Determine date range
-    switch ($period) {
-        case 'week':
-            $date_condition = "signin_time >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
-            break;
-        case 'month':
-            $date_condition = "signin_time >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
-            break;
-        case 'year':
-            $date_condition = "signin_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
-            break;
-        default:
-            $date_condition = "1=1";
-            break;
-    }
-    
-    $sessions = $wpdb->get_results($wpdb->prepare(
-        "SELECT signin_time FROM $sessions_table 
-        WHERE user_id = %d AND status = 'completed' AND $date_condition",
-        $user_id
-    ));
-    
-    if (empty($sessions)) {
-        return array(
-            'total_sessions' => 0,
-            'on_time' => 0,
-            'late' => 0,
-            'early' => 0,
-            'unscheduled' => 0,
-            'adherence_rate' => 0
-        );
-    }
-    
-    $stats = array(
-        'on_time' => 0,
-        'late' => 0,
-        'early' => 0,
-        'unscheduled' => 0
-    );
-    
-    foreach ($sessions as $session) {
-        $adherence = make_check_schedule_adherence($user_id, $session->signin_time);
-        $stats[$adherence]++;
-    }
-    
-    $total_sessions = count($sessions);
-    $adherence_rate = $total_sessions > 0 ? round(($stats['on_time'] / $total_sessions) * 100, 1) : 0;
-    
-    return array(
-        'total_sessions' => $total_sessions,
-        'on_time' => $stats['on_time'],
-        'late' => $stats['late'],
-        'early' => $stats['early'],
-        'unscheduled' => $stats['unscheduled'],
-        'adherence_rate' => $adherence_rate
-    );
-}
 
 /**
  * Export volunteer data
  */
 function make_export_volunteer_data($filters = array()) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    // Build WHERE clause based on filters
-    $where_conditions = array("status = 'completed'");
-    $where_values = array();
-    
+    // Build meta query
+    $meta_query = array(
+        'relation' => 'AND',
+        array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+    );
     if (!empty($filters['user_id'])) {
-        $where_conditions[] = "user_id = %d";
-        $where_values[] = $filters['user_id'];
+        $meta_query[] = array('key' => 'user_id', 'value' => intval($filters['user_id']), 'compare' => '=');
     }
-    
     if (!empty($filters['start_date'])) {
-        $where_conditions[] = "signin_time >= %s";
-        $where_values[] = $filters['start_date'];
+        $meta_query[] = array('key' => 'signin_time', 'value' => $filters['start_date'], 'compare' => '>=', 'type' => 'DATETIME');
     }
-    
     if (!empty($filters['end_date'])) {
-        $where_conditions[] = "signin_time <= %s";
-        $where_values[] = $filters['end_date'];
+        $meta_query[] = array('key' => 'signin_time', 'value' => $filters['end_date'], 'compare' => '<=', 'type' => 'DATETIME');
     }
-    
-    $where_clause = implode(' AND ', $where_conditions);
-    
-    $query = "SELECT 
-        s.user_id,
-        s.signin_time,
-        s.signout_time,
-        s.duration_minutes,
-        s.tasks_completed,
-        s.notes,
-        u.display_name,
-        u.user_email
-    FROM $sessions_table s
-    LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
-    WHERE $where_clause
-    ORDER BY s.signin_time DESC";
-    
-    if (!empty($where_values)) {
-        $results = $wpdb->get_results($wpdb->prepare($query, $where_values));
-    } else {
-        $results = $wpdb->get_results($query);
-    }
-    
-    // Process results for export
+
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signin_time',
+        'order' => 'DESC',
+        'meta_query' => $meta_query,
+        'fields' => 'ids',
+    ));
+
     $export_data = array();
-    foreach ($results as $result) {
-        $tasks = array();
-        if (!empty($result->tasks_completed)) {
-            $task_ids = json_decode($result->tasks_completed, true);
-            if (is_array($task_ids)) {
-                foreach ($task_ids as $task_id) {
-                    $task = get_post($task_id);
-                    if ($task) {
-                        $tasks[] = $task->post_title;
-                    }
-                }
-            }
-        }
-        
+    foreach ($q->posts as $post_id) {
+        $user_id = intval(get_post_meta($post_id, 'user_id', true));
+        $user = get_user_by('ID', $user_id);
+        $signin_time = get_post_meta($post_id, 'signin_time', true);
+        $signout_time = get_post_meta($post_id, 'signout_time', true);
+        $duration_minutes = (int) get_post_meta($post_id, 'duration_minutes', true);
+        $notes = (string) get_post_meta($post_id, 'notes', true);
+
         $export_data[] = array(
-            'volunteer_name' => $result->display_name,
-            'volunteer_email' => $result->user_email,
-            'signin_time' => $result->signin_time,
-            'signout_time' => $result->signout_time,
-            'duration_hours' => round($result->duration_minutes / 60, 2),
-            'tasks_completed' => implode(', ', $tasks),
-            'notes' => $result->notes
+            'volunteer_name' => $user ? $user->display_name : 'Unknown',
+            'volunteer_email' => $user ? $user->user_email : '',
+            'signin_time' => $signin_time,
+            'signout_time' => $signout_time,
+            'duration_hours' => round($duration_minutes / 60, 2),
+            'notes' => $notes
         );
     }
-    
+
     return $export_data;
 }
 
@@ -264,6 +349,89 @@ function make_get_volunteer_monthly_progress($user_id, $target_hours = 12) {
         'session_count' => $current_month_hours['session_count']
     );
 }
+
+/**
+ * Get a user's volunteer hours for a specific calendar month.
+ *
+ * @param int         $user_id User ID
+ * @param string|null $ym      Year-month in 'Y-m' (e.g. '2025-09'). Defaults to current month.
+ * @param bool        $include_active Whether to include the currently active session minutes if month is current.
+ * @return array { total_minutes, total_hours, session_count, start, end }
+ */
+function make_get_user_volunteer_hours_for_month($user_id, $ym = null, $include_active = false) {
+    $user_id = (int) $user_id;
+    if (!$user_id) {
+        return array(
+            'total_minutes' => 0,
+            'total_hours' => 0,
+            'session_count' => 0,
+            'start' => null,
+            'end' => null,
+        );
+    }
+
+    if (!$ym) {
+        $ym = date('Y-m');
+    }
+
+    // Compute calendar month boundaries in site timezone
+    try { $tz = wp_timezone(); } catch (Exception $e) { $tz = new DateTimeZone('UTC'); }
+    $month_start = DateTime::createFromFormat('Y-m-d H:i:s', $ym.'-01 00:00:00', $tz);
+    if (!$month_start) {
+        $month_start = new DateTime(date('Y-m-01 00:00:00'), $tz);
+    }
+    $month_end = (clone $month_start)->modify('last day of this month')->setTime(23,59,59);
+
+    $start_str = $month_start->format('Y-m-d H:i:s');
+    $end_str   = $month_end->format('Y-m-d H:i:s');
+
+    // Query completed sessions within the month for this user
+    $q = new WP_Query(array(
+        'post_type'      => 'volunteer_session',
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'fields'         => 'ids',
+        'meta_query'     => array(
+            'relation' => 'AND',
+            array('key' => 'user_id', 'value' => $user_id, 'compare' => '='),
+            array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+            array('key' => 'signin_time', 'value' => array($start_str, $end_str), 'compare' => 'BETWEEN', 'type' => 'DATETIME'),
+        ),
+    ));
+
+    $total_minutes = 0;
+    $count = 0;
+    foreach ($q->posts as $post_id) {
+        $mins = (int) get_post_meta($post_id, 'duration_minutes', true);
+        $total_minutes += max(0, $mins);
+        $count++;
+    }
+
+    // Optionally include active session minutes if this is current month
+    if ($include_active && $ym === date('Y-m')) {
+        if (function_exists('make_get_active_volunteer_session')) {
+            $active = make_get_active_volunteer_session($user_id);
+            if ($active && !empty($active->signin_time)) {
+                try { $signin = new DateTime($active->signin_time, $tz); } catch (Exception $e) { $signin = null; }
+                if ($signin) {
+                    $now = new DateTime('now', $tz);
+                    $diff = $signin->diff($now);
+                    $active_minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
+                    $total_minutes += max(0, (int) $active_minutes);
+                }
+            }
+        }
+    }
+
+    return array(
+        'total_minutes' => $total_minutes,
+        'total_hours'   => round($total_minutes / 60, 2),
+        'session_count' => $count,
+        'start'         => $start_str,
+        'end'           => $end_str,
+    );
+}
+
 
 /**
  * Get volunteer badges/certifications
@@ -294,20 +462,36 @@ function make_get_volunteer_badges($user_id) {
  * Get all volunteers with basic info
  */
 function make_get_all_volunteers() {
-    // Get all users who have volunteer sessions or orientation
+    // Users who either have sessions (CPT) or have orientation completed
     global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    $volunteer_user_ids = $wpdb->get_col(
-        "SELECT DISTINCT user_id FROM $sessions_table 
-        UNION 
-        SELECT DISTINCT user_id FROM {$wpdb->usermeta} 
-        WHERE meta_key = 'volunteer_orientation_completed' AND meta_value = '1'"
-    );
-    
+    $umeta = $wpdb->usermeta;
+
+    // Gather user IDs from CPT sessions
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'meta_query' => array(
+            array('key' => 'user_id', 'compare' => 'EXISTS'),
+        ),
+    ));
+    $session_user_ids = array();
+    foreach ($q->posts as $post_id) {
+        $uid = intval(get_post_meta($post_id, 'user_id', true));
+        if ($uid) $session_user_ids[$uid] = true;
+    }
+
+    // Gather users with orientation meta
+    $oriented_user_ids = $wpdb->get_col("
+        SELECT DISTINCT user_id FROM {$umeta}
+        WHERE meta_key = 'volunteer_orientation_completed' AND meta_value = '1'
+    ");
+
+    $all_ids = array_unique(array_merge(array_keys($session_user_ids), array_map('intval', $oriented_user_ids)));
+
     $volunteers = array();
-    foreach ($volunteer_user_ids as $user_id) {
+    foreach ($all_ids as $user_id) {
         $user = get_user_by('ID', $user_id);
         if ($user) {
             $volunteers[] = array(
@@ -316,19 +500,17 @@ function make_get_all_volunteers() {
                 'email' => $user->user_email,
                 'orientation_completed' => make_volunteer_has_orientation($user_id),
                 'orientation_date' => make_get_volunteer_orientation_date($user_id),
-                'schedule_type' => make_get_volunteer_schedule_type($user_id),
                 'start_date' => get_user_meta($user_id, 'volunteer_start_date', true),
                 'hours_this_month' => make_get_volunteer_hours($user_id, 'month')['total_hours'],
                 'total_hours' => make_get_volunteer_hours($user_id, 'all')['total_hours']
             );
         }
     }
-    
-    // Sort by total hours descending
+
     usort($volunteers, function($a, $b) {
         return $b['total_hours'] <=> $a['total_hours'];
     });
-    
+
     return $volunteers;
 }
 
@@ -360,48 +542,35 @@ function make_format_time($time) {
  * Get volunteer session history
  */
 function make_get_volunteer_session_history($user_id, $limit = 10) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    $sessions = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $sessions_table 
-        WHERE user_id = %d AND status = 'completed' 
-        ORDER BY signin_time DESC 
-        LIMIT %d",
-        $user_id,
-        $limit
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => $limit,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signin_time',
+        'order' => 'DESC',
+        'meta_query' => array(
+            'relation' => 'AND',
+            array('key' => 'user_id', 'value' => intval($user_id), 'compare' => '='),
+            array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+        ),
+        'fields' => 'ids',
     ));
     
     $history = array();
-    foreach ($sessions as $session) {
-        $tasks = array();
-        if (!empty($session->tasks_completed)) {
-            $task_ids = json_decode($session->tasks_completed, true);
-            if (is_array($task_ids)) {
-                foreach ($task_ids as $task_id) {
-                    $task = get_post($task_id);
-                    if ($task) {
-                        $tasks[] = array(
-                            'id' => $task_id,
-                            'title' => $task->post_title
-                        );
-                    }
-                }
-            }
-        }
-        
+    foreach ($q->posts as $post_id) {
+        $signin_time = get_post_meta($post_id, 'signin_time', true);
+        $signout_time = get_post_meta($post_id, 'signout_time', true);
+        $duration_minutes = (int) get_post_meta($post_id, 'duration_minutes', true);
+        $notes = (string) get_post_meta($post_id, 'notes', true);
         $history[] = array(
-            'id' => $session->id,
-            'signin_time' => $session->signin_time,
-            'signout_time' => $session->signout_time,
-            'duration_hours' => round($session->duration_minutes / 60, 2),
-            'tasks' => $tasks,
-            'notes' => $session->notes,
-            'schedule_adherence' => make_check_schedule_adherence($user_id, $session->signin_time)
+            'id' => $post_id,
+            'signin_time' => $signin_time,
+            'signout_time' => $signout_time,
+            'duration_hours' => round($duration_minutes / 60, 2),
+            'notes' => $notes
         );
     }
-    
     return $history;
 }
 
@@ -431,128 +600,145 @@ function make_set_volunteer_target_hours($hours) {
  * Get recent volunteer sessions for admin dashboard
  */
 function make_get_recent_volunteer_sessions($limit = 10) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    return $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $sessions_table
-        WHERE status = 'completed'
-        ORDER BY signout_time DESC
-        LIMIT %d",
-        $limit
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => $limit,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signout_time',
+        'order' => 'DESC',
+        'meta_query' => array(
+            array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+        ),
+        'fields' => 'ids',
     ));
+    $results = array();
+    foreach ($q->posts as $post_id) {
+        $obj = (object) array(
+            'id' => $post_id,
+            'user_id' => intval(get_post_meta($post_id, 'user_id', true)),
+            'signin_time' => get_post_meta($post_id, 'signin_time', true),
+            'signout_time' => get_post_meta($post_id, 'signout_time', true),
+            'duration_minutes' => (int) get_post_meta($post_id, 'duration_minutes', true),
+            'notes' => (string) get_post_meta($post_id, 'notes', true),
+            'status' => get_post_meta($post_id, 'status', true),
+        );
+        $results[] = $obj;
+    }
+    return $results;
 }
 
 /**
  * Get all active volunteer sessions
  */
 function make_get_active_volunteer_sessions() {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    return $wpdb->get_results(
-        "SELECT * FROM $sessions_table
-        WHERE status = 'active'
-        ORDER BY signin_time ASC"
-    );
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signin_time',
+        'order' => 'ASC',
+        'meta_query' => array(
+            array('key' => 'status', 'value' => 'active', 'compare' => '='),
+        ),
+        'fields' => 'ids',
+    ));
+    $results = array();
+    foreach ($q->posts as $post_id) {
+        $obj = (object) array(
+            'id' => $post_id,
+            'user_id' => intval(get_post_meta($post_id, 'user_id', true)),
+            'signin_time' => get_post_meta($post_id, 'signin_time', true),
+            'signout_time' => get_post_meta($post_id, 'signout_time', true),
+            'duration_minutes' => (int) get_post_meta($post_id, 'duration_minutes', true),
+            'notes' => (string) get_post_meta($post_id, 'notes', true),
+            'status' => get_post_meta($post_id, 'status', true),
+        );
+        $results[] = $obj;
+    }
+    return $results;
 }
 
 /**
  * Get volunteer sessions with pagination
  */
 function make_get_volunteer_sessions_paginated($per_page = 20, $offset = 0) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    return $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM $sessions_table
-        ORDER BY signin_time DESC
-        LIMIT %d OFFSET %d",
-        $per_page,
-        $offset
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => $per_page,
+        'offset' => $offset,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signin_time',
+        'order' => 'DESC',
+        'fields' => 'ids',
     ));
+    $results = array();
+    foreach ($q->posts as $post_id) {
+        $results[] = (object) array(
+            'id' => $post_id,
+            'user_id' => intval(get_post_meta($post_id, 'user_id', true)),
+            'signin_time' => get_post_meta($post_id, 'signin_time', true),
+            'signout_time' => get_post_meta($post_id, 'signout_time', true),
+            'duration_minutes' => (int) get_post_meta($post_id, 'duration_minutes', true),
+            'notes' => (string) get_post_meta($post_id, 'notes', true),
+            'status' => get_post_meta($post_id, 'status', true),
+        );
+    }
+    return $results;
 }
 
 /**
  * Get total volunteer sessions count
  */
 function make_get_volunteer_sessions_count() {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    return $wpdb->get_var("SELECT COUNT(*) FROM $sessions_table");
-}
-
-/**
- * Get task completion count
- */
-function make_get_task_completion_count($task_id) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    $count = $wpdb->get_var($wpdb->prepare(
-        "SELECT COUNT(*) FROM $sessions_table
-        WHERE status = 'completed'
-        AND tasks_completed LIKE %s",
-        '%"' . $task_id . '"%'
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'fields' => 'ids',
     ));
-    
-    return intval($count);
-}
-
-/**
- * Get all volunteer schedules
- */
-function make_get_all_volunteer_schedules() {
-    global $wpdb;
-    
-    $schedules_table = $wpdb->prefix . 'volunteer_schedules';
-    
-    return $wpdb->get_results(
-        "SELECT * FROM $schedules_table
-        WHERE is_active = 1
-        ORDER BY day_of_week, start_time"
-    );
+    return intval($q->found_posts);
 }
 
 /**
  * Get volunteer monthly data for charts
  */
 function make_get_volunteer_monthly_data($months = 12) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    $results = $wpdb->get_results($wpdb->prepare(
-        "SELECT
-            DATE_FORMAT(signin_time, '%%Y-%%m') as month,
-            SUM(duration_minutes) as total_minutes,
-            COUNT(*) as session_count
-        FROM $sessions_table
-        WHERE status = 'completed'
-        AND signin_time >= DATE_SUB(NOW(), INTERVAL %d MONTH)
-        GROUP BY DATE_FORMAT(signin_time, '%%Y-%%m')
-        ORDER BY month",
-        $months
+    // Load completed sessions in the last $months months and aggregate client-side
+    $cutoff = date('Y-m-d H:i:s', strtotime("-$months months"));
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'meta_query' => array(
+            'relation' => 'AND',
+            array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+            array('key' => 'signin_time', 'value' => $cutoff, 'compare' => '>=', 'type' => 'DATETIME'),
+        ),
     ));
-    
+
+    $buckets = array(); // 'Y-m' => minutes
+    foreach ($q->posts as $post_id) {
+        $signin = get_post_meta($post_id, 'signin_time', true);
+        $mins = (int) get_post_meta($post_id, 'duration_minutes', true);
+        if (!$signin) { continue; }
+        $ym = date('Y-m', strtotime($signin));
+        if (!isset($buckets[$ym])) { $buckets[$ym] = 0; }
+        $buckets[$ym] += $mins;
+    }
+
+    ksort($buckets);
     $labels = array();
     $hours = array();
-    
-    foreach ($results as $result) {
-        $labels[] = date('M Y', strtotime($result->month . '-01'));
-        $hours[] = round($result->total_minutes / 60, 1);
+    foreach ($buckets as $ym => $mins) {
+        $labels[] = date('M Y', strtotime($ym . '-01'));
+        $hours[] = round($mins / 60, 1);
     }
-    
-    return array(
-        'labels' => $labels,
-        'hours' => $hours
-    );
+
+    return array('labels' => $labels, 'hours' => $hours);
 }
 
 /**
@@ -616,21 +802,17 @@ function make_test_volunteer_system() {
     // Test 1: Check if tables exist
     global $wpdb;
     $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    $schedules_table = $wpdb->prefix . 'volunteer_schedules';
     
     $sessions_exists = $wpdb->get_var("SHOW TABLES LIKE '$sessions_table'") == $sessions_table;
-    $schedules_exists = $wpdb->get_var("SHOW TABLES LIKE '$schedules_table'") == $schedules_table;
     
     $results['tables'] = array(
-        'sessions_table_exists' => $sessions_exists,
-        'schedules_table_exists' => $schedules_exists
+        'sessions_table_exists' => $sessions_exists
     );
     
-    // Test 2: Check if functions exist
+    // Test 2: Check if core session functions exist
     $results['functions'] = array(
         'make_start_volunteer_session' => function_exists('make_start_volunteer_session'),
-        'make_get_active_volunteer_session' => function_exists('make_get_active_volunteer_session'),
-        'make_get_available_volunteer_tasks' => function_exists('make_get_available_volunteer_tasks')
+        'make_get_active_volunteer_session' => function_exists('make_get_active_volunteer_session')
     );
     
     // Test 3: Check AJAX handlers
@@ -639,206 +821,58 @@ function make_test_volunteer_system() {
         'makeVolunteerSignOut' => has_action('wp_ajax_makeVolunteerSignOut')
     );
     
-    // Test 4: Check if volunteer tasks exist
-    $tasks = get_posts(array(
-        'post_type' => 'volunteer_task',
-        'post_status' => 'publish',
-        'numberposts' => 1
-    ));
-    
-    $results['volunteer_tasks'] = array(
-        'tasks_exist' => !empty($tasks),
-        'task_count' => count($tasks)
-    );
-    
     return $results;
-}
-
-/**
- * Create default volunteer tasks for testing
- */
-function make_create_default_volunteer_tasks() {
-    if (!current_user_can('manage_options')) {
-        return false;
-    }
-    
-    $default_tasks = array(
-        array(
-            'title' => 'Clean Workshop Area',
-            'content' => 'Sweep floors, organize tools, and wipe down work surfaces in the main workshop area.',
-            'category' => 'Maintenance',
-            'priority' => 'medium',
-            'duration' => 30,
-            'location' => 'Main Workshop',
-            'tools' => 'Broom, cleaning supplies, rags',
-            'instructions' => '1. Clear all tools from work surfaces\n2. Sweep floor thoroughly\n3. Wipe down all work surfaces\n4. Organize tools back to proper locations'
-        ),
-        array(
-            'title' => 'Organize Storage Room',
-            'content' => 'Sort materials, label shelves, and inventory supplies in the storage areas.',
-            'category' => 'Organization',
-            'priority' => 'low',
-            'duration' => 60,
-            'location' => 'Storage Room',
-            'tools' => 'Labels, marker, inventory sheets',
-            'instructions' => '1. Sort materials by type\n2. Label all shelves clearly\n3. Update inventory sheets\n4. Remove any damaged items'
-        ),
-        array(
-            'title' => 'Front Desk Support',
-            'content' => 'Greet visitors, answer questions, and assist with member sign-ins.',
-            'category' => 'Administrative',
-            'priority' => 'high',
-            'duration' => 120,
-            'location' => 'Front Desk',
-            'tools' => 'Computer, phone, visitor log',
-            'instructions' => '1. Greet all visitors warmly\n2. Help with sign-in process\n3. Answer basic questions about the space\n4. Direct visitors to appropriate areas'
-        ),
-        array(
-            'title' => 'Safety Equipment Check',
-            'content' => 'Inspect and test safety equipment throughout the facility.',
-            'category' => 'Safety',
-            'priority' => 'urgent',
-            'duration' => 45,
-            'location' => 'Entire Facility',
-            'tools' => 'Checklist, flashlight, testing equipment',
-            'instructions' => '1. Check all fire extinguishers\n2. Test emergency lighting\n3. Verify first aid kit supplies\n4. Report any issues immediately'
-        )
-    );
-    
-    $created_count = 0;
-    
-    foreach ($default_tasks as $task_data) {
-        // Check if task already exists
-        $existing = get_posts(array(
-            'post_type' => 'volunteer_task',
-            'title' => $task_data['title'],
-            'post_status' => 'any',
-            'numberposts' => 1
-        ));
-        
-        if (!empty($existing)) {
-            continue; // Skip if already exists
-        }
-        
-        // Create the task post
-        $post_id = wp_insert_post(array(
-            'post_title' => $task_data['title'],
-            'post_content' => $task_data['content'],
-            'post_type' => 'volunteer_task',
-            'post_status' => 'publish',
-            'post_author' => get_current_user_id()
-        ));
-        
-        if ($post_id && !is_wp_error($post_id)) {
-            // Set the category
-            $category_term = get_term_by('name', $task_data['category'], 'volunteer_task_category');
-            if ($category_term) {
-                wp_set_post_terms($post_id, array($category_term->term_id), 'volunteer_task_category');
-            }
-            
-            // Set ACF fields
-            update_field('priority', $task_data['priority'], $post_id);
-            update_field('estimated_duration', $task_data['duration'], $post_id);
-            update_field('location', $task_data['location'], $post_id);
-            update_field('tools_needed', $task_data['tools'], $post_id);
-            update_field('instructions', $task_data['instructions'], $post_id);
-            
-            $created_count++;
-        }
-    }
-    
-    return $created_count;
 }
 
 /**
  * Get session details for modal display
  */
 function make_get_session_details_for_modal($session_id) {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    $session = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $sessions_table WHERE id = %d",
-        $session_id
-    ));
-    
-    if (!$session) {
+    $post = get_post($session_id);
+    if (!$post || $post->post_type !== 'volunteer_session') {
         return false;
     }
-    
-    // Get user info
-    $user = get_user_by('ID', $session->user_id);
+
+    $user_id = intval(get_post_meta($post->ID, 'user_id', true));
+    $user = get_user_by('ID', $user_id);
     if (!$user) {
         return false;
     }
-    
-    // Get tasks
-    $tasks = array();
-    $tasks_html = '<div class="no-tasks">No tasks recorded</div>';
-    
-    if (!empty($session->tasks_completed)) {
-        $task_ids = json_decode($session->tasks_completed, true);
-        if (is_array($task_ids) && !empty($task_ids)) {
-            $tasks_list = array();
-            foreach ($task_ids as $task_id) {
-                $task = get_post($task_id);
-                if ($task) {
-                    $category = get_the_terms($task_id, 'volunteer_task_category');
-                    $category_name = $category && !is_wp_error($category) ? $category[0]->name : 'General';
-                    
-                    $tasks[] = array(
-                        'id' => $task_id,
-                        'title' => $task->post_title,
-                        'category' => $category_name
-                    );
-                    
-                    $tasks_list[] = '<div class="task-item">
-                        <span class="task-name">' . esc_html($task->post_title) . '</span>
-                        <span class="task-category">' . esc_html($category_name) . '</span>
-                    </div>';
-                }
-            }
-            
-            if (!empty($tasks_list)) {
-                $tasks_html = implode('', $tasks_list);
-            }
-        }
-    }
-    
-    // Format times for datetime-local inputs
+
+    $signin_time = get_post_meta($post->ID, 'signin_time', true);
+    $signout_time = get_post_meta($post->ID, 'signout_time', true);
+    $duration_minutes = (int) get_post_meta($post->ID, 'duration_minutes', true);
+
     $signin_time_input = '';
     $signout_time_input = '';
     $duration_display = 'Ongoing';
-    
-    if ($session->signin_time) {
-        $signin_dt = new DateTime($session->signin_time);
+
+    if ($signin_time) {
+        $signin_dt = new DateTime($signin_time);
         $signin_time_input = $signin_dt->format('Y-m-d\TH:i');
     }
-    
-    if ($session->signout_time) {
-        $signout_dt = new DateTime($session->signout_time);
+    if ($signout_time) {
+        $signout_dt = new DateTime($signout_time);
         $signout_time_input = $signout_dt->format('Y-m-d\TH:i');
-        
-        if ($session->duration_minutes) {
-            $hours = floor($session->duration_minutes / 60);
-            $minutes = $session->duration_minutes % 60;
+        if ($duration_minutes) {
+            $hours = floor($duration_minutes / 60);
+            $minutes = $duration_minutes % 60;
             $duration_display = $hours . 'h ' . $minutes . 'm';
         }
     }
-    
+
+    $status = get_post_meta($post->ID, 'status', true) ?: 'active';
+
     return array(
-        'id' => $session->id,
+        'id' => $post->ID,
         'volunteer_name' => $user->display_name,
         'volunteer_email' => $user->user_email,
-        'status' => $session->status,
-        'status_label' => ucfirst($session->status),
+        'status' => $status,
+        'status_label' => ucfirst($status),
         'signin_time_input' => $signin_time_input,
         'signout_time_input' => $signout_time_input,
         'duration_display' => $duration_display,
-        'tasks' => $tasks,
-        'tasks_html' => $tasks_html,
-        'notes' => $session->notes ?: ''
+        'notes' => (string) get_post_meta($post->ID, 'notes', true),
     );
 }
 
@@ -846,49 +880,25 @@ function make_get_session_details_for_modal($session_id) {
  * Update volunteer session times and notes
  */
 function make_update_volunteer_session($session_id, $signin_time, $signout_time, $notes = '') {
-    global $wpdb;
-    
-    $sessions_table = $wpdb->prefix . 'volunteer_sessions';
-    
-    // Validate session exists
-    $session = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM $sessions_table WHERE id = %d",
-        $session_id
-    ));
-    
-    if (!$session) {
+    $post = get_post($session_id);
+    if (!$post || $post->post_type !== 'volunteer_session') {
         return new WP_Error('session_not_found', 'Session not found');
     }
-    
-    // Validate times
+
     $signin_dt = new DateTime($signin_time);
     $signout_dt = new DateTime($signout_time);
-    
     if ($signout_dt <= $signin_dt) {
         return new WP_Error('invalid_times', 'Sign-out time must be after sign-in time');
     }
-    
-    // Calculate duration
+
     $duration_minutes = round(($signout_dt->getTimestamp() - $signin_dt->getTimestamp()) / 60);
-    
-    // Update session
-    $result = $wpdb->update(
-        $sessions_table,
-        array(
-            'signin_time' => $signin_dt->format('Y-m-d H:i:s'),
-            'signout_time' => $signout_dt->format('Y-m-d H:i:s'),
-            'duration_minutes' => $duration_minutes,
-            'notes' => $notes,
-            'status' => 'completed'
-        ),
-        array('id' => $session_id),
-        array('%s', '%s', '%d', '%s', '%s'),
-        array('%d')
-    );
-    
-    if ($result === false) {
-        return new WP_Error('update_failed', 'Failed to update session');
-    }
-    
+
+    update_post_meta($post->ID, 'signin_time', $signin_dt->format('Y-m-d H:i:s'));
+    update_post_meta($post->ID, 'signout_time', $signout_dt->format('Y-m-d H:i:s'));
+    update_post_meta($post->ID, 'duration_minutes', $duration_minutes);
+    update_post_meta($post->ID, 'notes', (string) $notes);
+    update_post_meta($post->ID, 'status', 'completed');
+    update_post_meta($post->ID, 'updated_at', current_time('mysql'));
+
     return true;
 }

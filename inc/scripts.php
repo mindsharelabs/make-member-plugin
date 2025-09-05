@@ -362,17 +362,15 @@ function make_get_member_scan() {
 
 					$html .= make_list_sign_in_badges($user);
 					
-					// Add additional activities that are not badges
-					$html .= '<div class="badge-item w-100 text-center" data-badge="volunteer">';
-						$html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
+					// Add additional activities that are not badges (full width below badges)
+					$html .= '<div class="badge-item activity-item w-100 text-center" data-badge="volunteer">';
+					$html .= '  <span class="small"><h3 class="my-2">Volunteering</h3></span>';
 					$html .= '</div>';
-
-					$html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
-						$html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+					$html .= '<div class="badge-item activity-item w-100 text-center" data-badge="workshop">';
+					$html .= '  <span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
 					$html .= '</div>';
-
-					$html .= '<div class="badge-item w-100 text-center" data-badge="other">';
-						$html .= '<span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
+					$html .= '<div class="badge-item activity-item w-100 text-center" data-badge="other">';
+					$html .= '  <span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
 					$html .= '</div>';
 
 					$html .= '</div>';
@@ -417,29 +415,38 @@ function make_list_sign_in_badges($user) {
 		)
 	));
 	$html = '<div class="badge-list d-flex">';
+	$allowed_items = array();
+	$other_items = array();
 	if($all_badges->have_posts()) :
-	
-				
 		while($all_badges->have_posts()) :
 			$all_badges->the_post();
 
 			$user_badges = get_field('certifications', 'user_' . $user->ID);
-			
 			$class = 'not-allowed';
+			$has_badge = false;
 			if($user_badges) :
 				if(in_array(get_the_id(), $user_badges)) :
 					$class = '';
+					$has_badge = true;
 				endif;
 			endif;
 
-			$html .= '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
+			$item_html = '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
 				$badge_image = get_field('badge_image', get_the_id());
-				$html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
-				$html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
-			$html .= '</div>';
+				$item_html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
+				$item_html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
+			$item_html .= '</div>';
 
+			if ($has_badge) {
+				$allowed_items[] = $item_html;
+			} else {
+				$other_items[] = $item_html;
+			}
 		endwhile;
 	endif;
+
+	// Output allowed first, then the rest
+	$html .= implode('', $allowed_items) . implode('', $other_items);
 
 	return $html;
 }

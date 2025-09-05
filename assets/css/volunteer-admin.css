@@ -4,6 +4,37 @@
   max-width: 1200px;
 }
 
+/* Settings Layout */
+.volunteer-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.volunteer-settings-grid .settings-section {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 6px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.volunteer-settings-grid .settings-section h2 {
+  margin: 0 0 14px 0;
+  font-size: 18px;
+  border-bottom: 1px solid #e6e7e8;
+  padding-bottom: 8px;
+}
+
+.volunteer-settings-grid .form-table th {
+  width: 260px;
+}
+
+/* Hide search boxes in our settings UI */
+.wrap.volunteer-admin .search-box { display: none !important; }
+.wrap.volunteer-admin .tablenav .search-box { display: none !important; }
+
 /* Dashboard Stats Grid */
 .volunteer-stats-grid {
   display: grid;
@@ -288,6 +319,31 @@
   vertical-align: middle;
 }
 
+/* Align benefits review button to the far right on Volunteers table */
+#volunteers-benefits-table td.column-benefits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#volunteers-benefits-table td.column-benefits .benefits-review {
+  margin-left: auto;
+}
+.volunteer-admin .wp-list-table th.check-column,
+.volunteer-admin .wp-list-table td.check-column {
+  vertical-align: middle;
+  background: transparent !important; /* remove special grey background */
+  border-right: 0 !important;        /* remove vertical dividing border if present */
+  padding: 8px 10px !important;      /* match general cell padding */
+  text-align: center;                 /* center the checkbox */
+}
+.volunteer-admin .wp-list-table tbody th.check-column,
+.volunteer-admin .wp-list-table tbody td.check-column {
+  border-bottom: 0 !important;       /* remove bottom border just for body rows */
+}
+.volunteer-admin .wp-list-table .check-column input[type="checkbox"] {
+  margin: 0 !important;               /* remove default WP offset */
+}
+
 /* Task Description */
 .task-description {
   font-size: 12px;
@@ -313,6 +369,8 @@
 .table-search {
   margin-bottom: 15px;
 }
+/* Hide any injected search bar within our Volunteer settings wrapper */
+.wrap.volunteer-admin .table-search { display: none !important; }
 
 .table-search input {
   width: 300px;
@@ -438,14 +496,31 @@
 
   .volunteer-admin .wp-list-table th,
   .volunteer-admin .wp-list-table td {
-    border: 1px solid #000;
-    padding: 5px;
-  }
+  border: 1px solid #000;
+  padding: 5px;
+}
 
   .stat-card {
     border: 1px solid #000;
     break-inside: avoid;
   }
+}
+
+/* Volunteers tablenav inline actions */
+.wrap.volunteer-admin .tablenav .alignleft.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wrap.volunteer-admin .tablenav .volunteer-month-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.wrap.volunteer-admin .tablenav .volunteer-bulk-benefits-actions .button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Accessibility Enhancements */
@@ -846,3 +921,61 @@ body.modal-open {
     transition: none;
   }
 }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-right: 6px;
+  border: 1px solid transparent;
+}
+.badge.meets-target { background:#d1e7dd; color:#0f5132; border-color:#badbcc; }
+.badge.below-target { background:#fff3cd; color:#664d03; border-color:#ffe69c; }
+.badge.benefits-status { background:#f6f7f7; color:#1d2327; border-color:#c3c4c7; }
+.badge.status-approved { background:#d1e7dd; color:#0f5132; border-color:#badbcc; }
+.badge.status-denied { background:#f8d7da; color:#842029; border-color:#f5c2c7; }
+.badge.status-pending { background:#e2e3e5; color:#41464b; border-color:#d3d6d8; }
+
+/* Simple modal */
+.makesf-modal { position:fixed; inset:0; z-index:100000; }
+.makesf-modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.45); }
+.makesf-modal-dialog { position:absolute; top:10%; left:50%; transform:translateX(-50%); width: min(800px, 92%); background:#fff; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+.makesf-modal-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #e2e4e7; }
+.makesf-modal-body { padding:16px; max-height:60vh; overflow:auto; }
+.makesf-modal-footer { padding:12px 16px; border-top:1px solid #e2e4e7; display:flex; gap:8px; justify-content:flex-end; }
+
+/* Benefits review UI */
+.review-grid {
+  display:grid;
+  grid-template-columns: repeat(4, minmax(120px,1fr));
+  gap:12px;
+  margin-bottom: 16px;
+}
+.summary-card {
+  background:#f6f7f7;
+  border:1px solid #e2e4e7;
+  border-radius:6px;
+  padding:10px 12px;
+}
+.summary-title { font-size:11px; color:#646970; text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px; }
+.summary-value { font-size:16px; font-weight:600; color:#1d2327; }
+.status-picker { display:flex; align-items:center; gap:16px; padding:10px 12px; margin: 8px 0 16px; background:#fff; border:1px solid #e2e4e7; border-radius:6px; }
+.status-label { font-weight:600; }
+.status-options label { margin-right:14px; }
+.sessions-table-wrap { border:1px solid #e2e4e7; border-radius:6px; overflow:hidden; }
+.sessions-table-wrap table.widefat thead th { background:#f6f7f7; }
+
+/* Dashboard spacing polish overrides */
+.wrap.volunteer-admin.full-width h1 { margin-bottom: 12px; }
+.dashboard-section { margin-bottom: 24px; }
+.volunteer-stats-grid { gap: 16px; margin: 16px 0 24px; }
+.dashboard-section h2 { margin-bottom: 14px; }
+.quick-actions-grid { display:flex; flex-wrap:wrap; gap:8px; }
+.quick-actions-grid .button { margin: 0; }
+.monthly-summary { background:#f6f7f7; border:1px solid #c3c4c7; border-radius:4px; padding:12px 16px; }
+.monthly-summary p { margin: 0 0 6px; }
+.monthly-summary p:last-child { margin-bottom: 0; }
+.volunteer-admin .dashboard-section table.wp-list-table th,
+.volunteer-admin .dashboard-section table.wp-list-table td { padding: 10px 12px; }
+.volunteer-admin .dashboard-section table.wp-list-table td .button-small { margin: 0; }

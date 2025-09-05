@@ -14,7 +14,10 @@ if (!defined('ABSPATH')) {
  */
 function make_schedule_auto_signout_cron() {
     $settings = get_option('make_volunteer_settings', array());
-    
+    // Default to enabled if setting not present (sane kiosk default)
+    if (!isset($settings['auto_signout_enabled'])) {
+        $settings['auto_signout_enabled'] = 1;
+    }
     // Check if auto sign-out is enabled
     if (!isset($settings['auto_signout_enabled']) || !$settings['auto_signout_enabled']) {
         // Clear any existing schedule if disabled
@@ -25,20 +28,26 @@ function make_schedule_auto_signout_cron() {
     $signout_time = isset($settings['auto_signout_time']) ? $settings['auto_signout_time'] : '20:00';
     $timezone = isset($settings['auto_signout_timezone']) ? $settings['auto_signout_timezone'] : wp_timezone_string();
     
-    // Clear existing schedule
-    make_unschedule_auto_signout_cron();
+    // If an event is already scheduled, leave it unless settings changed
+    $existing = wp_next_scheduled('make_auto_signout_volunteers');
+    if ($existing) {
+        return; // already scheduled
+    }
     
-    // Schedule new event with configured time
+    // Schedule new event with configured time (site timezone aware)
     try {
         $date = new DateTime('today ' . $signout_time, new DateTimeZone($timezone));
         $timestamp = $date->getTimestamp();
-        
-        // Ensure the time is in the future
-        if ($timestamp < time()) {
-            $timestamp = strtotime('tomorrow ' . $signout_time, $timestamp);
+        // Ensure the time is in the future (use DateTime modify to avoid strtotime TZ issues)
+        if ($timestamp <= time()) {
+            $date->modify('+1 day');
+            $timestamp = $date->getTimestamp();
         }
         
         wp_schedule_event($timestamp, 'daily', 'make_auto_signout_volunteers');
+        if (defined('WP_DEBUG_LOG') && WP_DEBUG_LOG) {
+            error_log('Make Volunteer: Auto sign-out scheduled at ' . gmdate('c', $timestamp) . ' (site TZ ' . $timezone . ')');
+        }
     } catch (Exception $e) {
         error_log('Failed to schedule auto sign-out: ' . $e->getMessage());
     }
@@ -287,6 +296,15 @@ register_activation_hook(MAKESF_PLUGIN_FILE, 'make_schedule_auto_signout_cron');
 
 // Unschedule cron on plugin deactivation
 register_deactivation_hook(MAKESF_PLUGIN_FILE, 'make_unschedule_auto_signout_cron');
+
+// Ensure cron is scheduled on init if enabled and not already scheduled
+add_action('init', function() {
+    $settings = get_option('make_volunteer_settings', array());
+    $enabled = isset($settings['auto_signout_enabled']) ? (bool)$settings['auto_signout_enabled'] : true;
+    if ($enabled && !wp_next_scheduled('make_auto_signout_volunteers')) {
+        make_schedule_auto_signout_cron();
+    }
+});
 
 // Add AJAX handler for manual trigger
 add_action('wp_ajax_make_trigger_auto_signout', 'make_handle_manual_auto_signout');

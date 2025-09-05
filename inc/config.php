@@ -45,7 +45,7 @@ class MakeSF_Config {
         // Volunteer system integration
         'enable_volunteer_integration' => true,
         'volunteer_auto_signout' => false,
-        'volunteer_task_preview_count' => 8,
+        // removed: volunteer_task_preview_count (task system deprecated)
         
         // UI/UX settings
         'enable_keyboard_shortcuts' => true,
@@ -155,7 +155,6 @@ class MakeSF_Config {
             case 'auto_return_delay':
             case 'error_display_delay':
             case 'cache_expiration':
-            case 'volunteer_task_preview_count':
                 return is_numeric($value) && $value >= 0;
                 
             case 'enable_performance_logging':

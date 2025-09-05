@@ -279,20 +279,22 @@ function make_get_member_optimized() {
     $html .= '</div>';
     
     $html .= make_list_sign_in_badges_cached($user);
-    
-    // Add activity options
-    $html .= '<div class="badge-item w-100 text-center" data-badge="volunteer">';
-    $html .= '<span class="small"><h3 class="my-2">Volunteering</h3></span>';
+
+    // Add activity options (full-width below badges)
+    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="volunteer">';
+    $html .= '  <span class="small"><h3 class="my-2">Volunteering</h3></span>';
+    $html .= '</div>';
+
+    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="workshop">';
+    $html .= '  <span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+    $html .= '</div>';
+
+    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="other">';
+    $html .= '  <span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
     $html .= '</div>';
     
-    $html .= '<div class="badge-item w-100 text-center" data-badge="workshop">';
-    $html .= '<span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+    // Close the badge list container
     $html .= '</div>';
-    
-    $html .= '<div class="badge-item w-100 text-center" data-badge="other">';
-    $html .= '<span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
-    $html .= '</div>';
-    
     $html .= '<div class="badge-footer text-center mt-3">';
     $html .= '<button disabled data-user="' . $user_id . '" class="btn btn-primary btn-lg sign-in-done">Done!</button>';
     $html .= '</div>';

@@ -81,7 +81,7 @@ class makeMember {
     include_once MAKESF_ABSPATH . 'inc/performance-admin.php';
 
     //Volunteer System
-    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-database.php';
+    include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-sessions-api.php';
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-cpt.php';
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-functions.php';
     include_once MAKESF_ABSPATH . 'inc/volunteer/volunteer-ajax.php';
