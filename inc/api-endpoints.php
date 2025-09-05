@@ -106,3 +106,17 @@ function make_notify_zapier_on_status_change($membership, $old_status, $new_stat
     'timeout' => 20,
   ));
 }
+
+
+
+add_filter('oidc_registered_clients', function () {
+  return [
+    'wikijs-client' => [
+      'name'         => 'Make Santa Fe Wiki',
+      'secret'       => 'l2AGBC*Ee@n2FNrtlP!1KC7orG9naPvYvSlQm#VMkoshntRNtT1U74QY@j5lF1d',
+      'redirect_uri' => 'https://wiki.makesantafe.org/login/8f64200d-cb85-47cd-9169-0feb309d714f/callback',
+      'grant_types'  => ['authorization_code'],
+      'scope'        => 'openid profile email',
+    ],
+  ];
+});
