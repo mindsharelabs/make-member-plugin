@@ -192,6 +192,7 @@ function make_handle_volunteer_signout() {
 
     // Auto-return script with countdown and robust fallbacks
     $html .= '<script>(function(){
+      try { if (window.makesfVolunteerTimer) { clearInterval(window.makesfVolunteerTimer); window.makesfVolunteerTimer = null; } } catch(e) {}
       var seconds = 15;
       var el = document.getElementById("makesf-auto-return-timer");
       function tick(){
@@ -401,6 +402,7 @@ function make_handle_enhanced_member_signin() {
         $html .= '<div class="volunteer-signin-time text-center"><strong>Signed in at:</strong> ' . current_time('g:i A') . '</div>';
         $html .= '<div class="volunteer-monthly-totals" style="margin-top:10px;"><div><strong>This month (incl. current):</strong> ' . round($current_minutes/60, 2) . ' hours</div><div><strong>Last month:</strong> ' . round($previous_minutes/60, 2) . ' hours</div></div>';
         $html .= '<script>(function(){
+            try { if (window.makesfVolunteerTimer) { clearInterval(window.makesfVolunteerTimer); window.makesfVolunteerTimer = null; } } catch(e) {}
             var start = Date.now();
             function pad(n){return (n<10?"0":"")+n;}
             function tick(){

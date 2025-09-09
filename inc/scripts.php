@@ -115,6 +115,7 @@ function make_sign_in_member() {
                           '<div class="volunteer-signin-time text-center"><strong>Signed in at:</strong> ' . current_time('g:i A') . '</div>' .
                           '<div class="volunteer-monthly-totals" style="margin-top:10px;"><div><strong>This month (incl. current):</strong> ' . round($current_minutes/60, 2) . ' hours</div><div><strong>Last month:</strong> ' . round($previous_minutes/60, 2) . ' hours</div></div>' .
                           '<script>(function(){
+                            try { if (window.makesfVolunteerTimer) { clearInterval(window.makesfVolunteerTimer); window.makesfVolunteerTimer = null; } } catch(e) {}
                             var start = Date.now();
                             function pad(n){return (n<10?"0":"")+n;}
                             function tick(){

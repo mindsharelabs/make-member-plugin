@@ -698,6 +698,8 @@
         } else if (response.data.status === "volunteer_signout") {
           // Handle volunteer sign-out interface
           metaContainer.html(response.data.html);
+          // Stop any prior volunteer session timer
+          try { if (window.makesfVolunteerTimer) { clearInterval(window.makesfVolunteerTimer); window.makesfVolunteerTimer = null; } } catch(e) {}
           if (config.enableVolunteerIntegration) {
             $("body").addClass("volunteer-signout-mode");
           }
@@ -858,6 +860,8 @@
     }
 
     function returnToInterface() {
+      // Stop any running volunteer session timers
+      try { if (window.makesfVolunteerTimer) { clearInterval(window.makesfVolunteerTimer); window.makesfVolunteerTimer = null; } } catch(e) {}
       // Clear any loading states or content
       hideLoadingState();
       metaContainer.html("");

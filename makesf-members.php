@@ -3,7 +3,7 @@
  * Plugin Name: Make Santa Fe Membership Awesomeness
  * Plugin URI:https://mind.sh/are
  * Description: A plugin that drastically improves the Make Santa Fe membership experience
- * Version: 1.4.0
+ * Version: 1.5.2
  * Author: Mindshare Labs, Inc
  * Author URI: https://mind.sh/are
  */
@@ -26,7 +26,7 @@ class makeMember {
      * Plugin version
      * @var string
      */
-    const VERSION = '1.5.0';
+    const VERSION = '1.5.2';
 
     /**
      * Constructor - private to enforce singleton pattern
@@ -40,7 +40,7 @@ class makeMember {
      //Define all the constants
      $this->define( 'MAKESF_ABSPATH', dirname( MAKESF_PLUGIN_FILE ) . '/' );
      $this->define( 'MAKESF_URL', plugin_dir_url( __FILE__ ));
-     $this->define( 'MAKESF_PLUGIN_VERSION', '1.4.0');
+     $this->define( 'MAKESF_PLUGIN_VERSION', '1.5.2');
      $this->define( 'PLUGIN_DIR', plugin_dir_url( __FILE__ ));
      $this->define( 'SIGNIN_TABLENAME', $wpdb->prefix . 'makesignin');
      $this->define( 'MAKE_AJAX_PREPEND', 'makesantafe_');
