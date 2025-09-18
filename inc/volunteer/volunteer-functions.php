@@ -18,11 +18,13 @@ function makesf_get_benefits_status($user_id, $ym) {
     return $val ?: 'pending';
 }
 
-function makesf_set_benefits_status($user_id, $ym, $status) {
+function makesf_set_benefits_status($user_id, $ym, $status) { 
     $allowed = array('approved','denied','pending');
     if (!in_array($status, $allowed, true)) return false;
     $key = 'makesf_volunteer_benefits_' . $ym;
-    return update_user_meta($user_id, $key, $status);
+    $return = update_user_meta($user_id, $key, $status);
+    do_action('makesf_after_set_benefits_status', $user_id, $status);
+    return $return;
 }
 
 /**

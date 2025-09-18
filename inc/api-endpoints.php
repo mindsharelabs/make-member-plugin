@@ -73,30 +73,75 @@ function make_members($request) {
   return wp_send_json_success($all_members);
 }
 
-add_action('wc_memberships_user_membership_status_changed', 'make_notify_zapier_on_status_change', 10, 3);
 
+
+
+
+
+
+add_action('wc_memberships_user_membership_status_changed', 'make_notify_zapier_on_status_change', 10, 3);
 function make_notify_zapier_on_status_change($membership, $old_status, $new_status) {
+  mapi_write_log("Membership status changed for user ID " . $membership->get_user_id() . " from $old_status to $new_status");
 
   $user = get_userdata($membership->get_user_id());
-  $plan = $membership->get_plan();
-  $profile = new makeProfile($user->ID);
-  $start_date = $membership->get_start_date();
-  $end_date = $membership->get_end_date();
 
-  $payload = array(
+  $args = array(
     'user_id' => $user->ID,
     'name' => $user->display_name,
     'email' => $user->user_email,
-    'new_status' => $new_status,
-    'old_status' => $old_status,
-    'membership_plan' => $plan ? $plan->get_name() : '',
+    'membership_status' => $new_status,
+    'membership_plan' => ($membership ? $membership->get_plan()->name : null),
+    'membership_id' => ($membership ? $membership->get_id() : null),
+    'start_date' => ($membership ? $membership->get_start_date() : null),
+    'end_date' => ($membership ? $membership->get_end_date() : null),
+
+  );
+  mapi_write_log($args);
+  make_send_user_update_to_zapier($user->ID, $args);
+
+}
+
+
+
+
+add_action('makesf_after_set_benefits_status', function($user_id, $status) {
+  $args['volunteer_status'] = $status;
+
+  make_send_user_update_to_zapier($user_id, $args);
+
+}, 10, 2);
+
+
+function make_send_user_update_to_zapier($user_id, $args = array()) {
+  $profile = new makeProfile($user_id);
+
+  $membership = $profile->get_user_active_memberships()[0] ?? null; //TODO: handle multiple memberships
+  $user = get_userdata($membership->get_user_id());
+  $status = ($membership ? $membership->get_status() : 'cancelled');
+  $plan = ($membership ? $membership->get_plan()->name : null);
+  $start_date = ($membership ? $membership->get_start_date() : null);
+  $end_date = ($membership ? $membership->get_end_date() : null);
+
+
+  $payload_default = array(
+    'user_id' => $user->ID,
+    'name' => $user->display_name,
+    'email' => $user->user_email,
+    'membership_status' => $status,
+    'membership_plan' => $plan,
     'membership_id' => $membership->get_id(),
     'start_date' => $start_date,
     'end_date' => $end_date,
     'roles' => $user->roles,
-    'has_waiver' => $profile->has_waiver(),
-    'has_agreement' => $profile->has_agreement(),
+    'has_waiver' => ($profile->has_waiver() ? 'Signed' : 'Not Signed'),
+    'has_agreement' => ($profile->has_agreement() ? 'Signed' : 'Not Signed'),
+    'volunteer_status' => makesf_get_benefits_status($user->ID, date('Y-m')),
   );
+
+  $payload = wp_parse_args($args, $payload_default);
+
+  mapi_write_log($payload);
+
   $zapier_webhook_url = 'https://hooks.zapier.com/hooks/catch/20748362/u4i3vnc/';
 
   wp_remote_post($zapier_webhook_url, array(
@@ -105,7 +150,10 @@ function make_notify_zapier_on_status_change($membership, $old_status, $new_stat
     'body' => json_encode($payload),
     'timeout' => 20,
   ));
+
 }
+
+
 
 
 
@@ -113,10 +161,27 @@ add_filter('oidc_registered_clients', function () {
   return [
     'wikijs-client' => [
       'name'         => 'Make Santa Fe Wiki',
-      'secret'       => 'l2AGBC*Ee@n2FNrtlP!1KC7orG9naPvYvSlQm#VMkoshntRNtT1U74QY@j5lF1d',
+      'secret'       => 'AoIKthwDsQKmb1w8QVb1dWVwyB5Tjk3g0j8aLdPg4OZxiw8ZHD8NM6iQpRnNVLe',
       'redirect_uri' => 'https://wiki.makesantafe.org/login/8f64200d-cb85-47cd-9169-0feb309d714f/callback',
       'grant_types'  => ['authorization_code'],
       'scope'        => 'openid profile email',
     ],
   ];
+});
+
+add_filter('oidc_user_claims', function($claims, $user){
+  $claims['email'] = $user->user_email;
+  $claims['name']  = trim($user->first_name.' '.$user->last_name) ?: $user->display_name;
+  return $claims;
+}, 10, 2);
+
+add_filter('oidc_userinfo', function($userinfo, $user){
+  $userinfo['email'] = $user->user_email;
+  $userinfo['name']  = trim($user->first_name.' '.$user->last_name) ?: $user->display_name;
+  return $userinfo;
+}, 10, 2);
+
+add_filter('oidc_registered_clients', function ($clients) {
+  $clients['wikijs-client']['scope'] = 'openid email profile';
+  return $clients;
 });

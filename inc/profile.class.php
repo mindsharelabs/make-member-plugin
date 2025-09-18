@@ -327,7 +327,13 @@ class makeProfile {
     return wc_memberships_is_user_active_member($this->userID);
   }
 
-  
+  public function get_user_active_memberships() {
+    // bail if Memberships isn't active
+    if ( ! function_exists( 'wc_memberships' ) ) {
+      return;
+    }
+    return wc_memberships_get_user_active_memberships($this->userID);
+  }
 
   private function has_form_submission($form_id, $field_id) {
     // bail if Gravity Forms isn't active
