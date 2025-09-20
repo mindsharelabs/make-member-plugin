@@ -115,8 +115,8 @@ add_action('makesf_after_set_benefits_status', function($user_id, $status) {
 function make_send_user_update_to_zapier($user_id, $args = array()) {
   $profile = new makeProfile($user_id);
 
-  $membership = $profile->get_user_active_memberships()[0] ?? null; //TODO: handle multiple memberships
-  $user = get_userdata($membership->get_user_id());
+  $membership = $profile->get_user_memberships()[0] ?? null; //TODO: handle multiple memberships
+  $user = get_userdata($user_id);
   $status = ($membership ? $membership->get_status() : 'cancelled');
   $plan = ($membership ? $membership->get_plan()->name : null);
   $start_date = ($membership ? $membership->get_start_date() : null);
@@ -129,7 +129,7 @@ function make_send_user_update_to_zapier($user_id, $args = array()) {
     'email' => $user->user_email,
     'membership_status' => $status,
     'membership_plan' => $plan,
-    'membership_id' => $membership->get_id(),
+    'membership_id' => ($membership ? $membership->get_id() : null),
     'start_date' => $start_date,
     'end_date' => $end_date,
     'roles' => $user->roles,
@@ -140,7 +140,7 @@ function make_send_user_update_to_zapier($user_id, $args = array()) {
 
   $payload = wp_parse_args($args, $payload_default);
 
-  mapi_write_log($payload);
+
 
   $zapier_webhook_url = 'https://hooks.zapier.com/hooks/catch/20748362/u4i3vnc/';
 
