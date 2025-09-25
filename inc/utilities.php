@@ -210,13 +210,13 @@ function make_get_upcoming_events($num = 3, $ticketed = true, $args = array(), $
 		$default_args = array(
 			'post_type' => 'sub_event',
 			'posts_per_page' => ($num > 12 ? $num : 12),
-			'meta_key'       => 'event_time_stamp',
+			'meta_key'       => 'event_start_time_stamp',
 			'orderby'        => 'meta_value',
 			'order'          => 'ASC',
 			'paged'          => $page,
 			'meta_query'     => array(
 				array(
-					'key'     => 'event_time_stamp',
+					'key'     => 'event_start_time_stamp',
 					'value'   => current_time('Y-m-d H:i:s'),
 					'compare' => '>=',
 					'type'    => 'DATETIME',

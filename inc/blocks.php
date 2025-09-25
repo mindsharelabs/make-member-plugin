@@ -23,7 +23,6 @@ add_filter('block_categories_all', function ($categories, $post) {
 add_action('acf/init', function () {
 
 	if( function_exists('acf_register_block_type')) :
-
 		acf_register_block_type(array(
 			'name'              => 'make-member-sign-in',
 			'title'             => __('Make Member Sign In'),
