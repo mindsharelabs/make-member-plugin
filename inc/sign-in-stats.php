@@ -281,19 +281,21 @@ class MakeSF_SignIn_Stats
 
   public function output_heatmap($days, $badge)
   {
+    $total_counts = 0;
     $html = '';
     $data = self::get_signin_matrix_data($days, $badge);
     $day_labels = $data['dayLabels'];
     $day_counts = $data['dayCounts'];
     $html .= '<div class="heatmap">';
-    $html .= '<div class="hour-label-row">';
-    $html .= '<div class="corner-cell"></div>'; // Empty corner for alignment
-    for ($hour = 0; $hour < 24; $hour++) {
-      $ampm = $hour < 12 ? 'am' : 'pm';
-      $display_hour = $hour % 12 === 0 ? 12 : $hour % 12;
-      $html .= '<div class="hour-label">' . $display_hour . $ampm . '</div>';
-    }
+      $html .= '<div class="hour-label-row">';
+      $html .= '<div class="corner-cell"></div>'; // Empty corner for alignment
+      for ($hour = 0; $hour < 24; $hour++) {
+        $ampm = $hour < 12 ? 'am' : 'pm';
+        $display_hour = $hour % 12 === 0 ? 12 : $hour % 12;
+        $html .= '<div class="hour-label">' . $display_hour . $ampm . '</div>';
+      }
     $html .= '</div>';
+
     foreach ($data['grid'] as $day => $hours) {
       $html .= '<div class="day-label day">' . $day_labels[$day] . ' (' . $day_counts[$day] . ')</div>';
       $html .= '<div class="day">';
@@ -301,9 +303,15 @@ class MakeSF_SignIn_Stats
         $html .= '<div class="hour" style="background-color:' . self::get_color($count, $data['max']) . '">';
         $html .= '<span class="count">' . $count . '</span>';
         $html .= '</div>';
+
+        $total_counts += $count;
       }
       $html .= '</div>';
     }
+
+      $html .= '<div class="heatmap-footer">';
+        $html .= 'Total sign-ins: ' . $total_counts . '.';
+      $html .= '</div>';
     $html .= '</div>';
     return $html;
   }

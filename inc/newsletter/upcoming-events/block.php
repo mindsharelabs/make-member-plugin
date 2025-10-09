@@ -89,7 +89,6 @@ if ($options['language']) {
     do_action('wpml_switch_language', $options['language']);
 }
 
-// https://theeventscalendar.com/knowledgebase/k/using-tribe_get_events/
 $events = make_get_upcoming_events($options['max'], ($options['tickets'] == 'all' ? false : true), $filters );
 
 
