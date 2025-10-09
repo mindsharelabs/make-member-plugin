@@ -51,6 +51,10 @@ class MakeSF_SignIn_Stats
     wp_enqueue_script('chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', array(), MAKESF_PLUGIN_VERSION, true);
     wp_enqueue_script('chart-js-matrix', 'https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2', array('chart-js'), MAKESF_PLUGIN_VERSION, true);
 
+    wp_enqueue_script('jquery-ui-datepicker');
+    wp_enqueue_style('jquery-ui-datepicker-style', 'https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css');
+    
+
     wp_enqueue_script('makesf-stats', MAKESF_URL . 'assets/js/stats.js', array('chart-js-matrix', 'chart-js', 'jquery'), MAKESF_PLUGIN_VERSION, true);
     wp_localize_script('makesf-stats', 'makeMember', array(
       'ajax_url' => admin_url('admin-ajax.php'),
@@ -61,6 +65,16 @@ class MakeSF_SignIn_Stats
         'matrix' => self::get_signin_matrix_data(),
       ),
     ));
+
+    add_action('admin_footer', function() {
+        ?>
+        <script>
+        jQuery(function($){
+            $('#startDate, #endDate').datepicker({ dateFormat: 'yy-mm-dd' });
+        });
+        </script>
+        <?php
+    });
   }
 
   public function schedule_enqueue_scripts()
@@ -68,16 +82,18 @@ class MakeSF_SignIn_Stats
     wp_enqueue_style('makesf-stats', MAKESF_URL . 'assets/css/stats.css', array(), MAKESF_PLUGIN_VERSION);
   }
 
-  public function ajax_heatmap()
-  {
+public function ajax_heatmap()
+{
     if ($_POST['action'] != 'makesf_heatmap')
-      return;
-    $days = isset($_POST['days']) ? intval($_POST['days']) : 730;
-    $badge = isset($_POST['badge']) && $_POST['badge'] !== '' ? wp_unslash($_POST['badge']) : null;
+        return;
 
-    $html = $this->output_heatmap($days, $badge);
+    $badge = isset($_POST['badge']) && $_POST['badge'] !== '' ? wp_unslash($_POST['badge']) : null;
+    $start_date = isset($_POST['start_date']) && $_POST['start_date'] !== '' ? sanitize_text_field($_POST['start_date']) : null;
+    $end_date = isset($_POST['end_date']) && $_POST['end_date'] !== '' ? sanitize_text_field($_POST['end_date']) : null;
+
+    $html = $this->output_heatmap(null, $badge, $start_date, $end_date);
     wp_send_json_success(array('html' => $html));
-  }
+}
 
   public static function get_all_badges_for_filter()
   {
@@ -110,22 +126,22 @@ class MakeSF_SignIn_Stats
     $badges = self::get_all_badges_for_filter();
     $html = '<form id="heatmapFilters">';
     $html .= '<label for="badgeFilter" style="margin-right:8px;">Filter by badge:</label>';
-    $html .= '<select id="badgeFilter">';
+    $html .= '<select id="badgeFilter" name="badge">';
     $html .= '<option value="">All badges</option>';
     foreach ($badges as $b) {
-      $label = esc_html(self::get_badge_name_by_id($b));
-      $val = esc_attr($b);
-      $html .= '<option value="' . $val . '">' . $label . '</option>';
+        $label = esc_html(self::get_badge_name_by_id($b));
+        $val = esc_attr($b);
+        $html .= '<option value="' . $val . '">' . $label . '</option>';
     }
     $html .= '</select>';
 
-    $html .= '<label for="daysFilter" style="margin:0 8px 0 16px;">Range:</label>';
-    $html .= '<select id="daysFilter">';
-    foreach (array(30, 90, 180, 365, 730) as $d) {
-      $sel = $d === 730 ? ' selected' : '';
-      $html .= '<option value="' . intval($d) . '"' . $sel . '>' . intval($d) . ' days</option>';
-    }
-    $html .= '</select>';
+    // Add custom date range fields
+    $html .= '<label for="startDate" style="margin:0 8px 0 16px;">Start Date:</label>';
+    $html .= '<input type="text" id="startDate" name="start_date" autocomplete="off" style="width:110px;" />';
+    $html .= '<label for="endDate" style="margin:0 8px 0 8px;">End Date:</label>';
+    $html .= '<input type="text" id="endDate" name="end_date" autocomplete="off" style="width:110px;" />';
+
+    $html .= '<button type="submit" style="margin-left:12px;">Filter</button>';
     $html .= '</form>';
     return $html;
   }
@@ -279,11 +295,11 @@ class MakeSF_SignIn_Stats
     return $users;
 }
 
-  public function output_heatmap($days, $badge)
-  {
+public function output_heatmap($days = null, $badge = null, $start_date = null, $end_date = null)
+{
     $total_counts = 0;
     $html = '';
-    $data = self::get_signin_matrix_data($days, $badge);
+    $data = self::get_signin_matrix_data($days, $badge, $start_date, $end_date);
     $day_labels = $data['dayLabels'];
     $day_counts = $data['dayCounts'];
     $html .= '<div class="heatmap">';
@@ -309,9 +325,10 @@ class MakeSF_SignIn_Stats
       $html .= '</div>';
     }
 
-      $html .= '<div class="heatmap-footer">';
-        $html .= 'Total sign-ins: ' . $total_counts . '.';
-      $html .= '</div>';
+      
+    $html .= '</div>';
+    $html .= '<div class="heatmap-footer">';
+      $html .= 'Total sign-ins: ' . $total_counts . '.';
     $html .= '</div>';
     return $html;
   }
@@ -489,25 +506,27 @@ class MakeSF_SignIn_Stats
     return $title;
   }
 
-  public static function get_signin_matrix_data($days = 365, $badge = null)
-  {
+ public static function get_signin_matrix_data($days = null, $badge = null, $start_date = null, $end_date = null)
+{
     global $wpdb;
 
     $day_counts = array_fill(0, 7, 0);
     $hour_counts = array_fill(0, 24, 0);
     $grid = array();
     for ($d = 0; $d < 7; $d++) {
-      $grid[$d] = array_fill(0, 24, 0);
+        $grid[$d] = array_fill(0, 24, 0);
     }
 
-    $days = intval($days);
-    if ($days > 0) {
-      $start_ts = date('Y-m-d H:i:s', strtotime('-' . $days . ' days', current_time('timestamp')));
-      $query = $wpdb->prepare("SELECT `time`, `badges` FROM `make_signin` WHERE `time` >= %s ORDER BY `time` ASC", $start_ts);
-    } else {
-      $query = "SELECT `time`, `badges` FROM `make_signin` ORDER BY `time` ASC";
+    // Build WHERE clause for custom date range
+    $where = '';
+    if ($start_date && $end_date) {
+        $where = $wpdb->prepare("WHERE `time` BETWEEN %s AND %s", $start_date . ' 00:00:00', $end_date . ' 23:59:59');
+    } elseif ($days > 0) {
+        $start_ts = date('Y-m-d H:i:s', strtotime('-' . $days . ' days', current_time('timestamp')));
+        $where = $wpdb->prepare("WHERE `time` >= %s", $start_ts);
     }
 
+    $query = "SELECT `time`, `badges` FROM `make_signin` $where ORDER BY `time` ASC";
     $rows = $wpdb->get_results($query);
     if (empty($rows)) {
       return array(

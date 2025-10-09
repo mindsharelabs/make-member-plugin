@@ -3,7 +3,6 @@
 
     $(function () {
         const ctx = document.getElementById('numberSignIns');
-        const monthCont = document.getElementById('signinsHeatmap');
         const labels = makeMember.stats.labels;
         const data = makeMember.stats.data;
         var signByMonth = new Chart(ctx, {
@@ -23,18 +22,23 @@
         });
     });
 
-    $(document).on('change', '#heatmapFilters', function() {
-        var days = $('#daysFilter').val();
+    // Use submit event for the filter form
+    $(document).on('submit', '#heatmapFilters', function(e) {
+        e.preventDefault();
         var badge = $('#badgeFilter').val();
+        var start_date = $('#startDate').val();
+        var end_date = $('#endDate').val();
         var container = $('#signInHeatMap');
-        
+
         $.ajax({
             url : makeMember.ajax_url,
             type : 'post',
             data : {
                 action : 'makesf_heatmap',
-                days : days,
                 badge : badge,
+                start_date: start_date,
+                end_date: end_date,
+                nonce: makeMember.nonce
             },
             beforeSend: function() {
                 container.addClass('loading');
@@ -49,17 +53,5 @@
             },
         });
     });
-
-
-    function restoreLayer2() {
-        ctx.setDatasetVisibility(1, true);
-        ctx.update();
-    }
-
-    function removeLayer2() {
-        ctx.setDatasetVisibility(1, ctx.getDatasetMeta(1).hidden);
-        ctx.update();
-    }
-
 
 }(this, jQuery));
