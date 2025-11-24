@@ -1,11 +1,12 @@
 (function (root, $, undefined) {
     "use strict";
 
+    var signByMonth;
     $(function () {
         const ctx = document.getElementById('numberSignIns');
         const labels = makeMember.stats.labels;
         const data = makeMember.stats.data;
-        var signByMonth = new Chart(ctx, {
+        signByMonth = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
@@ -46,6 +47,12 @@
             },
             success: function(response) {
                 container.html(response.data.html).removeClass('loading');
+                // Update the graph if data is present
+                if (response.data.graph) {
+                    signByMonth.data.labels = response.data.graph.labels;
+                    signByMonth.data.datasets = response.data.graph.datasets;
+                    signByMonth.update();
+                }
             },
             error: function (response) {
                 console.log('An error occurred.');
