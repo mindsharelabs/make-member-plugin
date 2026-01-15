@@ -70,7 +70,7 @@ $button_options = TNP_Composer::get_button_options($options, 'button', $composer
 $filters = [];
 $filters['showposts'] = (int) $options['max'];
 //$filters['post_type'] = 'tribe_events';
-$filters['orderby'] = 'event_time_stamp';
+$filters['orderby'] = 'event_start_time_stamp';
 $filters['order'] = empty($options['order']) ? 'DESC' : 'ASC';
 $filters['start_date'] = 'now';
 
