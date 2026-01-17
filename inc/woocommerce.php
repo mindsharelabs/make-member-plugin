@@ -70,16 +70,16 @@ function make_create_booking_for_event( $post_ID, $post) {
 			'meta_query' => array(
 			  'relation' => 'AND',
 			  'start_clause' => array(
-				'key' => 'starttime',
+				'key' => 'event_start_time_stamp',
 				'compare' => 'EXISTS',
 			  ),
 			  'date_clause' => array(
-				'key' => 'event_date',
+				'key' => 'event_end_time_stamp',
 				'compare' => 'EXISTS',
 			  ),
 			),
 			'orderby' => 'meta_value',
-			'meta_key' => 'event_time_stamp',
+			'meta_key' => 'event_start_time_stamp',
 			'meta_type' => 'DATETIME',
 			'order'            => 'ASC',
 			'post_type'        => 'sub_event',
@@ -89,8 +89,7 @@ function make_create_booking_for_event( $post_ID, $post) {
 		);
 		$sub_events = get_posts($defaults);
 
-
-
+	
 		if(count($sub_events) > 0) :
 			foreach($sub_events as $post) :
 				$start_date = get_post_meta($post->ID, 'event_start_time_stamp', true);
@@ -98,7 +97,6 @@ function make_create_booking_for_event( $post_ID, $post) {
 				$start_date_obj = new DateTimeImmutable($start_date);
 				$end_date_obj = new DateTimeImmutable($end_date);
 				$today = new DateTimeImmutable();
-
 
 				//if the event is in the past, don't do anything
 				if($today->getTimestamp() > $end_date_obj->getTimestamp()) :
