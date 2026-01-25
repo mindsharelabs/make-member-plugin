@@ -91,8 +91,16 @@ public function ajax_heatmap()
     $start_date = isset($_POST['start_date']) && $_POST['start_date'] !== '' ? sanitize_text_field($_POST['start_date']) : null;
     $end_date = isset($_POST['end_date']) && $_POST['end_date'] !== '' ? sanitize_text_field($_POST['end_date']) : null;
 
-    $html = $this->output_heatmap(null, $badge, $start_date, $end_date);
-    wp_send_json_success(array('html' => $html));
+    $html  = $this->output_heatmap(null, $badge, $start_date, $end_date);
+    $html .= $this->output_dicipline_ranks($start_date, $end_date);
+
+    // Add this:
+    $graph_data = $this->get_filtered_graph_data($start_date, $end_date);
+
+    wp_send_json_success(array(
+        'html' => $html,
+        'graph' => $graph_data,
+    ));
 }
 
   public static function get_all_badges_for_filter()
@@ -150,19 +158,79 @@ public function ajax_heatmap()
   {
     echo '<div id="makesfStats">';
     echo '<h1>Sign-in Stats</h1>';
+    echo '<div class="heatmap-toolbar">';
+      echo self::render_heatmap_filters();
+    echo '</div>';
     echo '<div>';
-    echo '<canvas id="numberSignIns"></canvas>';
+      echo '<canvas id="numberSignIns"></canvas>';
     echo '</div>';
 
     echo '<h2>Sign-in Heatmap</h2>';
-    echo '<div class="heatmap-toolbar">';
-    echo self::render_heatmap_filters();
-    echo '</div>';
+    
+   
     echo '<div id="signInHeatMap">';
-    echo $this->output_heatmap(730, null);
+      echo $this->output_heatmap(730, null);
+      echo $this->output_dicipline_ranks();
     echo '</div>';
+
+
     echo '</div>';
   }
+
+  public function output_dicipline_ranks($start_date = null, $end_date = null)
+  {
+    global $wpdb;
+
+    // Optional date filter, similar to heatmap
+    $where = '';
+    if ($start_date && $end_date) {
+      $where = $wpdb->prepare(
+        "WHERE `time` BETWEEN %s AND %s",
+        $start_date . ' 00:00:00',
+        $end_date . ' 23:59:59'
+      );
+    }
+
+    $results = $wpdb->get_results("SELECT user, badges FROM `make_signin` $where");
+    $discipline_counts = array();
+
+    foreach ($results as $result) {
+      $badges = @unserialize($result->badges);
+      if ($badges === false && $result->badges !== 'b:0;') {
+        continue;
+      }
+      if (!is_array($badges)) {
+        $badges = array($badges);
+      }
+      foreach ($badges as $badge) {
+        $title = self::get_badge_name_by_id($badge);
+        if ($title) {
+          if (!isset($discipline_counts[$title])) {
+            $discipline_counts[$title] = 0;
+          }
+          $discipline_counts[$title]++;
+        }
+      }
+    }
+
+    arsort($discipline_counts);
+
+    $html = '<div class="discipline-ranks">';
+    $html .= '<h2>Discipline Ranks</h2>';
+    if ($start_date && $end_date) {
+      $html .= '<p class="discipline-range">Showing ranks from ' . esc_html($start_date) . ' to ' . esc_html($end_date) . '.</p>';
+    }
+    $html .= '<ul class="ranks-list">';
+    foreach ($discipline_counts as $discipline => $count) {
+      $html .= '<li>' . esc_html($discipline) . ': ' . esc_html($count) . '</li>';
+    }
+    $html .= '</ul>';
+    $html .= '</div>';
+
+    return $html;
+  }
+
+
   public function display_signin_leaderboard()
   {
     echo '<div id="makesfLeaderboard">';
@@ -597,6 +665,88 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
     );
     return $return;
   }
+
+  public function get_filtered_graph_data($start_date, $end_date) {
+    global $wpdb;
+
+    // Build WHERE clause for custom date range
+    $where = '';
+    if ($start_date && $end_date) {
+        $where = $wpdb->prepare("WHERE `time` BETWEEN %s AND %s", $start_date . ' 00:00:00', $end_date . ' 23:59:59');
+    }
+
+    // Get all months in range
+    $labels = [];
+    $dates = [];
+    if ($start_date && $end_date) {
+        $period = new DatePeriod(
+            new DateTime($start_date),
+            new DateInterval('P1M'),
+            (new DateTime($end_date))->modify('+1 month')
+        );
+        foreach ($period as $dt) {
+            $label = $dt->format('F, Y');
+            $labels[] = $label;
+            $dates[] = ['month' => $dt->format('m'), 'year' => $dt->format('Y'), 'label' => $label];
+        }
+    } else {
+        $labels = self::get_signin_labels();
+        $dates = self::get_past_year_dates();
+        foreach ($dates as $k => $date) {
+            $dates[$k]['label'] = $labels[$k];
+        }
+    }
+
+    $number_signins = array_fill_keys($labels, 0);
+    $badge_signins = [];
+
+    // Query all sign-ins in range
+    $results = $wpdb->get_results("SELECT * FROM `make_signin` $where");
+    foreach ($results as $result) {
+        $month = date('F, Y', strtotime($result->time));
+        if (!isset($number_signins[$month])) continue;
+        $number_signins[$month]++;
+        $badges = @unserialize($result->badges);
+        if ($badges === false && $result->badges !== 'b:0;') continue;
+        if (!is_array($badges)) $badges = array($badges);
+        foreach ($badges as $badge) {
+            if (!isset($badge_signins[$badge][$month])) $badge_signins[$badge][$month] = 0;
+            $badge_signins[$badge][$month]++;
+        }
+    }
+
+    // Build datasets
+    $datasets = [];
+    foreach ($badge_signins as $key => $value) {
+        $label = (is_int($key) ? get_the_title($key) : $key);
+        $exists = post_exists($label);
+        if ($exists || in_array($key, ['workshop', 'volunteer', 'other'])) {
+            // Fill missing months with 0
+            $data = [];
+            foreach ($labels as $label_month) {
+                $data[] = isset($value[$label_month]) ? $value[$label_month] : 0;
+            }
+            $datasets[] = array(
+                'type' => 'line',
+                'label' => html_entity_decode($label),
+                'data' => $data,
+                'borderWidth' => 3,
+            );
+        }
+    }
+    // Bar dataset for total sign-ins
+    $datasets[] = array(
+        'type' => 'bar',
+        'label' => 'Number of Sign-ins',
+        'data' => array_values($number_signins),
+        'borderWidth' => 2,
+    );
+
+    return [
+        'labels' => $labels,
+        'datasets' => $datasets,
+    ];
+}
 }
 
 // Instantiate the class
