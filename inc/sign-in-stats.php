@@ -325,10 +325,10 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
       $html .= '</div>';
     }
 
-      
+
     $html .= '</div>';
     $html .= '<div class="heatmap-footer">';
-      $html .= 'Total sign-ins: ' . $total_counts . '.';
+      $html .= 'Total sign-ins: <strong>' . $total_counts . '.</strong>';
     $html .= '</div>';
     return $html;
   }
