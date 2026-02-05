@@ -78,7 +78,7 @@ function make_members($request) {
 
 add_action('wc_memberships_user_membership_status_changed', 'make_notify_zapier_on_status_change', 10, 3);
 function make_notify_zapier_on_status_change($membership, $old_status, $new_status) {
-  mapi_write_log("Membership status changed for user ID " . $membership->get_user_id() . " from $old_status to $new_status");
+  // mapi_write_log("Membership status changed for user ID " . $membership->get_user_id() . " from $old_status to $new_status");
 
   $user = get_userdata($membership->get_user_id());
 
@@ -93,7 +93,7 @@ function make_notify_zapier_on_status_change($membership, $old_status, $new_stat
     'end_date' => ($membership ? $membership->get_end_date() : null),
 
   );
-  mapi_write_log($args);
+  // mapi_write_log($args);
   make_send_user_update_to_zapier($user->ID, $args);
 
 }
