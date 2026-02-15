@@ -1,5 +1,24 @@
 <?php
 
+
+add_action('make_after_signin_recorded', 'make_after_signin_log', 10, 2);
+function make_after_signin_log($user_id, $badges) {
+
+	$user_signins = make_get_user_signins($user_id);
+	
+	// save meta for each badge with the most recent signin time and total count
+	foreach ($user_signins as $badge => $times) {
+		$meta_key_time = $badge . '_last_time';
+		$meta_key_count = $badge . '_total_count';
+		update_user_meta($user_id, $meta_key_time, max($times));
+		update_user_meta($user_id, $meta_key_count, count($times));
+	}
+
+	if (defined('WP_DEBUG') && WP_DEBUG) {
+		error_log('Make Sign-in: Recording sign-in for user ' . $user_id . ' with badges: ' . implode(', ', $badges));
+	}
+}
+
 add_action('wp_ajax_nopriv_makeMemberSignIn', 'make_sign_in_member');
 add_action('wp_ajax_makeMemberSignIn', 'make_sign_in_member');
 
@@ -24,40 +43,41 @@ function make_sign_in_member() {
 				return;
 			}
 		
-		// Check if volunteering is selected
-		$is_volunteering = in_array('volunteer', $badges);
-		
-		// Handle volunteer session if volunteering is selected
-		if ($is_volunteering && function_exists('make_start_volunteer_session')) {
-			if (defined('WP_DEBUG') && WP_DEBUG) {
-				error_log('Make Volunteer: Starting volunteer session for user ' . $user_id);
-			}
+			// Check if volunteering is selected
+			$is_volunteering = in_array('volunteer', $badges);
 			
-			$session_result = make_start_volunteer_session($user_id);
-			
-			if (is_wp_error($session_result)) {
+			// Handle volunteer session if volunteering is selected
+			if ($is_volunteering && function_exists('make_start_volunteer_session')) {
 				if (defined('WP_DEBUG') && WP_DEBUG) {
-					error_log('Make Volunteer: Error starting session: ' . $session_result->get_error_message());
+					error_log('Make Volunteer: Starting volunteer session for user ' . $user_id);
 				}
-				wp_send_json_error(array('message' => 'Failed to create volunteer session: ' . $session_result->get_error_message()));
+				
+				$session_result = make_start_volunteer_session($user_id);
+				
+				if (is_wp_error($session_result)) {
+					if (defined('WP_DEBUG') && WP_DEBUG) {
+						error_log('Make Volunteer: Error starting session: ' . $session_result->get_error_message());
+					}
+					wp_send_json_error(array('message' => 'Failed to create volunteer session: ' . $session_result->get_error_message()));
+					return;
+				}
+				
+				if (defined('WP_DEBUG') && WP_DEBUG) {
+					error_log('Make Volunteer: Successfully started session with ID: ' . $session_result);
+				}
+			} elseif ($is_volunteering) {
+				// Function doesn't exist
+				if (defined('WP_DEBUG') && WP_DEBUG) {
+					error_log('Make Volunteer: make_start_volunteer_session function not found');
+				}
+				wp_send_json_error(array('message' => 'Failed to create volunteer session: Function not available'));
 				return;
 			}
-			
-			if (defined('WP_DEBUG') && WP_DEBUG) {
-				error_log('Make Volunteer: Successfully started session with ID: ' . $session_result);
-			}
-		} elseif ($is_volunteering) {
-			// Function doesn't exist
-			if (defined('WP_DEBUG') && WP_DEBUG) {
-				error_log('Make Volunteer: make_start_volunteer_session function not found');
-			}
-			wp_send_json_error(array('message' => 'Failed to create volunteer session: Function not available'));
-			return;
-		}
 		
 			// Record the regular sign-in
 			$badges_serialized = serialize($badges);
-
+			
+			do_action('make_before_signin_recorded', $user_id, $badges);
 			$result = $wpdb->insert(
 				'make_signin',
 				array(
@@ -67,6 +87,7 @@ function make_sign_in_member() {
 				),
 				array('%s', '%s', '%d')
 			);
+			do_action('make_after_signin_recorded', $user_id, $badges, $result);
 			
 			if ($result === false) {
 				error_log('Make Sign-in: Database insert failed for user ' . $user_id);
@@ -628,4 +649,23 @@ function make_check_form_submission($user_id, $form_id, $field_id) {
 	    }
 	endif;
 	return false;
+}
+
+
+
+
+
+
+function make_get_user_signins($user_id){
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
+    $badge_signins = array();
+    foreach ($results as $result) {
+      $badges = unserialize($result->badges);
+      foreach ($badges as $badge) {
+        $badge_signins[$badge][] = $result->time;
+      }
+    }
+    array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+    return $badge_signins;
 }

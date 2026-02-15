@@ -95,9 +95,6 @@ class makeMember {
 
     include_once MAKESF_ABSPATH . 'inc/newsletter/newsletter-blocks.php';
 
-
-    //Clickup
-    include_once MAKESF_ABSPATH . 'inc/clickup-sync.php';
   }
 
 

@@ -287,30 +287,34 @@ public function ajax_heatmap()
           $user = get_user_by('id', $key);
           if ($user):
               echo '<div class="user">';
-              echo '<div class="top-card">';
-              echo '<div class="user-avatar">';
-              $thumb = get_field('photo', 'user_' . $user->ID);
-              if ($thumb):
-                  echo wp_get_attachment_image($thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
-              endif;
-              echo '</div>';
-              
-              echo '<div class="user-meta">';
-                echo '<h3 class="name">' . $user->display_name . '</h3>';
-                echo '<div class="user-signins">';
-                  echo '<span class="value">' . $value . '</span>';
-                echo '</div>';
-                echo '</div>';
-              echo '</div>';
 
-              $sign_ins = self::get_user_signins($key);
-              echo '<div class="areas">';
-              echo '<ul class="area">';
-              foreach ($sign_ins as $key2 => $value2):
-                  echo '<li>' . $key2 . ': ' . count($value2) . '</li>';
-              endforeach;
-              echo '</ul>';
-              echo '</div>';
+                echo '<div class="top-card">';
+                
+                  echo '<div class="user-avatar">';
+                    $thumb = get_field('photo', 'user_' . $user->ID);
+                    if ($thumb):
+                        echo wp_get_attachment_image($thumb['ID'], 'small-square', false, array('class' => 'rounded-circle'));
+                    endif;
+                  echo '</div>';
+                  
+                  echo '<div class="user-meta">';
+                    echo '<h3 class="name">' . $user->display_name . '</h3>';
+                    echo '<div class="user-signins">';
+                      echo '<span class="value">' . $value . '</span>';
+                    echo '</div>';
+                  echo '</div>';
+                echo '</div>';
+
+                $sign_ins = self::get_user_signins($key);
+
+                
+                echo '<div class="areas">';
+                  echo '<ul class="area">';
+                  foreach ($sign_ins as $key2 => $value2):
+                      echo '<li>' . $key2 . ': ' . count($value2) . '</li>';
+                  endforeach;
+                  echo '</ul>';
+                echo '</div>';
 
               echo '</div>';
           endif;

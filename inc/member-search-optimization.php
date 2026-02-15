@@ -253,6 +253,16 @@ function make_get_member_optimized() {
     $memberships = array_merge($active_memberships, $complimentary_memberships);
     
     // Validation checks
+
+    if (!$has_agreement) {
+        $return = array(
+            'html' => '<div class="alert alert-danger text-center"><h1>No Member Agreement!</h1><h2>Please log into your online profile and sign our member agreement.</h2></div>',
+            'status' => 'failed',
+            'code' => 'agreement'
+        );
+        wp_send_json_success($return);
+        return;
+    }
     if (!$has_waiver) {
         $return = array(
             'html' => '<div class="alert alert-danger text-center"><h1>No Safety Waiver!</h1><h2>Please log into your online profile and sign our safety waiver.</h2></div>',
@@ -275,9 +285,9 @@ function make_get_member_optimized() {
     
     // Generate badge selection HTML (no per-user subheader; global heading handles greeting)
     $html = '<div class="badge-header text-center">';
-    $html .= '<h4>Which of your badges are you using today?</h4>';
+        $html .= '<h4>Which of your badges are you using today?</h4>';
     $html .= '</div>';
-    
+        
     $html .= make_list_sign_in_badges_cached($user);
 
     // Add activity options (full-width below badges)
@@ -295,8 +305,9 @@ function make_get_member_optimized() {
     
     // Close the badge list container
     $html .= '</div>';
+    
     $html .= '<div class="badge-footer text-center mt-3">';
-    $html .= '<button disabled data-user="' . $user_id . '" class="btn btn-primary btn-lg sign-in-done">Done!</button>';
+        $html .= '<button disabled data-user="' . $user_id . '" class="btn btn-primary btn-lg sign-in-done">Done!</button>';
     $html .= '</div>';
     
     $first_name = get_user_meta($user_id, 'first_name', true);
