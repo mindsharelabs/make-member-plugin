@@ -95,6 +95,11 @@ class makeMember {
 
     include_once MAKESF_ABSPATH . 'inc/newsletter/newsletter-blocks.php';
 
+
+    //DEV ONLY
+    if ( defined('WP_DEBUG') && WP_DEBUG ) {
+      include_once MAKESF_ABSPATH . 'inc/generate-sign-in-data.php';
+    }
   }
 
 

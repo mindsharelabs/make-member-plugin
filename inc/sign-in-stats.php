@@ -1,5 +1,6 @@
 <?php
 
+
 class MakeSF_SignIn_Stats
 {
 
@@ -7,7 +8,10 @@ class MakeSF_SignIn_Stats
   {
     add_action('admin_menu', [$this, 'register_admin_menu']);
     add_action('wp_ajax_makesf_heatmap', [$this, 'ajax_heatmap']);
+
   }
+
+
 
   public function register_admin_menu()
   {
@@ -82,26 +86,26 @@ class MakeSF_SignIn_Stats
     wp_enqueue_style('makesf-stats', MAKESF_URL . 'assets/css/stats.css', array(), MAKESF_PLUGIN_VERSION);
   }
 
-public function ajax_heatmap()
-{
-    if ($_POST['action'] != 'makesf_heatmap')
-        return;
+  public function ajax_heatmap()
+  {
+      if ($_POST['action'] != 'makesf_heatmap')
+          return;
 
-    $badge = isset($_POST['badge']) && $_POST['badge'] !== '' ? wp_unslash($_POST['badge']) : null;
-    $start_date = isset($_POST['start_date']) && $_POST['start_date'] !== '' ? sanitize_text_field($_POST['start_date']) : null;
-    $end_date = isset($_POST['end_date']) && $_POST['end_date'] !== '' ? sanitize_text_field($_POST['end_date']) : null;
+      $badge = isset($_POST['badge']) && $_POST['badge'] !== '' ? wp_unslash($_POST['badge']) : null;
+      $start_date = isset($_POST['start_date']) && $_POST['start_date'] !== '' ? sanitize_text_field($_POST['start_date']) : null;
+      $end_date = isset($_POST['end_date']) && $_POST['end_date'] !== '' ? sanitize_text_field($_POST['end_date']) : null;
 
-    $html  = $this->output_heatmap(null, $badge, $start_date, $end_date);
-    $html .= $this->output_dicipline_ranks($start_date, $end_date);
+      $html  = $this->output_heatmap(null, $badge, $start_date, $end_date);
+      $html .= $this->output_dicipline_ranks($start_date, $end_date);
 
-    // Add this:
-    $graph_data = $this->get_filtered_graph_data($start_date, $end_date);
+      // Add this:
+      $graph_data = $this->get_filtered_graph_data($start_date, $end_date);
 
-    wp_send_json_success(array(
-        'html' => $html,
-        'graph' => $graph_data,
-    ));
-}
+      wp_send_json_success(array(
+          'html' => $html,
+          'graph' => $graph_data,
+      ));
+  }
 
   public static function get_all_badges_for_filter()
   {
@@ -241,8 +245,7 @@ public function ajax_heatmap()
 
 
 
-  public function sign_in_leaderboard()
-  {
+  public function sign_in_leaderboard(){
     $search_term = isset($_GET['search_user']) ? sanitize_text_field($_GET['search_user']) : '';
     echo '<form method="get" class="user-search" style="margin-bottom:1em;">';
       echo '<input type="hidden" name="page" value="sign-in-leaderboard">';
@@ -365,9 +368,9 @@ public function ajax_heatmap()
     // Sort descending by unique days
     arsort($users);
     return $users;
-}
+  }
 
-public function output_heatmap($days = null, $badge = null, $start_date = null, $end_date = null)
+  public function output_heatmap($days = null, $badge = null, $start_date = null, $end_date = null)
 {
     $total_counts = 0;
     $html = '';
@@ -547,8 +550,7 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
 
 
 
-  public static function get_user_signins($user_id)
-  {
+  public static function get_user_signins($user_id){
     global $wpdb;
     $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
     $badge_signins = array();
@@ -562,8 +564,7 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
     return $badge_signins;
   }
 
-  public static function get_badge_name_by_id($id)
-  {
+  public static function get_badge_name_by_id($id){
     if ($id == 'workshop'):
       $title = 'Attended Workshop';
     elseif ($id == 'volunteer'):
@@ -578,8 +579,7 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
     return $title;
   }
 
- public static function get_signin_matrix_data($days = null, $badge = null, $start_date = null, $end_date = null)
-{
+ public static function get_signin_matrix_data($days = null, $badge = null, $start_date = null, $end_date = null){
     global $wpdb;
 
     $day_counts = array_fill(0, 7, 0);
@@ -750,7 +750,7 @@ public function output_heatmap($days = null, $badge = null, $start_date = null, 
         'labels' => $labels,
         'datasets' => $datasets,
     ];
-}
+  }
 }
 
 // Instantiate the class

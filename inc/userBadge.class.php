@@ -70,10 +70,6 @@ class makeUserBadges {
 	}
 
 
-
-
-
-
 	private function make_get_active_member_ids(){
 	    global $wpdb;
 	    // Getting all User IDs and data for a membership plan
@@ -120,5 +116,9 @@ add_action('wp_loaded', function() {
 		add_action('add_meta_boxes', 'init_user_badge_metabox');
 	}
 });
+
+
+
+
 
 

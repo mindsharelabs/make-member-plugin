@@ -1,11 +1,32 @@
 <?php
 
+add_action ('make_after_badge_toggled', 'make_after_badge_toggled', 10, 5);
+function make_after_badge_toggled($user_id, $cert_id, $new_status, $badge_name, $event_id) {
+	if (defined('WP_DEBUG') && WP_DEBUG) {
+		error_log('Make Badge Toggle: User ' . $user_id . ' badge ' . $cert_id . ' new status: ' . $new_status . ' badge name: ' . $badge_name . ' event ID: ' . $event_id);
+	}
+
+	//create user meta for the badge with the most recent toggle time and total count of toggles
+	$meta_key_time = $cert_id . '_last_time';
+	$meta_key_count = $cert_id . '_total_count';
+	$previous_count = get_user_meta($user_id, $meta_key_count, true);
+	update_user_meta($user_id, $meta_key_time, current_time('mysql'));
+	update_user_meta($user_id, $meta_key_count, ($previous_count ? intval($previous_count) : 0) + 1);
+
+
+}
+
+
 
 add_action('make_after_signin_recorded', 'make_after_signin_log', 10, 2);
 function make_after_signin_log($user_id, $badges) {
+	if (defined('WP_DEBUG') && WP_DEBUG) {
+		error_log('Make Sign-in: Recording sign-in for user ' . $user_id . ' with badges: ' . implode(', ', $badges));
+	}
 
 	$user_signins = make_get_user_signins($user_id);
-	
+	// mapi_write_log($user_signins);
+
 	// save meta for each badge with the most recent signin time and total count
 	foreach ($user_signins as $badge => $times) {
 		$meta_key_time = $badge . '_last_time';
@@ -14,9 +35,7 @@ function make_after_signin_log($user_id, $badges) {
 		update_user_meta($user_id, $meta_key_count, count($times));
 	}
 
-	if (defined('WP_DEBUG') && WP_DEBUG) {
-		error_log('Make Sign-in: Recording sign-in for user ' . $user_id . ' with badges: ' . implode(', ', $badges));
-	}
+
 }
 
 add_action('wp_ajax_nopriv_makeMemberSignIn', 'make_sign_in_member');
@@ -179,8 +198,6 @@ function make_sign_in_member() {
 }
 
 
-
-
 add_action('wp_ajax_nopriv_makeAllGetMembers', 'make_get_all_members');
 add_action('wp_ajax_makeAllGetMembers', 'make_get_all_members');
 function make_get_all_members() {
@@ -280,13 +297,6 @@ function make_get_all_members() {
 }
 
 
-
-
-
-
-
-
-
 add_action('wp_ajax_nopriv_makeGetMember', 'make_get_member_scan');
 add_action('wp_ajax_makeGetMember', 'make_get_member_scan');
 function make_get_member_scan() {
@@ -359,15 +369,14 @@ function make_get_member_scan() {
 					wp_send_json_success( $return );
 				endif;
 
-				// TEMPORARILY DISABLED FOR TESTING - UNCOMMENT TO RE-ENABLE MEMBER AGREEMENT REQUIREMENT
-				/*
+
 				if(!$has_member_agreement) :
 					$return['html'] = '<div class="alert alert-danger text-center"><h1>No Member Agreement!</h1><h2>Please log into your online profile and sign our member agreement.</h2></div>';
 					$return['status'] = 'failed';
 					$return['code'] = 'memberagreement';
 					wp_send_json_success( $return );
 				endif;
-				*/
+				
 
 				if(empty($memberships)) :
 					$return['html'] = '<div class="alert alert-danger text-center"><h1>No Active memberships.</h1><h2>Please start or renew your membership to utilize MAKE Santa Fe</h2></div>';
@@ -436,7 +445,14 @@ function make_list_sign_in_badges($user) {
 			),
 		)
 	));
-	$html = '<div class="badge-list d-flex">';
+	$html = '';
+
+	$html .= '<div class="alert alert-warning text-center mb-3" style="font-size:1rem;">';
+		$html .= 'Each time you sign in with a badge, its expiration timer resets. If you do not use a badge before it expires, you will need to retake it.';
+	$html .= '</div>';
+
+	$html .= '<div class="badge-list d-flex">';
+
 	$allowed_items = array();
 	$other_items = array();
 	if($all_badges->have_posts()) :
@@ -444,19 +460,42 @@ function make_list_sign_in_badges($user) {
 			$all_badges->the_post();
 
 			$user_badges = get_field('certifications', 'user_' . $user->ID);
+			
+			$badge_expiration_length = get_field('expiration_time', get_the_id()); //this is stored in days
+			$badge_last_signin_time = get_user_meta($user->ID, get_the_id() . '_last_time', true);
+			$expiration_time = strtotime($badge_last_signin_time) + ($badge_expiration_length * DAY_IN_SECONDS);
+			//days until expiration
+			$time_remaining = $expiration_time - time();
+
 			$class = 'not-allowed';
 			$has_badge = false;
+			$expired = false;
 			if($user_badges) :
 				if(in_array(get_the_id(), $user_badges)) :
 					$class = '';
 					$has_badge = true;
 				endif;
 			endif;
+			if($time_remaining <= 0) :
+				$class .= ' expired';
+				$expired = true;
+				$has_badge = false; //if badge is expired, treat as if user doesn't have it for sign-in purposes
+			endif;
 
 			$item_html = '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
 				$badge_image = get_field('badge_image', get_the_id());
 				$item_html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
 				$item_html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
+
+				if($has_badge && $badge_expiration_length) :
+					if($expired) :
+						$item_html .= '<span class="badge-expiration text-danger">Badge Expired</span>';
+					elseif($time_remaining) :
+						$days_remaining = ceil($time_remaining / DAY_IN_SECONDS);
+						$item_html .= '<span class="badge-expiration text-success">Expires in ' . $days_remaining . ' day' . ($days_remaining > 1 ? 's' : '') . '</span>';
+					endif;
+				endif;
+
 			$item_html .= '</div>';
 
 			if ($has_badge) {
@@ -662,10 +701,34 @@ function make_get_user_signins($user_id){
     $badge_signins = array();
     foreach ($results as $result) {
       $badges = unserialize($result->badges);
+	//   mapi_write_log($badges);
       foreach ($badges as $badge) {
         $badge_signins[$badge][] = $result->time;
       }
     }
+
+	//array multisort will re-order the badge_signins array based on the count of sign-ins for each badge, but it will reset the keys to numeric indexes.
+	// To preserve the badge IDs as keys, we can store the keys before sorting and then reassign them after sorting.
+	$keys = array_keys($badge_signins);
+
     array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+	$badge_signins = array_combine($keys, $badge_signins);
+
     return $badge_signins;
+}
+
+
+
+//include sign-in css on make-member-sign-in template
+add_action('wp_enqueue_scripts', 'make_enqueue_signin_styles');
+function make_enqueue_signin_styles() {
+	if (is_page_template('make-member-sign-in.php')) {
+		mapi_write_log('Enqueueing sign-in styles for make-member-sign-in template');
+		wp_enqueue_style(
+			'make-signin-styles',
+			MAKESF_URL . 'assets/css/sign-in.css',
+			array(),
+			MAKESF_PLUGIN_VERSION
+		);
+	}
 }

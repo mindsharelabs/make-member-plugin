@@ -2,6 +2,12 @@
 
 
 class makeProfile {
+  private static $instance = null;
+
+  // My Badges endpoint
+  private $badgesEndpoint = 'my-badges';
+  private $badgesPageURL = '/my-account/my-badges/';
+
   private $userID = '';
 
   //Options
@@ -35,7 +41,6 @@ class makeProfile {
 
       $this->sharingURL = (isset($this->options['makesf_share_url']) ? $this->options['makesf_share_url'] : false);
 
-
       if(function_exists('get_field')) :
         $this->memberResources = get_field('member_resources', 'options');
       endif;
@@ -48,8 +53,141 @@ class makeProfile {
       add_action('wp_footer', array($this, 'enqueueAssets'));
     endif;
 
+    $this->register_hooks();
   }
 
+  /**
+   * Register hooks in one place to avoid duplicate registrations.
+   */
+  private function register_hooks() {
+    // My Account endpoint plumbing
+    add_action('init', array($this, 'register_my_badges_endpoint'));
+    add_filter('query_vars', array($this, 'add_my_badges_query_var'), 0);
+    add_filter('woocommerce_account_menu_items', array($this, 'add_my_badges_menu_item'));
+    add_action('woocommerce_account_' . $this->badgesEndpoint . '_endpoint', array($this, 'render_my_badges_page'));
+  }
+
+  /**
+   * Register a WooCommerce My Account endpoint for the My Badges page.
+   * Note: after deploying, visit Settings > Permalinks and click Save once to flush rewrite rules.
+   */
+  public function register_my_badges_endpoint() {
+    add_rewrite_endpoint($this->badgesEndpoint, EP_ROOT | EP_PAGES);
+  }
+
+  /**
+   * Add our endpoint to WP query vars.
+   */
+  public function add_my_badges_query_var($vars) {
+    $vars[] = $this->badgesEndpoint;
+    return $vars;
+  }
+
+  /**
+   * Insert "My Badges" into the My Account menu, after Dashboard when possible.
+   */
+  public function add_my_badges_menu_item($items) {
+    $new = array();
+
+    foreach ($items as $key => $label) {
+      $new[$key] = $label;
+      if ('dashboard' === $key) {
+        $new[$this->badgesEndpoint] = 'My Badges';
+      }
+    }
+
+    if (!isset($new[$this->badgesEndpoint])) {
+      $new[$this->badgesEndpoint] = 'My Badges';
+    }
+
+    return $new;
+  }
+
+  /**
+   * Data access (kept flexible via filters so we can wire to real sources later).
+   */
+  public function get_all_badges($user_id) {
+    $badges = new WP_Query(array(
+      'post_type' => 'certs',
+      'posts_per_page' => -1,
+    ));
+    return wp_list_pluck($badges->posts, 'ID');
+  }
+
+  public function get_user_badges($user_id) {
+    $certs = get_user_meta($user_id, 'certifications', true);
+    if($certs) :
+      return $certs;
+    else :
+      return array();
+    endif;
+  }
+
+  public static function get_user_signins($user_id){
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
+    $badge_signins = array();
+    foreach ($results as $result) {
+      $badges = unserialize($result->badges);
+      foreach ($badges as $badge) {
+        $badge_signins[$badge][] = $result->time;
+      }
+    }
+    //array multisort will re-order the badge_signins array based on the count of sign-ins for each badge, but it will reset the keys to numeric indexes.
+	  // To preserve the badge IDs as keys, we can store the keys before sorting and then reassign them after sorting.
+    $keys = array_keys($badge_signins);
+      array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+    $badge_signins = array_combine($keys, $badge_signins);
+
+    return $badge_signins;
+  }
+
+  public static function get_badge_name_by_id($id){
+    if ($id == 'workshop'):
+      $title = 'Attended Workshop';
+    elseif ($id == 'volunteer'):
+      $title = 'Volunteered';
+    elseif ($id == 'other'):
+      $title = 'Other';
+    elseif (get_the_title($id)):
+      $title = get_the_title($id);
+    else:
+      $title = false;
+    endif;
+    return $title;
+  }
+
+  /**
+   * Render the My Badges page.
+   * Best practice: prepare data in PHP (controller) and keep the template as a view.
+   */
+  public function render_my_badges_page() {
+    $user_id = $this->userID ? (int) $this->userID : (int) get_current_user_id();
+
+    // Allow full override.
+    if (has_action('makesf_render_my_badges')) {
+      do_action('makesf_render_my_badges', $user_id);
+      return;
+    }
+
+    // Prepare template context.
+    $profile = $this; // expose the instance if the template needs helper methods
+    $all_badges = $this->get_all_badges($user_id);
+    $earned_badges = $this->get_user_badges($user_id);
+    $user_signins = $this->get_user_signins($user_id);
+
+    $template_path = trailingslashit(__DIR__) . 'templates/my-badges.php';
+
+    if (file_exists($template_path)) {
+      include $template_path;
+      return;
+    }
+
+    echo '<div class="woocommerce-MyAccount-content">';
+      echo '<h2>My Badges</h2>';
+      echo '<p>My Badges template not found.</p>';
+    echo '</div>';
+  }
 
   public function enqueueAssets(){
 
@@ -80,7 +218,7 @@ class makeProfile {
 
   public static function get_instance() {
     if ( null === self::$instance ) {
-      self::$instance = new self;
+      self::$instance = new self();
     }
     return self::$instance;
   }
@@ -306,7 +444,7 @@ class makeProfile {
       'badge' => array(
         'label' => 'Get a badge',
         'complete' => $this->has_badge(),
-        'link' => $this->badgesURL
+        'link' => $this->badgesPageURL
       ),
      
       'profile' => array(
@@ -403,11 +541,9 @@ class makeProfile {
 
 }//end of class
 
-
-add_action('init', 'makesf_start_er_up');
-function makesf_start_er_up(){
-  new makeProfile();
-}
+add_action('init', function(){
+  makeProfile::get_instance();
+});
 
 
 
