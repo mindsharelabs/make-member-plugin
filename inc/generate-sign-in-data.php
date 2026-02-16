@@ -7,7 +7,6 @@
  * - Provide $earned_badges as your earned badges array (or just badge IDs)
  * - Call makesf_generate_test_signins($user_id, $earned_badges);
  */
-
 function makesf_generate_test_signins($user_id, $earned_badges, $years = 3) {
   global $wpdb;
 
@@ -137,25 +136,36 @@ function makesf_generate_test_signins($user_id, $earned_badges, $years = 3) {
   );
 }
 
-
-
-function makesf_delete_test_signins_last_years($user_id, $years = 3) {
+function makesf_delete_test_signins_last_years($user_id, $years = 3, $badge_id = null) {
   global $wpdb;
   $table = 'make_signin';
   $tz = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
   $cutoff = (new DateTimeImmutable('now', $tz))->sub(new DateInterval('P' . (int)$years . 'Y'))->format('Y-m-d H:i:s');
 
-  return $wpdb->query(
-    $wpdb->prepare(
-      "DELETE FROM {$table} WHERE user = %d AND time >= %s",
-      (int) $user_id,
-      $cutoff
-    )
-  );
+  if ($badge_id) {
+    // Serialized array: match badge as string or int
+    // This will match: s:2:"12"; or i:12;
+    $like1 = '%s:' . strlen((string)$badge_id) . ':"' . $badge_id . '";%';
+    $like2 = '%i:' . $badge_id . ';%';
+    return $wpdb->query(
+      $wpdb->prepare(
+        "DELETE FROM {$table} WHERE user = %d AND time >= %s AND (badges LIKE %s OR badges LIKE %s)",
+        (int) $user_id,
+        $cutoff,
+        $like1,
+        $like2
+      )
+    );
+  } else {
+    return $wpdb->query(
+      $wpdb->prepare(
+        "DELETE FROM {$table} WHERE user = %d AND time >= %s",
+        (int) $user_id,
+        $cutoff
+      )
+    );
+  }
 }
-
-
-
 
 
 
@@ -166,7 +176,7 @@ function makesf_user_signin_meta_generator($user_id) {
   if(get_user_meta($user_id, $meta_key, true)) {
     return;
   }
-
+  mapi_write_log("Generating signin meta for user $user_id");
   
 
   $signins = get_user_signins($user_id);
@@ -176,6 +186,10 @@ function makesf_user_signin_meta_generator($user_id) {
     $meta_key_count = $badge . '_total_count';
     if (isset($signins[$badge])) {
       //if the user has signed into this badge, update the last_time and total_count meta for that badge
+
+      mapi_write_log("User $user_id has signed into badge " . get_the_title($badge) . " " . count($signins[$badge]) . " times. Updating meta.");
+      
+
       $last_time = end($signins[$badge]);
       $total_count = count($signins[$badge]);
       update_user_meta($user_id, $meta_key_time, $last_time);
@@ -184,9 +198,23 @@ function makesf_user_signin_meta_generator($user_id) {
       //if the user has not signed into this badge then get all event attends for this user and find the most recent time they attended an event associated with that badge, and update the last_time meta for that badge with that time
       $last_attend_time = get_last_attend_time_for_badge($user_id, $badge);
       if($last_attend_time) {
-        update_user_meta($user_id, $meta_key_time, $last_attend_time);
+        mapi_write_log("User $user_id has not signed into badge " . get_the_title($badge) . ". Using last attend time: $last_attend_time");
         update_user_meta($user_id, $meta_key_count, 1);
+      } else {
+        mapi_write_log("User $user_id has not signed into badge " . get_the_title($badge) . " and has no attend record. Setting count to 0.");
+        update_user_meta($user_id, $meta_key_count, 0);
       }
+      //set the last_time to a date in the past to force these badges to show as expired in the UI, since the user has not actually signed into them
+      //find badge expiration timeline and set last_time to that many days in the past so that the badge will show as expired in the UI
+      $expiration_length = get_field('expiration_time', $badge); //this is stored in days
+      if ($expiration_length) {
+        $past_time = (new DateTimeImmutable("-$expiration_length days"))->format('Y-m-d H:i:s');
+        update_user_meta($user_id, $meta_key_time, $past_time);
+        mapi_write_log("Setting last_time for badge " . get_the_title($badge) . " to $past_time based on expiration length of $expiration_length days.");
+      }
+
+
+
     }
   }
 
@@ -207,12 +235,17 @@ function get_user_signins($user_id){
         $badge_signins[$badge][] = $result->time;
       }
     }
-    //array multisort will re-order the badge_signins array based on the count of sign-ins for each badge, but it will reset the keys to numeric indexes.
-	  // To preserve the badge IDs as keys, we can store the keys before sorting and then reassign them after sorting.
-    $keys = array_keys($badge_signins);
-      array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
-    $badge_signins = array_combine($keys, $badge_signins);
+    // Sort each badge's sign-ins by date (oldest to newest)
+    foreach ($badge_signins as &$times) {
+      sort($times);
+    }
+    unset($times);
 
+    // array multisort by count (optional, for display)
+    $keys = array_keys($badge_signins);
+    array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+    $badge_signins = array_combine($keys, $badge_signins);
+    
     return $badge_signins;
 }
 

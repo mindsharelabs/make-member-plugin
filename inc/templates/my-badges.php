@@ -18,10 +18,6 @@ if (!defined('ABSPATH')) {
 $user_id = isset($user_id) ? (int) $user_id : get_current_user_id();
 
 
-
-
-
-// Best practice: prefer controller-provided data.
 // These vars are set by makeProfile::render_my_badges_page().
 $profile = isset($profile) ? $profile : null;
 
@@ -44,6 +40,11 @@ echo '<div class="woocommerce-badges-content">';
 
   echo '<div class="row g-3">';
     foreach ((array) $earned_badges as $badge):
+
+      $post_data = get_post($badge);
+      if(is_null($post_data))
+        continue;
+
       $badge_id = $badge;
       $is_earned = $badge_id && in_array($badge_id, $earned_badges);
       $badge_image = get_field('badge_image', $badge);
@@ -58,10 +59,26 @@ echo '<div class="woocommerce-badges-content">';
 
       //add badge expiration length to last signin time to get expiration time, then calculate days until expiration
       $time_remaining = null;
-      if ($is_earned && $badge_expiration_length && $badge_last_signin_time) {
-        $expiration_time = strtotime($badge_last_signin_time) + ($badge_expiration_length * DAY_IN_SECONDS);
-        $time_remaining = ceil(($expiration_time - time()) / DAY_IN_SECONDS);
+
+      // Only compute expiration if we have a last sign-in time.
+      // Note: `ceil()` on a negative fraction returns 0 (e.g. -0.2 -> 0),
+      // so we use `floor()` when expired to ensure we get -1 immediately after passing.
+      if ($is_earned && !empty($badge_expiration_length) && !empty($badge_last_signin_time)) {
+        $last_ts = strtotime($badge_last_signin_time);
+
+        if ($last_ts) {
+          $expiration_time = $last_ts + ((int) $badge_expiration_length * DAY_IN_SECONDS);
+          $seconds_remaining = $expiration_time - time();
+
+          if ($seconds_remaining >= 0) {
+            $time_remaining = (int) ceil($seconds_remaining / DAY_IN_SECONDS);
+          } else {
+            $time_remaining = (int) floor($seconds_remaining / DAY_IN_SECONDS);
+          }
+        }
       }
+
+      $is_expired = ($time_remaining !== null && $time_remaining < 0);
 
 
       // Per-badge weekly counts
@@ -69,12 +86,13 @@ echo '<div class="woocommerce-badges-content">';
 
       // Card styling
       $earned_class = $is_earned ? 'is-earned' : 'is-missing';
+      $expired_class = $is_expired ? 'is-expired' : '';
       ?>
 
       <div class="col-12 col-lg-6">
-        <div class="card h-100 <?php echo $earned_class; ?>" data-badge-id="<?php echo esc_attr($badge_id); ?>">
+        <div class="card h-100 <?php echo $earned_class; ?> <?php echo $expired_class; ?>" data-badge-id="<?php echo esc_attr($badge_id); ?>">
           <div class="card-header d-flex align-items-start gap-3">
-            <div class="badge-image-wrapper" style="width:128px;height:128px;">
+            <div class="badge-image-wrapper" style="width:100px;height:100px;">
               <?php
               if (!empty($thumb_html)):
                 echo $thumb_html;
@@ -85,17 +103,39 @@ echo '<div class="woocommerce-badges-content">';
               <div>
                 <h3 class="h5 mb-1"><?php echo esc_html($title); ?></h3>
                 <div class="text-muted small">
-                  <?php 
-                  echo '<span class="badge bg-success">Earned</span>';
-                  if ($time_remaining) {
-                    echo '<div class="row">';
-                      if ((int)$time_remaining >= 0) {
-                        echo '<div class="small faded mt-2">Expires in <strong>' . $time_remaining . '</strong> days. Practice this badge to reset this timer.</div>';
-                      }
-                    echo '</div>';
+                  <?php
+                  $threshold_days = 14;
+                  $status = 'Earned';
+                  $status_class = 'bg-success';
+
+                  if ($time_remaining !== null && $time_remaining < 0) {
+                    $status = 'Expired';
+                    $status_class = 'bg-danger';
+                  } elseif ($time_remaining !== null && $time_remaining <= $threshold_days) {
+                    $status = 'Expiring Soon';
+                    $status_class = 'bg-warning text-dark';
                   }
-                  
-                  
+
+                  // Optional helper text under the status
+                  $helper = '';
+                  if ($time_remaining !== null) {
+                    if ($time_remaining < 0) {
+                      $helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
+                    } elseif ($time_remaining == 0 || $time_remaining == -0) {
+                      $helper = 'Expires today. Practice this badge to reset the timer.';
+                    } elseif ($time_remaining == 1) {
+                      $helper = 'Expires tomorrow. Practice this badge to reset the timer.';
+                    } else {
+                      $helper = 'Expires in ' . (int) $time_remaining . ' days.';
+                    }
+                  }
+
+                  echo '<div>';
+                    echo '<span class="badge ' . esc_attr($status_class) . '">' . esc_html($status) . '</span>';
+                    if (!empty($helper)) {
+                      echo '<div class="small faded mt-2">' . esc_html($helper) . '</div>';
+                    }
+                  echo '</div>';
                   ?>
                 </div>
               </div>
@@ -120,13 +160,13 @@ echo '<div class="woocommerce-badges-content">';
                       $signed_set[$day] = true;
                     }
                   }
-                }
+                
 
 
-                // Show the last 12 months (including current month)
-                $months_back = 12;
-                $tz = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
-                $month_cursor = new DateTimeImmutable('first day of this month', $tz);
+                  // Show the last 12 months (including current month)
+                  $months_back = 12;
+                  $tz = function_exists('wp_timezone') ? wp_timezone() : new DateTimeZone('UTC');
+                  $month_cursor = new DateTimeImmutable('first day of this month', $tz);
 
 
 
@@ -171,6 +211,7 @@ echo '<div class="woocommerce-badges-content">';
                       echo '</div>';
                     echo '</div>';
                   }
+                }
 
               echo '</div>'; // .row
             echo '</div>'; // .card-body
@@ -203,7 +244,7 @@ echo '<div class="woocommerce-badges-content">';
         <div class="col-12 col-lg-6">
           <div class="card h-100 is-missing" data-badge-id="<?php echo esc_attr($badge_id); ?>">
             <div class="card-header d-flex align-items-start gap-3">
-              <div class="badge-image-wrapper" style="width:128px;height:128px;">
+              <div class="badge-image-wrapper" style="width:100px;height:100px;">
                 <?php
                 if (!empty($thumb_html)):
                   echo $thumb_html;
