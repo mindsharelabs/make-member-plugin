@@ -163,6 +163,14 @@ class makeProfile {
    */
   public function render_my_badges_page() {
     $user_id = $this->userID ? (int) $this->userID : (int) get_current_user_id();
+    // $user_id = 54291; //temp hardcode for testing, you can put any user ID here to test with that user's data
+
+
+
+    //This function only runs once and will generate all of the correct meta for badge expirations. 
+    makesf_user_signin_meta_generator($user_id);
+
+
 
     // Allow full override.
     if (has_action('makesf_render_my_badges')) {

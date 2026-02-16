@@ -153,3 +153,115 @@ function makesf_delete_test_signins_last_years($user_id, $years = 3) {
     )
   );
 }
+
+
+
+
+
+
+function makesf_user_signin_meta_generator($user_id) {
+
+  //we only want to run this once so lets set a user meta flag to check if we have already run this for this user
+  $meta_key = 'signin_meta_generated';
+  if(get_user_meta($user_id, $meta_key, true)) {
+    return;
+  }
+
+  
+
+  $signins = get_user_signins($user_id);
+  $all_badges = get_all_badges(); //get all badges to compare against
+  foreach ($all_badges as $badge) {
+    $meta_key_time = $badge . '_last_time';
+    $meta_key_count = $badge . '_total_count';
+    if (isset($signins[$badge])) {
+      //if the user has signed into this badge, update the last_time and total_count meta for that badge
+      $last_time = end($signins[$badge]);
+      $total_count = count($signins[$badge]);
+      update_user_meta($user_id, $meta_key_time, $last_time);
+      update_user_meta($user_id, $meta_key_count, $total_count);
+    } else {
+      //if the user has not signed into this badge then get all event attends for this user and find the most recent time they attended an event associated with that badge, and update the last_time meta for that badge with that time
+      $last_attend_time = get_last_attend_time_for_badge($user_id, $badge);
+      if($last_attend_time) {
+        update_user_meta($user_id, $meta_key_time, $last_attend_time);
+        update_user_meta($user_id, $meta_key_count, 1);
+      }
+    }
+  }
+
+  // Set the flag to indicate that the meta has been generated for this user
+  update_user_meta($user_id, $meta_key, true);
+
+}
+
+
+
+function get_user_signins($user_id){
+    global $wpdb;
+    $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
+    $badge_signins = array();
+    foreach ($results as $result) {
+      $badges = unserialize($result->badges);
+      foreach ($badges as $badge) {
+        $badge_signins[$badge][] = $result->time;
+      }
+    }
+    //array multisort will re-order the badge_signins array based on the count of sign-ins for each badge, but it will reset the keys to numeric indexes.
+	  // To preserve the badge IDs as keys, we can store the keys before sorting and then reassign them after sorting.
+    $keys = array_keys($badge_signins);
+      array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
+    $badge_signins = array_combine($keys, $badge_signins);
+
+    return $badge_signins;
+}
+
+function get_all_badges(){
+  $badges = get_posts(array(
+    'post_type' => 'certs',
+    'posts_per_page' => -1,
+  ));
+  return wp_list_pluck($badges, 'ID');
+}
+
+
+function get_last_attend_time_for_badge($user_id, $badge_id) {
+  $events = get_events_associated_with_badge($badge_id);
+  // mapi_write_log($events);
+  //get attendees for those events
+  foreach($events as $event_id) {
+    $attendees = get_post_meta($event_id, 'attendees', true);
+    foreach ($attendees as $sub_event_id => $sub_event_attendees) {
+      foreach ($sub_event_attendees as $attendee) {
+        if ($attendee['user_id'] == $user_id) {
+          return get_post_meta($sub_event_id, 'event_start_time_stamp', true);
+        }
+      }
+    }
+  }
+}
+
+
+
+
+function get_events_associated_with_badge($badge_id) {
+  // This function should return an array of event IDs that are associated with the given badge ID.
+
+
+  $events = get_posts(array(
+    'post_type' => 'events',
+    'orderby' => 'meta_value',
+    'meta_key' => 'first_event_date',
+    'meta_type' => 'DATETIME',
+    'meta_query' => array(
+      array(
+        'key' => 'badge_cert_id', // Assuming you have a meta field that stores associated badge IDs
+        'value' => $badge_id, // Search for the badge ID in the serialized array
+        'compare' => '='
+      )
+    ),
+    'posts_per_page' => -1,
+  ));
+  
+  return wp_list_pluck($events, 'ID');
+}

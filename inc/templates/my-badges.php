@@ -17,6 +17,10 @@ if (!defined('ABSPATH')) {
 
 $user_id = isset($user_id) ? (int) $user_id : get_current_user_id();
 
+
+
+
+
 // Best practice: prefer controller-provided data.
 // These vars are set by makeProfile::render_my_badges_page().
 $profile = isset($profile) ? $profile : null;
@@ -26,6 +30,10 @@ $all_badges = apply_filters('makesf_my_badges_all_badges', $all_badges, $user_id
 $earned_badges = apply_filters('makesf_my_badges_user_badges', $earned_badges, $user_id);
 
 $user_signins = apply_filters('makesf_my_badges_signins', $user_signins, $user_id);
+
+
+
+
 
 echo '<div class="woocommerce-badges-content">';
   echo '<div class="mb-4">';
@@ -82,7 +90,7 @@ echo '<div class="woocommerce-badges-content">';
                   if ($time_remaining) {
                     echo '<div class="row">';
                       if ((int)$time_remaining >= 0) {
-                        echo '<div class="small faded mt-2">Expires in <strong>' . $time_remaining . '</strong> days</div>';
+                        echo '<div class="small faded mt-2">Expires in <strong>' . $time_remaining . '</strong> days. Practice this badge to reset this timer.</div>';
                       }
                     echo '</div>';
                   }
