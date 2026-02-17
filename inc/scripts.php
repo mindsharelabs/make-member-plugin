@@ -511,9 +511,9 @@ function make_list_sign_in_badges($user) {
 					if ($time_remaining < 0) {
 						$helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
 					} elseif ($time_remaining == 0 || $time_remaining == -0) {
-						$helper = 'Expires today. Practice this badge to reset the timer.';
+						$helper = 'Expires today! Sign-in to reset the timer.';
 					} elseif ($time_remaining <= 20) {
-						$helper = 'Expires soon. Practice this badge to reset the timer.';
+						$helper = 'Expires soon in ' . (int) $time_remaining . ' days.';
 					} else {
 						$helper = 'Expires in ' . (int) $time_remaining . ' days.';
 					}

@@ -172,10 +172,6 @@ function makesf_delete_test_signins_last_years($user_id, $years = 3, $badge_id =
 
 
 
-
-
-
-
 function makesf_user_signin_meta_generator($user_id) {
 
   //we only want to run this once so lets set a user meta flag to check if we have already run this for this user
@@ -183,7 +179,7 @@ function makesf_user_signin_meta_generator($user_id) {
   if(get_user_meta($user_id, $meta_key, true)) {
     return;
   }
-  
+
 
   $signins = get_user_signins($user_id);
   $all_badges = get_all_badges(); //get all badges to compare against
@@ -201,17 +197,18 @@ function makesf_user_signin_meta_generator($user_id) {
     } else {
       //if the user has not signed into this badge then get all event attends for this user and find the most recent time they attended an event associated with that badge, and update the last_time meta for that badge with that time
       $last_attend_time = get_last_attend_time_for_badge($user_id, $badge);
+
+
       if($last_attend_time) {
-        update_user_meta($user_id, $meta_key_count, 1);
-        update_user_meta($user_id, $meta_key_time, $last_attend_time);
+        // update_user_meta($user_id, $meta_key_time, $last_attend_time);
       } else {
-        update_user_meta($user_id, $meta_key_count, 0);
 
         //set the last_time to a date in the past to force these badges to show as expired in the UI, since the user has not actually signed into them
         //find badge expiration timeline and set last_time to that many days in the past so that the badge will show as expired in the UI
         $expiration_length = get_field('expiration_time', $badge); //this is stored in days
         if ($expiration_length) {
-          $past_time = (new DateTimeImmutable("-$expiration_length days"))->format('Y-m-d H:i:s');
+          $total_days = (int)$expiration_length - 30;
+          $past_time = (new DateTimeImmutable("-$total_days days"))->format('Y-m-d H:i:s');
           update_user_meta($user_id, $meta_key_time, $past_time);
 
         }
@@ -265,7 +262,6 @@ function get_all_badges(){
 
 function get_last_attend_time_for_badge($user_id, $badge_id) {
   $events = get_events_associated_with_badge($badge_id);
-  // mapi_write_log($events);
   //get attendees for those events
   foreach($events as $event_id) {
     $attendees = get_post_meta($event_id, 'attendees', true);
