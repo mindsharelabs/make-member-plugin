@@ -211,6 +211,10 @@ echo '<div class="woocommerce-badges-content">';
                       echo '</div>';
                     echo '</div>';
                   }
+                } else {
+                  echo '<div class="col-12">';
+                    echo '<p class="text-muted text-center mb-0">No sign-in data for the past 12 months available for this badge.</p>';
+                  echo '</div>';
                 }
 
               echo '</div>'; // .row

@@ -169,6 +169,13 @@ function makesf_delete_test_signins_last_years($user_id, $years = 3, $badge_id =
 
 
 
+
+
+
+
+
+
+
 function makesf_user_signin_meta_generator($user_id) {
 
   //we only want to run this once so lets set a user meta flag to check if we have already run this for this user
@@ -176,7 +183,6 @@ function makesf_user_signin_meta_generator($user_id) {
   if(get_user_meta($user_id, $meta_key, true)) {
     return;
   }
-  mapi_write_log("Generating signin meta for user $user_id");
   
 
   $signins = get_user_signins($user_id);
@@ -187,9 +193,7 @@ function makesf_user_signin_meta_generator($user_id) {
     if (isset($signins[$badge])) {
       //if the user has signed into this badge, update the last_time and total_count meta for that badge
 
-      mapi_write_log("User $user_id has signed into badge " . get_the_title($badge) . " " . count($signins[$badge]) . " times. Updating meta.");
-      
-
+  
       $last_time = end($signins[$badge]);
       $total_count = count($signins[$badge]);
       update_user_meta($user_id, $meta_key_time, $last_time);
@@ -198,21 +202,22 @@ function makesf_user_signin_meta_generator($user_id) {
       //if the user has not signed into this badge then get all event attends for this user and find the most recent time they attended an event associated with that badge, and update the last_time meta for that badge with that time
       $last_attend_time = get_last_attend_time_for_badge($user_id, $badge);
       if($last_attend_time) {
-        mapi_write_log("User $user_id has not signed into badge " . get_the_title($badge) . ". Using last attend time: $last_attend_time");
         update_user_meta($user_id, $meta_key_count, 1);
+        update_user_meta($user_id, $meta_key_time, $last_attend_time);
       } else {
-        mapi_write_log("User $user_id has not signed into badge " . get_the_title($badge) . " and has no attend record. Setting count to 0.");
         update_user_meta($user_id, $meta_key_count, 0);
-      }
-      //set the last_time to a date in the past to force these badges to show as expired in the UI, since the user has not actually signed into them
-      //find badge expiration timeline and set last_time to that many days in the past so that the badge will show as expired in the UI
-      $expiration_length = get_field('expiration_time', $badge); //this is stored in days
-      if ($expiration_length) {
-        $past_time = (new DateTimeImmutable("-$expiration_length days"))->format('Y-m-d H:i:s');
-        update_user_meta($user_id, $meta_key_time, $past_time);
-        mapi_write_log("Setting last_time for badge " . get_the_title($badge) . " to $past_time based on expiration length of $expiration_length days.");
-      }
 
+        //set the last_time to a date in the past to force these badges to show as expired in the UI, since the user has not actually signed into them
+        //find badge expiration timeline and set last_time to that many days in the past so that the badge will show as expired in the UI
+        $expiration_length = get_field('expiration_time', $badge); //this is stored in days
+        if ($expiration_length) {
+          $past_time = (new DateTimeImmutable("-$expiration_length days"))->format('Y-m-d H:i:s');
+          update_user_meta($user_id, $meta_key_time, $past_time);
+
+        }
+
+      }
+      
 
 
     }
@@ -272,6 +277,8 @@ function get_last_attend_time_for_badge($user_id, $badge_id) {
       }
     }
   }
+
+  return null;
 }
 
 

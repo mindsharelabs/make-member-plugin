@@ -59,6 +59,8 @@ class makeProfile {
     add_filter('woocommerce_account_menu_items', array($this, 'add_my_badges_menu_item'));
     add_action('woocommerce_account_' . $this->badgesEndpoint . '_endpoint', array($this, 'render_my_badges_page'));
 
+
+
   }
 
 
@@ -601,6 +603,12 @@ add_action( 'update_user_metadata', function( $check, $object_id, $meta_key, $me
   if($meta_key == 'certifications') :
     $current_certs = get_user_meta($object_id, 'certifications', true);
 
+    //make sure current certs always returns a array to avoid errors with array_diff when there are no certs
+    if(!$current_certs) :
+      $current_certs = array();
+    endif;
+
+    
     //only make changes if we're adding badges, not removing them
     if(count($meta_value) > count($current_certs)) :
      
@@ -617,3 +625,395 @@ add_action( 'update_user_metadata', function( $check, $object_id, $meta_key, $me
   endif;
 
 }, 1, 5 );
+
+
+
+
+class makeProfileAdmin {
+
+  private static $instance = null;
+
+  private $ajax_action = 'makesf_renew_badge';
+  private $nonce_action = 'makesf_renew_badge_nonce';
+
+  private $ajax_add_action = 'makesf_add_badge';
+  private $nonce_add_action = 'makesf_add_badge_nonce';
+
+  private $ajax_remove_action = 'makesf_remove_badge';
+  private $nonce_remove_action = 'makesf_remove_badge_nonce';
+
+  public function __construct() {
+    // Render fields on user profile screens
+    add_action('show_user_profile', array($this, 'render_badge_expiration_metabox'));
+    add_action('edit_user_profile', array($this, 'render_badge_expiration_metabox'));
+
+    // Assets
+    add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
+
+    // Ajax
+    add_action('wp_ajax_' . $this->ajax_action, array($this, 'ajax_renew_badge'));
+    add_action('wp_ajax_' . $this->ajax_add_action, array($this, 'ajax_add_badge'));
+    add_action('wp_ajax_' . $this->ajax_remove_action, array($this, 'ajax_remove_badge'));
+  }
+
+  public static function get_instance() {
+    if (null === self::$instance) {
+      self::$instance = new self();
+    }
+    return self::$instance;
+  }
+
+  /**
+   * Only load assets on profile.php and user-edit.php
+   */
+  public function enqueue_admin_assets($hook) {
+    if (!in_array($hook, array('profile.php', 'user-edit.php'), true)) {
+      return;
+    }
+
+ 
+    // Minimal inline JS (kept in PHP for now as scaffolding)
+    wp_register_script('makesf-badge-admin', MAKESF_URL . 'assets/js/badge-management.js', array('jquery'), MAKESF_PLUGIN_VERSION, true);
+    wp_enqueue_script('makesf-badge-admin');
+
+    wp_localize_script('makesf-badge-admin', 'MAKESF_BADGE_ADMIN', array(
+      'ajax_url' => admin_url('admin-ajax.php'),
+      'action'   => $this->ajax_action,
+      'nonce'    => wp_create_nonce($this->nonce_action),
+      'add_action'    => $this->ajax_add_action,
+      'add_nonce'     => wp_create_nonce($this->nonce_add_action),
+      'remove_action' => $this->ajax_remove_action,
+      'remove_nonce'  => wp_create_nonce($this->nonce_remove_action),
+      'i18n'     => array(
+        'renewing' => 'Renewing…',
+        'renew'    => 'Renew',
+        'error'    => 'Something went wrong. Please try again.',
+      ),
+    ));
+
+
+    // Tiny admin CSS
+    $css_handle = 'makesf-badge-admin-css';
+    wp_register_style($css_handle, false, array(), MAKESF_PLUGIN_VERSION);
+    wp_enqueue_style($css_handle);
+    $css = '
+      .makesf-badge-admin-wrap{margin-top:20px}
+      .makesf-badge-admin-table{width:100%;max-width:1000px}
+      .makesf-badge-admin-table th{white-space:nowrap}
+      .makesf-badge-admin-table td{vertical-align:middle}
+      .makesf-badge-renew-status{font-weight:600}
+    ';
+    wp_add_inline_style($css_handle, $css);
+  }
+
+  /**
+   * "Meta box" style section on the user profile edit screen.
+   */
+  public function render_badge_expiration_metabox($user) {
+    if (!($user instanceof WP_User)) {
+      return;
+    }
+
+    // Capability check
+    if (!current_user_can('edit_user', $user->ID)) {
+      return;
+    }
+
+    $user_id = (int) $user->ID;
+    $badges  = get_user_meta($user_id, 'certifications', true);
+    if (!$badges || !is_array($badges)) {
+      $badges = array();
+    }
+
+    echo '<h2>Badge Expirations</h2>';
+    echo '<div class="makesf-badge-admin-wrap">';
+      echo '<p>Manage badge expiration dates for this member. Renew will update the badge renewal timestamp and (when supported) the expiration date.</p>';
+
+      // Add badge UI
+      $all_certs = new WP_Query(array(
+        'post_type'      => 'certs',
+        'posts_per_page' => -1,
+        'orderby'        => 'title',
+        'order'          => 'ASC',
+        'fields'         => 'ids',
+      ));
+
+      $assigned = array();
+      if (!empty($badges)) {
+        $assigned = array_map('intval', $badges);
+      }
+
+      echo '<div class="makesf-badge-admin-add" style="margin:12px 0 16px;">';
+      echo '<label for="makesf-add-badge" style="display:inline-block;margin-right:8px;font-weight:600;">Add Badge</label>';
+      echo '<select id="makesf-add-badge" style="min-width:280px;">';
+      echo '<option value="">Select a badge…</option>';
+
+      if ($all_certs->have_posts()) {
+        foreach ($all_certs->posts as $cert_id) {
+          $cert_id = (int) $cert_id;
+          if (in_array($cert_id, $assigned, true)) {
+            continue;
+          }
+          echo '<option value="' . esc_attr($cert_id) . '">' . esc_html(get_the_title($cert_id)) . '</option>';
+        }
+      }
+
+      echo '</select> ';
+      echo '<button type="button" class="button" id="makesf-add-badge-btn" data-user="' . esc_attr($user_id) . '" data-action="' . esc_attr($this->ajax_add_action) . '" data-nonce="' . esc_attr(wp_create_nonce($this->nonce_add_action)) . '">Add</button>';
+      echo '<span id="makesf-add-badge-status" style="margin-left:10px;font-weight:600;"></span>';
+      echo '</div>';
+
+      if (empty($badges)) {
+        echo '<p><em>No badges found for this user.</em></p>';
+        echo '</div>';
+        return;
+      }
+
+      echo '<table class="widefat striped makesf-badge-admin-table">';
+        echo '<thead>';
+          echo '<tr>';
+            echo '<th>Badge</th>';
+            echo '<th>Last Used/Renewed</th>';
+            echo '<th>Expires</th>';
+            echo '<th>Renew</th>';
+            echo '<th>Remove</th>';
+            echo '<th>Status</th>';
+          echo '</tr>';
+        echo '</thead>';
+
+
+        echo '<tbody>';
+
+          foreach ($badges as $badge_id) {
+            $badge_key = sanitize_key((string) $badge_id);
+            $badge_name = makeProfile::get_badge_name_by_id($badge_id);
+            if (!$badge_name) {
+              $badge_name = $badge_key;
+            }
+
+            // Common meta keys we might have (kept flexible)
+            $last_time = get_user_meta($user_id, $badge_key . '_last_time', true);
+
+            //expires date equals last_time + expiration_time. It is not stored directly in user meta, but we may be able to infer it based on the badge's expiration_time field and the last_time.
+            $expires = '—';
+            $expiration_time = get_field('expiration_time', $badge_id);
+            if ($expiration_time && $last_time) {
+              $expires_ts = strtotime($last_time) + ($expiration_time * DAY_IN_SECONDS);
+              $expires = date_i18n('M j, Y g:ia', $expires_ts);
+            }
+
+            $status_class = '';
+            $expire_status = '';
+              if ($expires === '—') {
+                $status_class = 'notice notice-info';
+                $expire_status = 'No Expiration';
+              } else {
+                $expires_ts = strtotime($expires);
+                if ($expires_ts && $expires_ts < current_time('timestamp')) {
+                  $status_class = 'notice notice-error';
+                  $expire_status = 'Expired';
+                } else {
+                  $status_class = 'notice notice-success';
+                  $expire_status = 'Active';
+                }
+              }
+
+            echo '<tr>';
+              echo '<td><strong>' . esc_html($badge_name) . '</strong><br><code>' . esc_html($badge_key) . '</code></td>';
+              echo '<td class="makesf-badge-last-time">' . esc_html($this->format_meta_datetime($last_time)) . '</td>';
+              echo '<td class="makesf-badge-expires">' . esc_html($this->format_meta_datetime($expires)) . '</td>';
+              echo '<td>';
+                echo '<button type="button" class="button button-primary makesf-renew-badge" data-user="' . esc_attr($user_id) . '" data-badge="' . esc_attr($badge_key) . '">Renew</button>';
+              echo '</td>';
+
+              echo '<td>';
+                echo '<button type="button" class="button button-link-delete makesf-remove-badge" data-user="' . esc_attr($user_id) . '" data-badge-id="' . esc_attr((int) $badge_id) . '" data-action="' . esc_attr($this->ajax_remove_action) . '" data-nonce="' . esc_attr(wp_create_nonce($this->nonce_remove_action)) . '">Remove</button>';
+              echo '</td>';
+
+              echo '<td><span class="makesf-badge-renew-status ' . esc_attr($status_class) . '">' . $expire_status . '</span></td>';
+            echo '</tr>';
+          }
+
+        echo '</tbody>';
+      echo '</table>';
+    echo '</div>';
+  }
+
+  /**
+   * Ajax: add a badge (certs post ID) to a user's certifications array.
+   */
+  public function ajax_add_badge() {
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, $this->nonce_add_action)) {
+      wp_send_json_error(array('message' => 'Invalid request.'), 403);
+    }
+
+    $user_id  = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    $badge_id = isset($_POST['badge_id']) ? (int) $_POST['badge_id'] : 0;
+
+    if (!$user_id || !$badge_id) {
+      wp_send_json_error(array('message' => 'Missing user or badge.'), 400);
+    }
+
+    if (!current_user_can('edit_user', $user_id)) {
+      wp_send_json_error(array('message' => 'You do not have permission to edit this user.'), 403);
+    }
+
+    if (get_post_type($badge_id) !== 'certs') {
+      wp_send_json_error(array('message' => 'Invalid badge.'), 400);
+    }
+
+    $certs = get_user_meta($user_id, 'certifications', true);
+    if (!$certs || !is_array($certs)) {
+      $certs = array();
+    }
+
+    $certs_int = array_map('intval', $certs);
+    if (in_array($badge_id, $certs_int, true)) {
+      wp_send_json_error(array('message' => 'User already has this badge.'), 400);
+    }
+
+    $certs_int[] = $badge_id;
+    $certs_int = array_values(array_unique($certs_int));
+
+
+  //get expires time for this badge based on current time + expiration_time field from the certs post
+    $expiration_time = get_field('expiration_time', $badge_id);
+    if ($expiration_time) {
+      $expires_ts = current_time('timestamp') + ($expiration_time * DAY_IN_SECONDS);
+    }
+
+
+    update_user_meta($user_id, 'certifications', $certs_int);
+
+    update_user_meta($user_id, $badge_id . '_last_time', current_time('mysql'));
+
+    wp_send_json_success(array(
+      'badge_id' => $badge_id,
+      'badge_name' => makeProfile::get_badge_name_by_id($badge_id) ? makeProfile::get_badge_name_by_id($badge_id) : get_the_title($badge_id),
+      'last_time' => $this->format_meta_datetime(current_time('mysql')),
+      'expires' => isset($expires_ts) ? $this->format_meta_datetime($expires_ts) : '—',
+      'status' => 'Active',
+      'message' => 'Badge added.',
+    ));
+  }
+
+  /**
+   * Ajax: remove a badge (certs post ID) from a user's certifications array.
+   */
+  public function ajax_remove_badge() {
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, $this->nonce_remove_action)) {
+      wp_send_json_error(array('message' => 'Invalid request.'), 403);
+    }
+
+    $user_id  = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    $badge_id = isset($_POST['badge_id']) ? (int) $_POST['badge_id'] : 0;
+
+    if (!$user_id || !$badge_id) {
+      wp_send_json_error(array('message' => 'Missing user or badge.'), 400);
+    }
+
+    if (!current_user_can('edit_user', $user_id)) {
+      wp_send_json_error(array('message' => 'You do not have permission to edit this user.'), 403);
+    }
+
+    $certs = get_user_meta($user_id, 'certifications', true);
+    if (!$certs || !is_array($certs)) {
+      $certs = array();
+    }
+
+    $certs_int = array_map('intval', $certs);
+    if (!in_array($badge_id, $certs_int, true)) {
+      wp_send_json_error(array('message' => 'User does not have this badge.'), 400);
+    }
+
+    $certs_int = array_values(array_diff($certs_int, array($badge_id)));
+    update_user_meta($user_id, 'certifications', $certs_int);
+
+    // cleanup of related meta
+    delete_user_meta($user_id, $badge_id . '_last_time');
+
+    wp_send_json_success(array(
+      'badge_id' => $badge_id,
+      'message'  => 'Badge removed.',
+    ));
+  }
+
+  /**
+   * Ajax: renew a badge.
+   */
+  public function ajax_renew_badge() {
+    // Nonce
+    $nonce = isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '';
+    if (!wp_verify_nonce($nonce, $this->nonce_action)) {
+      wp_send_json_error(array('message' => 'Invalid request.'), 403);
+    }
+
+    $user_id  = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    $badge_id = isset($_POST['badge_id']) ? sanitize_key((string) $_POST['badge_id']) : '';
+
+    if (!$user_id || empty($badge_id)) {
+      wp_send_json_error(array('message' => 'Missing user or badge.'), 400);
+    }
+
+    if (!current_user_can('edit_user', $user_id)) {
+      wp_send_json_error(array('message' => 'You do not have permission to edit this user.'), 403);
+    }
+
+    // Ensure user actually has this badge
+    $badges = get_user_meta($user_id, 'certifications', true);
+    if (!$badges || !is_array($badges) || !in_array($badge_id, array_map('sanitize_key', $badges), true)) {
+      wp_send_json_error(array('message' => 'User does not have this badge.'), 400);
+    }
+
+    // Update renewal timestamp
+    $now_mysql = current_time('mysql');
+    update_user_meta($user_id, $badge_id . '_last_time', $now_mysql);
+
+
+    $days = get_field('expiration_time', $badge_id);
+
+
+
+    wp_send_json_success(array(
+      'badge_id'  => $badge_id,
+      'last_time' => $this->format_meta_datetime($now_mysql),
+      'expires'   => $days ? $this->format_meta_datetime(strtotime($now_mysql) + ($days * DAY_IN_SECONDS)) : '—',
+      'message'   => 'Badge renewed.',
+    ));
+  }
+
+  /**
+   * Helper: normalize and format meta values that may be stored as mysql datetime, timestamp, or empty.
+   */
+  private function format_meta_datetime($value) {
+    if (empty($value)) {
+      return '—';
+    }
+
+    // If numeric timestamp
+    if (is_numeric($value)) {
+      $ts = (int) $value;
+      if ($ts > 0) {
+        return date_i18n('M j, Y g:ia', $ts);
+      }
+    }
+
+    // If mysql datetime string
+    $ts = strtotime((string) $value);
+    if ($ts) {
+      return date_i18n('M j, Y g:ia', $ts);
+    }
+
+    return (string) $value;
+  }
+
+}
+
+// Boot the admin UI
+add_action('init', function(){
+  if (is_admin()) {
+    makeProfileAdmin::get_instance();
+  }
+});

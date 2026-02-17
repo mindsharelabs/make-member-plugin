@@ -762,7 +762,7 @@ function make_get_user_signins($user_id){
 add_action('wp_enqueue_scripts', 'make_enqueue_signin_styles');
 function make_enqueue_signin_styles() {
 	if (is_page_template('make-member-sign-in.php')) {
-		mapi_write_log('Enqueueing sign-in styles for make-member-sign-in template');
+		// mapi_write_log('Enqueueing sign-in styles for make-member-sign-in template');
 		wp_enqueue_style(
 			'make-signin-styles',
 			MAKESF_URL . 'assets/css/sign-in.css',
