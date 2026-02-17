@@ -460,45 +460,79 @@ function make_list_sign_in_badges($user) {
 			$all_badges->the_post();
 
 			$user_badges = get_field('certifications', 'user_' . $user->ID);
-			
+			$is_earned = is_array($user_badges) && in_array(get_the_id(), $user_badges);
 			$badge_expiration_length = get_field('expiration_time', get_the_id()); //this is stored in days
 			$badge_last_signin_time = get_user_meta($user->ID, get_the_id() . '_last_time', true);
 			$expiration_time = strtotime($badge_last_signin_time) + ($badge_expiration_length * DAY_IN_SECONDS);
 			//days until expiration
 			$time_remaining = $expiration_time - time();
 
-			$class = 'not-allowed';
-			$has_badge = false;
+
+			if ($is_earned && !empty($badge_expiration_length) && !empty($badge_last_signin_time)) {
+				$last_ts = strtotime($badge_last_signin_time);
+
+				if ($last_ts) {
+				$expiration_time = $last_ts + ((int) $badge_expiration_length * DAY_IN_SECONDS);
+				$seconds_remaining = $expiration_time - time();
+
+				if ($seconds_remaining >= 0) {
+					$time_remaining = (int) ceil($seconds_remaining / DAY_IN_SECONDS);
+				} else {
+					$time_remaining = (int) floor($seconds_remaining / DAY_IN_SECONDS);
+				}
+				}
+			}
+
+
+
+			$classes = [];
+
 			$expired = false;
 			if($user_badges) :
-				if(in_array(get_the_id(), $user_badges)) :
-					$class = '';
-					$has_badge = true;
+				if(!$is_earned) :
+					$classes[] = 'not-allowed';
 				endif;
 			endif;
 			if($time_remaining <= 0) :
-				$class .= ' expired';
+				$classes[] = 'not-allowed';
+				$classes[] = 'expired';
 				$expired = true;
-				$has_badge = false; //if badge is expired, treat as if user doesn't have it for sign-in purposes
 			endif;
 
-			$item_html = '<div class="badge-item ' . $class . ' text-center" data-badge="' . get_the_id() . '">';
+
+			// Optional helper text under the status
+				$helper = '';
+				if ($time_remaining !== null) {
+					if ($time_remaining < 0) {
+						$helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
+					} elseif ($time_remaining == 0 || $time_remaining == -0) {
+						$helper = 'Expires today. Practice this badge to reset the timer.';
+					} elseif ($time_remaining <= 20) {
+						$helper = 'Expires soon. Practice this badge to reset the timer.';
+					} else {
+						$helper = 'Expires in ' . (int) $time_remaining . ' days.';
+					}
+				}
+
+
+			$item_html = '<div class="badge-item ' . implode(' ', $classes) . ' text-center" data-badge="' . get_the_id() . '">';
 				$badge_image = get_field('badge_image', get_the_id());
 				$item_html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
 				$item_html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
 
-				if($has_badge && $badge_expiration_length) :
+				if($is_earned && $badge_expiration_length) :
 					if($expired) :
 						$item_html .= '<span class="badge-expiration text-danger">Badge Expired</span>';
+					elseif($time_remaining <= 20) :
+						$item_html .= '<span class="badge-expiration text-warning">' . $helper . '</span>';
 					elseif($time_remaining) :
-						$days_remaining = ceil($time_remaining / DAY_IN_SECONDS);
-						$item_html .= '<span class="badge-expiration text-success">Expires in ' . $days_remaining . ' day' . ($days_remaining > 1 ? 's' : '') . '</span>';
+						$item_html .= '<span class="badge-expiration text-success">' . $helper . '</span>';
 					endif;
 				endif;
 
 			$item_html .= '</div>';
 
-			if ($has_badge) {
+			if ($is_earned) {
 				$allowed_items[] = $item_html;
 			} else {
 				$other_items[] = $item_html;
