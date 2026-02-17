@@ -433,6 +433,11 @@ function make_get_member_scan() {
 
 
 function make_list_sign_in_badges($user) {
+
+
+	makesf_user_signin_meta_generator($user->ID);
+
+
 	$all_badges = new WP_Query(array(
 		'post_type' => 'certs',
 		'posts_per_page' => -1,
