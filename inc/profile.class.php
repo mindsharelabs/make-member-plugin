@@ -53,27 +53,16 @@ class makeProfile {
       add_action('wp_footer', array($this, 'enqueueAssets'));
     endif;
 
-    $this->register_hooks();
-  }
 
-  /**
-   * Register hooks in one place to avoid duplicate registrations.
-   */
-  private function register_hooks() {
-    // My Account endpoint plumbing
-    add_action('init', array($this, 'register_my_badges_endpoint'));
+    add_rewrite_endpoint($this->badgesEndpoint, EP_ROOT | EP_PAGES);
     add_filter('query_vars', array($this, 'add_my_badges_query_var'), 0);
     add_filter('woocommerce_account_menu_items', array($this, 'add_my_badges_menu_item'));
     add_action('woocommerce_account_' . $this->badgesEndpoint . '_endpoint', array($this, 'render_my_badges_page'));
+
   }
 
-  /**
-   * Register a WooCommerce My Account endpoint for the My Badges page.
-   * Note: after deploying, visit Settings > Permalinks and click Save once to flush rewrite rules.
-   */
-  public function register_my_badges_endpoint() {
-    add_rewrite_endpoint($this->badgesEndpoint, EP_ROOT | EP_PAGES);
-  }
+
+
 
   /**
    * Add our endpoint to WP query vars.
@@ -603,3 +592,28 @@ add_action( 'gform_after_submission_45', function ( $entry, $form ) {
   endif;
 
 }, 10, 2 );
+
+
+
+add_action( 'update_user_metadata', function( $check, $object_id, $meta_key, $meta_value, $prev_value) {
+  //set badge expiration to current time when badge is manually added to a user. 
+  
+  if($meta_key == 'certifications') :
+    $current_certs = get_user_meta($object_id, 'certifications', true);
+
+    //only make changes if we're adding badges, not removing them
+    if(count($meta_value) > count($current_certs)) :
+     
+      
+      $added_badges = array_diff($meta_value, $current_certs);
+      if($added_badges) :
+        foreach ($added_badges as $key => $value) {
+          update_user_meta($object_id, $value . '_last_time',current_time('mysql'));
+        }
+      endif;
+    endif;
+
+
+  endif;
+
+}, 1, 5 );
