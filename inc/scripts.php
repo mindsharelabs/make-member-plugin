@@ -740,18 +740,16 @@ function make_get_user_signins($user_id){
     $badge_signins = array();
     foreach ($results as $result) {
       $badges = unserialize($result->badges);
-	//   mapi_write_log($badges);
       foreach ($badges as $badge) {
         $badge_signins[$badge][] = $result->time;
       }
     }
 
-	//array multisort will re-order the badge_signins array based on the count of sign-ins for each badge, but it will reset the keys to numeric indexes.
-	// To preserve the badge IDs as keys, we can store the keys before sorting and then reassign them after sorting.
-	$keys = array_keys($badge_signins);
-
-    array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
-	$badge_signins = array_combine($keys, $badge_signins);
+	// Sort each badge's sign-ins by date (oldest to newest)
+    foreach ($badge_signins as &$times) {
+      sort($times);
+    }
+    unset($times);
 
     return $badge_signins;
 }

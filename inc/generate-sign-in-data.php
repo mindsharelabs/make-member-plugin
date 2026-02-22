@@ -181,7 +181,7 @@ function makesf_user_signin_meta_generator($user_id) {
   }
 
 
-  $signins = get_user_signins($user_id);
+  $signins = make_get_user_signins($user_id);
   $all_badges = get_all_badges(); //get all badges to compare against
   foreach ($all_badges as $badge) {
     $meta_key_time = $badge . '_last_time';
@@ -226,30 +226,6 @@ function makesf_user_signin_meta_generator($user_id) {
 }
 
 
-
-function get_user_signins($user_id){
-    global $wpdb;
-    $results = $wpdb->get_results("SELECT * FROM `make_signin` where user = $user_id;");
-    $badge_signins = array();
-    foreach ($results as $result) {
-      $badges = unserialize($result->badges);
-      foreach ($badges as $badge) {
-        $badge_signins[$badge][] = $result->time;
-      }
-    }
-    // Sort each badge's sign-ins by date (oldest to newest)
-    foreach ($badge_signins as &$times) {
-      sort($times);
-    }
-    unset($times);
-
-    // array multisort by count (optional, for display)
-    $keys = array_keys($badge_signins);
-    array_multisort(array_map('count', $badge_signins), SORT_DESC, $badge_signins);
-    $badge_signins = array_combine($keys, $badge_signins);
-    
-    return $badge_signins;
-}
 
 function get_all_badges(){
   $badges = get_posts(array(

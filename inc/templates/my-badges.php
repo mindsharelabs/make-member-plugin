@@ -46,17 +46,32 @@ echo '<div class="woocommerce-badges-content">';
         continue;
 
       $badge_id = $badge;
-      $is_earned = $badge_id && in_array($badge_id, $earned_badges);
+      $is_earned = true; // Since we're in the earned badges loop, this is always true for these items.
       $badge_image = get_field('badge_image', $badge);
       $thumb_html = wp_get_attachment_image($badge_image, 'thumbnail', false, array('class' => 'img-fluid rounded card-img-top'));
 
       $title = get_the_title($badge);
       $badge_expiration_length = get_field('expiration_time', $badge); //this is stored in days
-      $badge_last_signin_time = get_user_meta($user_id, $badge . '_last_time', true);
+
+
+      $badge_signins = (isset($user_signins[$badge_id]) ? $user_signins[$badge_id] : array());
+      mapi_write_log("Badge " . get_the_title($badge_id) . " sign-in times: " . var_export($badge_signins, true));
+      //get last item in badge_signins, which is the most recent signin time for this badge
+
+      if(!empty($badge_signins)) {
+        $badge_last_signin_time = end($badge_signins);
+      } else {
+        $badge_last_signin_time = get_user_meta($user_id, $badge . '_last_time', true);
+      }
+      
+      if (empty($badge_last_signin_time)) {
+        $badge_last_signin_time = null;
+      }
+
+      mapi_write_log("Badge " . get_the_title($badge_id) . " last signin time: " . var_export($badge_last_signin_time, true));
+      
 
       //get last sign in time
-
-
       //add badge expiration length to last signin time to get expiration time, then calculate days until expiration
       $time_remaining = null;
 
