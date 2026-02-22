@@ -55,7 +55,6 @@ echo '<div class="woocommerce-badges-content">';
 
 
       $badge_signins = (isset($user_signins[$badge_id]) ? $user_signins[$badge_id] : array());
-      mapi_write_log("Badge " . get_the_title($badge_id) . " sign-in times: " . var_export($badge_signins, true));
       //get last item in badge_signins, which is the most recent signin time for this badge
 
       if(!empty($badge_signins)) {
@@ -68,8 +67,6 @@ echo '<div class="woocommerce-badges-content">';
         $badge_last_signin_time = null;
       }
 
-      mapi_write_log("Badge " . get_the_title($badge_id) . " last signin time: " . var_export($badge_last_signin_time, true));
-      
 
       //get last sign in time
       //add badge expiration length to last signin time to get expiration time, then calculate days until expiration
