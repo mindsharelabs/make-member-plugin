@@ -7,6 +7,357 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Weekly badge expiration reminder emails
+ *
+ * Scaffolding notes:
+ * - Runs via WP-Cron once per week.
+ * - Iterates active members (make_get_active_members_array()) to avoid expensive global user scans.
+ * - Determines expiring/expired status using the same data assumptions as the admin overview.
+ * - Stores per-badge notice meta to avoid duplicate reminders.
+ *
+ * Filters:
+ * - makesf_badge_reminder_days_window (int) default 30
+ * - makesf_badge_reminder_subject (string)
+ * - makesf_badge_reminder_message (string, receives args)
+ * - makesf_badge_reminder_should_send (bool, receives args)
+ */
+class makeBadgeExpirationReminders {
+
+  private static $instance = null;
+
+  const CRON_HOOK = 'makesf_badge_expiration_reminder_cron';
+  const CRON_SCHEDULE = 'makesf_weekly';
+
+  // Default: remind when <= 30 days remaining
+  const DEFAULT_WINDOW_DAYS = 30;
+
+  public static function get_instance() {
+    if (null === self::$instance) {
+      self::$instance = new self();
+    }
+    return self::$instance;
+  }
+
+  public function __construct() {
+    // Ensure our weekly schedule exists.
+    add_filter('cron_schedules', array($this, 'register_weekly_schedule'));
+
+    // Cron hook.
+    add_action(self::CRON_HOOK, array($this, 'run_weekly'));
+
+    // Schedule event if needed.
+    add_action('init', array($this, 'maybe_schedule_event'));
+  }
+
+  /**
+   * Adds a weekly schedule (WP core does not include a default "weekly" interval).
+   */
+  public function register_weekly_schedule($schedules) {
+    if (!isset($schedules[self::CRON_SCHEDULE])) {
+      $schedules[self::CRON_SCHEDULE] = array(
+        'interval' => WEEK_IN_SECONDS,
+        'display'  => __('Once Weekly (Make Santa Fe)', 'makesf'),
+      );
+    }
+    return $schedules;
+  }
+
+  /**
+   * Schedule the weekly cron event.
+   *
+   * Best practice: schedule on activation. If you have an activation hook in your main plugin file,
+   * call makeBadgeExpirationReminders::schedule(); and call ::unschedule() on deactivation.
+   *
+   * This scaffolding also self-heals by scheduling on init if missing.
+   */
+  public function maybe_schedule_event() {
+    if (wp_next_scheduled(self::CRON_HOOK)) {
+      return;
+    }
+
+    // Align start time to the next hour to avoid immediate runs.
+    $start = time() + HOUR_IN_SECONDS;
+    wp_schedule_event($start, self::CRON_SCHEDULE, self::CRON_HOOK);
+  }
+
+  /**
+   * Optional helpers for main plugin activation/deactivation hooks.
+   */
+  public static function schedule() {
+    if (!wp_next_scheduled(self::CRON_HOOK)) {
+      $start = time() + HOUR_IN_SECONDS;
+      wp_schedule_event($start, self::CRON_SCHEDULE, self::CRON_HOOK);
+    }
+  }
+
+  public static function unschedule() {
+    $ts = wp_next_scheduled(self::CRON_HOOK);
+    while ($ts) {
+      wp_unschedule_event($ts, self::CRON_HOOK);
+      $ts = wp_next_scheduled(self::CRON_HOOK);
+    }
+  }
+
+  /**
+   * Cron callback.
+   */
+  public function run_weekly() {
+    $window_days = (int) apply_filters('makesf_badge_reminder_days_window', self::DEFAULT_WINDOW_DAYS);
+    if ($window_days < 1) {
+      $window_days = self::DEFAULT_WINDOW_DAYS;
+    }
+
+    // Get active members.
+    if (!function_exists('make_get_active_members_array')) {
+      $this->log('make_get_active_members_array() not available; skipping reminders.');
+      return;
+    }
+
+    $user_ids = make_get_active_members_array();
+    if (empty($user_ids) || !is_array($user_ids)) {
+      $this->log('No active members returned; skipping reminders.');
+      return;
+    }
+
+    foreach ($user_ids as $uid) {
+      $uid = (int) $uid;
+      if (!$uid) {
+        continue;
+      }
+
+      $user = get_user_by('id', $uid);
+      if (!$user || !($user instanceof WP_User)) {
+        continue;
+      }
+
+      // Basic safety: ensure an email exists.
+      if (empty($user->user_email) || !is_email($user->user_email)) {
+        continue;
+      }
+
+      $certs = get_user_meta($uid, 'certifications', true);
+      if (empty($certs) || !is_array($certs)) {
+        continue;
+      }
+
+      foreach ($certs as $badge_id) {
+        $badge_id = (int) $badge_id;
+        if (!$badge_id) {
+          continue;
+        }
+
+        // Skip if badge no longer exists.
+        $badge_post = get_post($badge_id);
+        if (!$badge_post || $badge_post->post_type !== 'certs') {
+          continue;
+        }
+
+        // Last use/renewal.
+        $last_time = get_user_meta($uid, $badge_id . '_last_time', true);
+        if (empty($last_time)) {
+          // Attempt to generate meta if the helper exists.
+          if (function_exists('makesf_user_signin_meta_generator')) {
+            makesf_user_signin_meta_generator($uid);
+            $last_time = get_user_meta($uid, $badge_id . '_last_time', true);
+          }
+        }
+
+        $computed = $this->compute_badge_expiration($badge_id, $last_time);
+
+        // We only email for "expiring soon". (You can extend to "expired" if desired.)
+        if ($computed['status'] !== 'expiring') {
+          continue;
+        }
+
+        // Gate by actual days remaining.
+        $days_left = isset($computed['days_left']) ? (int) $computed['days_left'] : 0;
+        if ($days_left < 0 || $days_left > $window_days) {
+          continue;
+        }
+
+        // Avoid duplicate reminders: store a sent timestamp per badge.
+        $notice_key = $badge_id . '_expiry_notice_sent';
+        $last_notice = get_user_meta($uid, $notice_key, true);
+        $last_notice_ts = $this->parse_time_to_timestamp($last_notice);
+        if ($last_notice_ts && (time() - $last_notice_ts) < WEEK_IN_SECONDS) {
+          continue;
+        }
+
+        $badge_name = get_the_title($badge_id);
+        if (empty($badge_name)) {
+          $badge_name = 'Badge #' . $badge_id;
+        }
+
+        $expires_label = isset($computed['expires_label']) ? (string) $computed['expires_label'] : '';
+
+        $args = array(
+          'user'         => $user,
+          'user_id'      => $uid,
+          'badge_id'     => $badge_id,
+          'badge_name'   => $badge_name,
+          'days_left'    => $days_left,
+          'expires_date' => $expires_label,
+        );
+
+        $should_send = (bool) apply_filters('makesf_badge_reminder_should_send', true, $args);
+        if (!$should_send) {
+          continue;
+        }
+
+        $subject = sprintf('Your %s badge is expiring soon', $badge_name);
+        $subject = (string) apply_filters('makesf_badge_reminder_subject', $subject, $args);
+
+        $message = $this->default_message($args);
+        $message = (string) apply_filters('makesf_badge_reminder_message', $message, $args);
+
+        $headers = array('Content-Type: text/plain; charset=UTF-8');
+
+        mapi_write_log('Sending badge expiration reminder to user ' . $uid . ' for badge ' . $badge_id . ' with ' . $days_left . ' days left.');
+
+        $sent = wp_mail($user->user_email, $subject, $message, $headers);
+
+        if ($sent) {
+          update_user_meta($uid, $notice_key, time());
+        } else {
+          $this->log('wp_mail failed for user ' . $uid . ' / badge ' . $badge_id);
+        }
+      }
+    }
+  }
+
+  private function default_message($args) {
+    $display_name = !empty($args['user']->display_name) ? $args['user']->display_name : 'there';
+    $badge_name   = (string) $args['badge_name'];
+    $days_left    = (int) $args['days_left'];
+    $expires_date = (string) $args['expires_date'];
+
+    // Keep this plain text; you can swap to HTML email later.
+    $lines = array();
+    $lines[] = 'Hi ' . $display_name . ',';
+    $lines[] = '';
+    $lines[] = 'Quick heads up from Make Santa Fe: your "' . $badge_name . '" badge is set to expire soon.';
+    $lines[] = 'Expiration date: ' . $expires_date;
+    $lines[] = 'Time remaining: ' . $days_left . ' day' . ($days_left === 1 ? '' : 's');
+    $lines[] = '';
+    $lines[] = 'To renew, schedule time in the shop and be sure to sign in per our studio policy.';
+    $lines[] = '';
+    $lines[] = 'Questions? Reply to this email or visit makesantafe.org.';
+    $lines[] = '';
+    $lines[] = '— The Make Team';
+
+    return implode("\n", $lines);
+  }
+
+  /**
+   * Compute expiration status.
+   * Mirrors the logic used in the badge overview page, but includes days_left for reminder gating.
+   */
+  private function compute_badge_expiration($badge_id, $last_time) {
+    $now = current_time('timestamp');
+
+    $expiration_days = 0;
+    if (function_exists('get_field')) {
+      $expiration_days = (int) get_field('expiration_time', $badge_id);
+    }
+
+    if ($expiration_days <= 0) {
+      return array(
+        'status'       => 'no_expiration',
+        'status_label' => 'No Expiration',
+        'expires_label'=> '—',
+        'detail'       => $this->format_last_time_detail($last_time),
+        'days_left'    => null,
+      );
+    }
+
+    if (empty($last_time)) {
+      return array(
+        'status'       => 'unknown',
+        'status_label' => 'Unknown',
+        'expires_label'=> '—',
+        'detail'       => 'No last use/renewal recorded',
+        'days_left'    => null,
+      );
+    }
+
+    $last_ts = $this->parse_time_to_timestamp($last_time);
+    if (!$last_ts) {
+      return array(
+        'status'       => 'unknown',
+        'status_label' => 'Unknown',
+        'expires_label'=> '—',
+        'detail'       => 'Unrecognized last_time format',
+        'days_left'    => null,
+      );
+    }
+
+    $expires_ts = $last_ts + ($expiration_days * DAY_IN_SECONDS);
+
+    if ($expires_ts < $now) {
+      $days_ago = (int) floor(($now - $expires_ts) / DAY_IN_SECONDS);
+      return array(
+        'status'       => 'expired',
+        'status_label' => 'Expired',
+        'expires_label'=> date_i18n('M j, Y', $expires_ts),
+        'detail'       => 'Expired ' . $days_ago . ' day' . ($days_ago === 1 ? '' : 's') . ' ago',
+        'days_left'    => 0,
+      );
+    }
+
+    $days_left = (int) ceil(($expires_ts - $now) / DAY_IN_SECONDS);
+
+    if ($days_left <= self::DEFAULT_WINDOW_DAYS) {
+      return array(
+        'status'       => 'expiring',
+        'status_label' => 'Expiring Soon',
+        'expires_label'=> date_i18n('M j, Y', $expires_ts),
+        'detail'       => $days_left . ' day' . ($days_left === 1 ? '' : 's') . ' remaining',
+        'days_left'    => $days_left,
+      );
+    }
+
+    return array(
+      'status'       => 'active',
+      'status_label' => 'Active',
+      'expires_label'=> date_i18n('M j, Y', $expires_ts),
+      'detail'       => $days_left . ' day' . ($days_left === 1 ? '' : 's') . ' remaining',
+      'days_left'    => $days_left,
+    );
+  }
+
+  private function parse_time_to_timestamp($value) {
+    if (empty($value)) {
+      return 0;
+    }
+
+    if (is_numeric($value)) {
+      $ts = (int) $value;
+      return $ts > 0 ? $ts : 0;
+    }
+
+    $ts = strtotime((string) $value);
+    return $ts ? $ts : 0;
+  }
+
+  private function format_last_time_detail($last_time) {
+    if (empty($last_time)) {
+      return 'No last use/renewal recorded';
+    }
+    $ts = $this->parse_time_to_timestamp($last_time);
+    if (!$ts) {
+      return 'Last use: ' . (string) $last_time;
+    }
+    return 'Last use: ' . date_i18n('M j, Y', $ts);
+  }
+
+  private function log($msg) {
+    if (function_exists('mapi_write_log')) {
+      mapi_write_log('makeBadgeExpirationReminders: ' . $msg);
+    }
+  }
+}
+
+/**
  * Admin badge overview page
  *
  * Shows active WooCommerce Memberships users and their badge status.
@@ -393,9 +744,23 @@ class makeAdminBadgeOverview {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
 // Boot
 add_action('init', function() {
   if (is_admin()) {
     makeAdminBadgeOverview::get_instance();
   }
+
+  // Cron can run without an admin context.
+  makeBadgeExpirationReminders::get_instance();
 });
