@@ -359,7 +359,7 @@ function make_get_member_scan() {
 
 				$has_waiver = make_check_form_submission($user->ID, 27, 34);
 				$has_member_agreement = make_check_form_submission($user->ID, 45, 16);
-				$has_badges = get_field('certifications', 'user_' . $user->ID);
+				
 
 				//if we still don't have a waiver, send a notice.
 				if(!$has_waiver) :
@@ -387,13 +387,12 @@ function make_get_member_scan() {
 
 
 				if(!empty($memberships)) :
-					if ($has_badges) :
-						$html .= '<div class="badge-header text-center">';
-							$html .= '<h4>Which of your badges are you using today?</h4>';
-						$html .= '</div>';
+                    $html .= '<div class="badge-header text-center">';
+                        $html .= '<h4>Which of your badges are you using today?</h4>';
+                    $html .= '</div>';
 
-						$html .= make_list_sign_in_badges($user);
-					endif;
+					$html .= make_list_sign_in_badges($user);
+					
 					// Add additional activities that are not badges (full width below badges)
 					$html .= '<div class="badge-item activity-item w-100 text-center" data-badge="volunteer">';
 					$html .= '  <span class="small"><h3 class="my-2">Volunteering</h3></span>';
@@ -438,17 +437,6 @@ function make_list_sign_in_badges($user) {
 
 	makesf_user_signin_meta_generator($user->ID);
 
-	$html = '';
-
-	$html .= '<div class="alert alert-warning text-center mb-3" style="font-size:1rem;">';
-		$html .= 'Each time you sign in with a badge, its expiration timer resets. If you do not use a badge before it expires, you will need to retake it.';
-	$html .= '</div>';
-
-	
-
-	$allowed_items = array();
-	$other_items = array();
-
 
 	$all_badges = new WP_Query(array(
 		'post_type' => 'certs',
@@ -462,7 +450,16 @@ function make_list_sign_in_badges($user) {
 			),
 		)
 	));
+	$html = '';
 
+	$html .= '<div class="alert alert-warning text-center mb-3" style="font-size:1rem;">';
+		$html .= 'Each time you sign in with a badge, its expiration timer resets. If you do not use a badge before it expires, you will need to retake it.';
+	$html .= '</div>';
+
+	$html .= '<div class="badge-list d-flex">';
+
+	$allowed_items = array();
+	$other_items = array();
 	if($all_badges->have_posts()) :
 		while($all_badges->have_posts()) :
 			$all_badges->the_post();
@@ -509,18 +506,18 @@ function make_list_sign_in_badges($user) {
 
 
 			// Optional helper text under the status
-			$helper = '';
-			if ($time_remaining !== null) {
-				if ($time_remaining < 0) {
-					$helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
-				} elseif ($time_remaining == 0 || $time_remaining == -0) {
-					$helper = 'Expires today! Sign-in to reset the timer.';
-				} elseif ($time_remaining <= 20) {
-					$helper = 'Expires soon in ' . (int) $time_remaining . ' days.';
-				} else {
-					$helper = 'Expires in ' . (int) $time_remaining . ' days.';
+				$helper = '';
+				if ($time_remaining !== null) {
+					if ($time_remaining < 0) {
+						$helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
+					} elseif ($time_remaining == 0 || $time_remaining == -0) {
+						$helper = 'Expires today! Sign-in to reset the timer.';
+					} elseif ($time_remaining <= 20) {
+						$helper = 'Expires soon in ' . (int) $time_remaining . ' days.';
+					} else {
+						$helper = 'Expires in ' . (int) $time_remaining . ' days.';
+					}
 				}
-			}
 
 
 			$item_html = '<div class="badge-item ' . implode(' ', $classes) . ' text-center" data-badge="' . get_the_id() . '">';
