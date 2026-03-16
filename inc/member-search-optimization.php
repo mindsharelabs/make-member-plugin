@@ -247,6 +247,7 @@ function make_get_member_optimized() {
     // Check requirements
     $has_waiver = make_check_form_submission_cached($user_id, 27, 34);
     $has_agreement = make_check_form_submission_cached($user_id, 45, 16);
+    $has_badges = get_field('certifications', 'user_' . $user->ID);
     // Get both active and complimentary memberships
     $active_memberships = wc_memberships_get_user_active_memberships($user_id);
     $complimentary_memberships = wc_memberships_get_user_memberships($user_id, array('status' => 'complimentary'));
@@ -284,24 +285,29 @@ function make_get_member_optimized() {
     }
     
     // Generate badge selection HTML (no per-user subheader; global heading handles greeting)
-    $html = '<div class="badge-header text-center">';
-        $html .= '<h4>Which of your badges are you using today?</h4>';
-    $html .= '</div>';
-        
-    $html .= make_list_sign_in_badges_cached($user);
+    $html .= '<div class="badge-list d-flex">';
 
-    // Add activity options (full-width below badges)
-    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="volunteer">';
-    $html .= '  <span class="small"><h3 class="my-2">Volunteering</h3></span>';
-    $html .= '</div>';
+        if($has_badges) :
+            $html = '<div class="badge-header text-center">';
+                $html .= '<h4>Which of your badges are you using today?</h4>';
+            $html .= '</div>';
+                
+            $html .= make_list_sign_in_badges_cached($user);
+        endif;
 
-    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="workshop">';
-    $html .= '  <span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
-    $html .= '</div>';
 
-    $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="other">';
-    $html .= '  <span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
-    $html .= '</div>';
+        // Add activity options (full-width below badges)
+        $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="volunteer">';
+        $html .= '  <span class="small"><h3 class="my-2">Volunteering</h3></span>';
+        $html .= '</div>';
+
+        $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="workshop">';
+        $html .= '  <span class="small"><h3 class="my-2">Attending a Class or Workshop</h3></span>';
+        $html .= '</div>';
+
+        $html .= '<div class="badge-item activity-item w-100 text-center" data-badge="other">';
+        $html .= '  <span class="small"><h3 class="my-2">Computers, general work area, or yard</h3></span>';
+        $html .= '</div>';
     
     // Close the badge list container
     $html .= '</div>';
@@ -408,12 +414,12 @@ function make_get_all_members_optimized() {
     $cache_key = 'make_all_members_optimized_' . $time_window;
     
     // Try to get from cache first
-    $cached_response = get_transient($cache_key);
-    if ($cached_response !== false) {
-        make_log_performance('get_all_members_cached', $start_time, array('cache_hit' => true));
-        wp_send_json_success($cached_response);
-        return;
-    }
+    // $cached_response = get_transient($cache_key);
+    // if ($cached_response !== false) {
+    //     make_log_performance('get_all_members_cached', $start_time, array('cache_hit' => true));
+    //     wp_send_json_success($cached_response);
+    //     return;
+    // }
     
     // Get members with optimized query
     $members = make_get_active_members_optimized();
