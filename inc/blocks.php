@@ -18,6 +18,238 @@ add_filter('block_categories_all', function ($categories, $post) {
 }, 10, 2);
 
 
+function make_gf_entries_get_item_prop( $item, $key, $default = null ) {
+	if ( is_array( $item ) && array_key_exists( $key, $item ) ) {
+		return $item[ $key ];
+	}
+
+	if ( is_object( $item ) && isset( $item->{$key} ) ) {
+		return $item->{$key};
+	}
+
+	return $default;
+}
+
+function make_gf_entries_find_posted_value( $values, $target_key ) {
+	if ( ! is_array( $values ) ) {
+		return null;
+	}
+
+	foreach ( $values as $key => $value ) {
+		if ( (string) $key === (string) $target_key ) {
+			return $value;
+		}
+
+		if ( is_array( $value ) ) {
+			$found = make_gf_entries_find_posted_value( $value, $target_key );
+
+			if ( null !== $found && '' !== $found ) {
+				return $found;
+			}
+		}
+	}
+
+	return null;
+}
+
+function make_gf_entries_get_selected_form_id() {
+	$form_id = null;
+
+	if ( isset( $_POST['acf'] ) ) {
+		$form_id = make_gf_entries_find_posted_value( wp_unslash( $_POST['acf'] ), 'field_69c20225b8807' );
+	}
+
+	if ( empty( $form_id ) && function_exists( 'get_field' ) ) {
+		$form_id = get_field( 'gravity_form_entries_form_id' );
+	}
+
+	if ( empty( $form_id ) && function_exists( 'get_field' ) ) {
+		$group = get_field( 'gravity_form_entries' );
+
+		if ( is_array( $group ) && ! empty( $group['form_id'] ) ) {
+			$form_id = $group['form_id'];
+		}
+	}
+
+	return $form_id ? absint( $form_id ) : 0;
+}
+
+function make_gf_entries_is_supported_field( $gf_field ) {
+	$unsupported_types = array(
+		'captcha',
+		'creditcard',
+		'fileupload',
+		'hidden',
+		'html',
+		'list',
+		'page',
+		'password',
+		'quantity',
+		'section',
+		'shipping',
+		'total',
+	);
+
+	$field_type = (string) make_gf_entries_get_item_prop( $gf_field, 'type', '' );
+
+	if ( in_array( $field_type, $unsupported_types, true ) ) {
+		return false;
+	}
+
+	if ( 'product' === $field_type || 'option' === $field_type ) {
+		return false;
+	}
+
+	return true;
+}
+
+function make_gf_entries_get_field_choices( $form_id ) {
+	$choices = array();
+
+	foreach ( make_gf_entries_get_field_choice_rows( $form_id ) as $choice ) {
+		if ( empty( $choice['value'] ) || empty( $choice['label'] ) ) {
+			continue;
+		}
+
+		$choices[ $choice['value'] ] = $choice['label'];
+	}
+
+	return $choices;
+}
+
+function make_gf_entries_get_field_choice_rows( $form_id ) {
+	$choices = array();
+
+	if ( ! $form_id || ! class_exists( 'GFAPI' ) ) {
+		return $choices;
+	}
+
+	$form = \GFAPI::get_form( $form_id );
+
+	if ( empty( $form ) || empty( $form['fields'] ) ) {
+		return $choices;
+	}
+
+	foreach ( $form['fields'] as $gf_field ) {
+		if ( ! make_gf_entries_is_supported_field( $gf_field ) ) {
+			continue;
+		}
+
+		$field_label = trim( (string) make_gf_entries_get_item_prop( $gf_field, 'label', '' ) );
+		$field_id    = (string) make_gf_entries_get_item_prop( $gf_field, 'id', '' );
+		$inputs      = make_gf_entries_get_item_prop( $gf_field, 'inputs', array() );
+
+		if ( is_array( $inputs ) && ! empty( $inputs ) ) {
+			foreach ( $inputs as $input ) {
+				if ( make_gf_entries_get_item_prop( $input, 'isHidden', false ) ) {
+					continue;
+				}
+
+				$input_id    = (string) make_gf_entries_get_item_prop( $input, 'id', '' );
+				$input_label = trim( (string) make_gf_entries_get_item_prop( $input, 'label', '' ) );
+
+				if ( '' === $input_id || '' === $input_label ) {
+					continue;
+				}
+
+				$choices[] = array(
+					'value' => $input_id,
+					'label' => $field_label ? $field_label . ': ' . $input_label : $input_label,
+				);
+			}
+
+			continue;
+		}
+
+		if ( '' === $field_id || '' === $field_label ) {
+			continue;
+		}
+
+		$choices[] = array(
+			'value' => $field_id,
+			'label' => $field_label,
+		);
+	}
+
+	return $choices;
+}
+
+add_filter( 'acf/load_field/key=field_69c20225b8808', function( $field ) {
+	$field['choices'] = make_gf_entries_get_field_choices( make_gf_entries_get_selected_form_id() );
+
+	return $field;
+} );
+
+add_filter( 'acf/load_field/key=field_69c20225b8807', function( $field ) {
+	$field['choices'] = array();
+
+	if ( ! class_exists( 'GFAPI' ) ) {
+		return $field;
+	}
+
+	$forms = \GFAPI::get_forms( true, false, 'title', 'ASC' );
+
+	foreach ( $forms as $form ) {
+		$form_id    = (string) make_gf_entries_get_item_prop( $form, 'id', '' );
+		$form_title = (string) make_gf_entries_get_item_prop( $form, 'title', '' );
+
+		if ( '' === $form_id || '' === $form_title ) {
+			continue;
+		}
+
+		$field['choices'][ $form_id ] = $form_title;
+	}
+
+	return $field;
+} );
+
+add_action( 'wp_ajax_make_get_gravity_form_block_fields', function() {
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_send_json_error( array( 'message' => 'Unauthorized request.' ), 403 );
+	}
+
+	check_ajax_referer( 'make_gf_entries_fields', 'nonce' );
+
+	$form_id = isset( $_POST['form_id'] ) ? absint( wp_unslash( $_POST['form_id'] ) ) : 0;
+
+	wp_send_json_success(
+		array(
+			'choices' => make_gf_entries_get_field_choice_rows( $form_id ),
+		)
+	);
+} );
+
+add_action( 'acf/input/admin_enqueue_scripts', function() {
+	$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+	if ( $screen && ! in_array( $screen->base, array( 'post', 'post-new' ), true ) ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'make-gravity-form-entries-admin',
+		MAKESF_URL . 'assets/js/gravity-form-entries-admin.js',
+		array( 'jquery', 'acf-input' ),
+		MAKESF_PLUGIN_VERSION,
+		true
+	);
+
+	wp_localize_script(
+		'make-gravity-form-entries-admin',
+		'makeGravityFormEntriesAdmin',
+		array(
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'action'       => 'make_get_gravity_form_block_fields',
+			'nonce'        => wp_create_nonce( 'make_gf_entries_fields' ),
+			'groupFieldKey'=> 'field_69c20210b8806',
+			'formFieldKey' => 'field_69c20225b8807',
+			'listFieldKey' => 'field_69c20225b8808',
+			'emptyMessage' => __( 'Select a Gravity Form to load available fields.', 'mindshare' ),
+			'noneMessage'  => __( 'No displayable fields were found for this form.', 'mindshare' ),
+		)
+	);
+} );
+
 
 
 add_action('acf/init', function () {
@@ -216,6 +448,39 @@ add_action('acf/init', function () {
 			})
 		);
 
+		acf_register_block_type(array(
+			'name'              => 'make-gravity-form-entries',
+			'title'             => __('Gravity Form Entries'),
+			'description'       => __('A block that displays submissions for a Gravity Form.'),
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-gravity-form-entries.php',
+			'category'          => 'make-blocks',
+			'icon'              => MAKE_LOGO,
+			'keywords'          => array( 'gravity', 'form', 'entries', 'make', 'mind', 'Mindshare' ),
+			'post_types' 				=> array('post', 'page', 'exhibits', 'tribe_events'),
+			'align'             => 'full', //The default block alignment. Available settings are “left”, “center”, “right”, “wide” and “full”. Defaults to an empty string.
+			// 'align_text'        => 'left', //The default block text alignment (see supports setting for more info). Available settings are “left”, “center” and “right”.
+			// 'align_content'     => 'left', //The default block content alignment (see supports setting for more info). Available settings are “top”, “center” and “bottom”. When utilising the “Matrix” control type, additional settings are available to specify all 9 positions from “top left” to “bottom right”.
+			'mode'            	=> 'edit',
+			'supports'					=> array(
+				'align' => false,
+				'align_text' => true,
+				'align_content' => false,
+				'full_height' => false,
+				'mode' => false,
+				'multiple' => false,
+				'jsx' => false
+			),
+			'enqueue_assets' => function(){
+				// We're just registering it here and then with the action get_footer we'll enqueue it.
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css' );
+				add_action( 'get_footer', function () {wp_enqueue_style('make-block-styles');});
+
+	
+
+				},
+			)
+		);
+
 
 
 	endif;
@@ -231,6 +496,99 @@ add_action( 'acf/include_fields', function() {
 	if ( ! function_exists( 'acf_add_local_field_group' ) ) {
 		return;
 	}
+
+	// Gravity Form Entries - Enhanced Admin Interface
+	acf_add_local_field_group( array(
+		'key' => 'group_69c2020fabfe3',
+		'title' => 'BLOCK: Gravity Form Entries',
+		'fields' => array(
+			array(
+				'key' => 'field_69c20210b8806',
+				'label' => 'Gravity form Entries',
+				'name' => 'gravity_form_entries',
+				'aria-label' => '',
+				'type' => 'group',
+				'instructions' => '',
+				'required' => 0,
+				'conditional_logic' => 0,
+				'wrapper' => array(
+					'width' => '',
+					'class' => '',
+					'id' => '',
+				),
+				'layout' => 'block',
+				'sub_fields' => array(
+					array(
+						'key' => 'field_69c20225b8807',
+						'label' => 'Gravity Form',
+						'name' => 'form_id',
+						'aria-label' => '',
+						'type' => 'select',
+						'instructions' => 'Select a Gravity Form to display entries from.',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'choices' => array(), // Populated dynamically
+						'allow_null' => 0,
+						'multiple' => 0,
+						'ui' => 1,
+						'ajax' => 0,
+						'return_format' => 'value',
+						'placeholder' => '',
+					),
+					array(
+						'key' => 'field_69c20225b8808',
+						'label' => 'Visible Fields',
+						'name' => 'visible_fields',
+						'aria-label' => '',
+						'type' => 'checkbox',
+						'instructions' => 'Select which fields to display from the selected form.',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'choices' => array(), // Populated dynamically
+						'allow_custom' => 0,
+						'save_custom' => 0,
+						'layout' => 'vertical',
+						'toggle' => 0,
+						'return_format' => 'value',
+					),
+				),
+			),
+		),
+		'location' => array(
+			array(
+				array(
+					'param' => 'block',
+					'operator' => '==',
+					'value' => 'acf/make-gravity-form-entries',
+				),
+			),
+		),
+		'menu_order' => 0,
+		'position' => 'normal',
+		'style' => 'default',
+		'label_placement' => 'top',
+		'instruction_placement' => 'label',
+		'hide_on_screen' => '',
+		'active' => true,
+		'description' => '',
+		'show_in_rest' => 0,
+		'display_title' => '',
+	) );
+
+
+	
+
+
 
 
 
@@ -707,4 +1065,3 @@ add_action( 'acf/include_fields', function() {
 
 
 } );
-
