@@ -63,6 +63,11 @@ $entries = GFAPI::get_entries(
     $form_id,
     array(
         'status' => 'active',
+    ),
+    null,
+    array(
+        'offset' => 0,
+        'page_size' => 60,
     )
 );
 
