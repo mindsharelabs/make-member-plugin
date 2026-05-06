@@ -331,7 +331,7 @@
       html +=
         '<span class="input-group-text"><i class="fas fa-search"></i></span>';
       html +=
-        '<input id="memberSearchInput" type="text" class="form-control" placeholder="Search members by name or email..." autocomplete="off" />';
+        '<input id="memberSearchInput" type="text" class="form-control" placeholder="Search members by name..." autocomplete="off" />';
       html +=
         '<button class="btn btn-outline-secondary" type="button" id="clearSearchBtn" style="display:none;" title="Clear search"><i class="fas fa-times"></i></button>';
       html += "</div>";
@@ -351,7 +351,7 @@
     function initializeListJS() {
       if ($("#member-list").length > 0) {
         memberList = new List("member-list", {
-          valueNames: ["email", "name"],
+          valueNames: ["name"],
           searchClass: "member-search",
         });
 
@@ -655,14 +655,13 @@
     /**
      * Standard user submission
      */
-    function submitUser(userID = false, userEmail = false) {
+    function submitUser(userID = false) {
       $.ajax({
         url: makeMember.ajax_url,
         type: "post",
         data: {
           action: "makeGetMember",
           userID: userID,
-          userEmail: userEmail,
         },
         beforeSend: function () {
           hideSearchInterface();

@@ -21,6 +21,39 @@ if(!function_exists('mapi_write_log')) {
     }
 }
 
+if(!function_exists('make_can_access_member_signin')) {
+    function make_can_access_member_signin() {
+        $allowed = is_user_logged_in();
+
+        return (bool) apply_filters('make_member_signin_user_can_access', $allowed);
+    }
+}
+
+if(!function_exists('make_ensure_member_signin_access')) {
+    function make_ensure_member_signin_access($context = 'ajax') {
+        if (make_can_access_member_signin()) {
+            return true;
+        }
+
+        if ('rest' === $context) {
+            return new WP_Error(
+                'make_member_signin_forbidden',
+                'You must be logged in to access member sign-in.',
+                array('status' => 401)
+            );
+        }
+
+        if ('ajax' === $context) {
+            wp_send_json_error(
+                array('message' => 'You must be logged in to access member sign-in.'),
+                401
+            );
+        }
+
+        return false;
+    }
+}
+
 
 
 

@@ -7,9 +7,17 @@ function make_content_routes_v2() {
   register_rest_route('make', '/members', array(
     'methods' => WP_REST_Server::ALLMETHODS,
     'callback' => 'make_members',
-    'permission_callback' => '__return_true',
+    'permission_callback' => 'make_members_rest_permission_check',
   ));
 
+}
+
+function make_members_rest_permission_check() {
+  if(function_exists('make_can_access_member_signin')) :
+    return make_can_access_member_signin();
+  endif;
+
+  return is_user_logged_in();
 }
 
 

@@ -26,7 +26,15 @@ if( !empty($block['align']) ) {
 }
 
 
-  echo '<div class="' . $className . '" id= "' . $id .'">';
+  echo '<div class="' . esc_attr($className) . '" id="' . esc_attr($id) . '">';
+
+  if(function_exists('make_can_access_member_signin') && !make_can_access_member_signin()) {
+      echo '<div class="alert alert-warning text-center">';
+      echo 'Please log in with your kiosk or staff account to access member sign in.';
+      echo '</div>';
+      echo '</div>';
+      return;
+  }
 
   echo '<div id="MAKEMemberSignIn">';
    

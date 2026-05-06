@@ -34,7 +34,6 @@
                     memberContainer.html(response.data.html);
                     const memberList = new List('member-list', { 
                         valueNames: [
-                            'email',
                             'name',
                         
                         ],
@@ -51,14 +50,13 @@
         }
 
 
-        function submitUser(userID = false, userEmail = false) {
+        function submitUser(userID = false) {
             $.ajax({
                 url : makeMember.ajax_url,
                 type : 'post',
                 data : {
                     action : 'makeGetMember',
-                    userID : userID,
-                    userEmail : userEmail
+                    userID : userID
                 },
                 beforeSend : function() {
                     $('#member-list').addClass('d-none');
