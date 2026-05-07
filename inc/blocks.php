@@ -490,6 +490,29 @@ add_action('acf/init', function () {
 	endif;
 });
 
+add_action('template_redirect', 'make_redirect_member_signin_block_to_login');
+function make_redirect_member_signin_block_to_login() {
+	if (is_admin()) {
+		return;
+	}
+
+	if (function_exists('make_can_access_member_signin') && make_can_access_member_signin()) {
+		return;
+	}
+
+	if (!is_singular()) {
+		return;
+	}
+
+	$post_id = get_queried_object_id();
+	if (!$post_id || !function_exists('has_block') || !has_block('acf/make-member-sign-in', $post_id)) {
+		return;
+	}
+
+	wp_safe_redirect(wp_login_url(get_permalink($post_id)));
+	exit;
+}
+
 
 
 
