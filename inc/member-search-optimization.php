@@ -8,12 +8,15 @@
 
 // Add optimized member search endpoint
 add_action('wp_ajax_makeMemberSearch', 'make_member_search_optimized');
-add_action('wp_ajax_nopriv_makeMemberSearch', 'make_member_search_optimized');
 
 /**
  * Optimized member search with server-side filtering and caching
  */
 function make_member_search_optimized() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     if (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'makeMemberSearch') {
         wp_die('Invalid request');
     }
@@ -61,9 +64,8 @@ function make_get_members_cached($search_term = '', $limit = 20) {
     $search_params = array();
     
     if (!empty($search_term)) {
-        $search_sql = "AND (u.display_name LIKE %s OR u.user_email LIKE %s)";
+        $search_sql = "AND u.display_name LIKE %s";
         $search_params = array(
-            '%' . $wpdb->esc_like($search_term) . '%',
             '%' . $wpdb->esc_like($search_term) . '%'
         );
     }
@@ -72,7 +74,6 @@ function make_get_members_cached($search_term = '', $limit = 20) {
         SELECT DISTINCT
             u.ID,
             u.display_name,
-            u.user_email,
             p.post_status as membership_status,
             p2.post_title as membership_plan,
             p2.ID as membership_plan_id
@@ -99,7 +100,6 @@ function make_get_members_cached($search_term = '', $limit = 20) {
         $member_data = array(
             'ID' => $result->ID,
             'display_name' => $result->display_name,
-            'user_email' => $result->user_email,
             'membership_status' => $result->membership_status,
             'membership_plan' => $result->membership_plan,
             'membership_plan_id' => $result->membership_plan_id,
@@ -145,7 +145,6 @@ function make_generate_member_search_html($members) {
  */
 function make_generate_member_card_html($member) {
     $html = '<div class="profile-container">';
-    $html .= '<span class="email hidden d-none">' . esc_html($member['user_email']) . '</span>';
     
     $html .= '<div class="profile-card mb-3" data-user="' . $member['ID'] . '" data-preloaded="true">';
     
@@ -198,9 +197,12 @@ function make_generate_member_card_html($member) {
  * Optimized member details endpoint with NO caching
  */
 add_action('wp_ajax_makeGetMemberOptimized', 'make_get_member_optimized');
-add_action('wp_ajax_nopriv_makeGetMemberOptimized', 'make_get_member_optimized');
 
 function make_get_member_optimized() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     if (!isset($_REQUEST['action']) || $_REQUEST['action'] !== 'makeGetMemberOptimized') {
         wp_die('Invalid request');
     }
@@ -398,9 +400,12 @@ function make_log_performance($operation, $start_time, $additional_data = array(
  * Optimized version of makeAllGetMembers with caching
  */
 add_action('wp_ajax_makeAllGetMembersOptimized', 'make_get_all_members_optimized');
-add_action('wp_ajax_nopriv_makeAllGetMembersOptimized', 'make_get_all_members_optimized');
 
 function make_get_all_members_optimized() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     $start_time = microtime(true);
     
     // Create cache key based on time window (5 minutes)
@@ -430,7 +435,7 @@ function make_get_all_members_optimized() {
     // Build HTML with enhanced member cards
     $html = '<div id="member-list">';
     $html .= '<div class="search-container w-50 mb-4 mx-auto">';
-    $html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name or Email" />';
+    $html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name" />';
     $html .= '</div>';
     
     $all_members = array();
@@ -489,8 +494,7 @@ function make_get_active_members_optimized() {
     return $wpdb->get_results("
         SELECT DISTINCT
             um.user_id,
-            u.display_name,
-            u.user_email
+            u.display_name
         FROM {$wpdb->prefix}posts AS p
         LEFT JOIN {$wpdb->prefix}posts AS p2 ON p2.ID = p.post_parent
         LEFT JOIN {$wpdb->prefix}users AS u ON u.id = p.post_author
@@ -562,9 +566,7 @@ function make_output_profile_container_optimized($user, $membership_data) {
         return '';
     }
     
-    $user_info = get_userdata($user->ID);
     $html = '<div class="profile-container">';
-    $html .= '<span class="email hidden d-none">' . esc_html($user_info->user_email) . '</span>';
     
     $html .= '<div class="profile-card mb-5" data-user="' . $user->ID . '" data-preloaded="true">';
     

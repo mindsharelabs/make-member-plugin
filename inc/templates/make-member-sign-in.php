@@ -26,7 +26,17 @@ if( !empty($block['align']) ) {
 }
 
 
-  echo '<div class="' . $className . '" id= "' . $id .'">';
+  echo '<div class="' . esc_attr($className) . '" id="' . esc_attr($id) . '">';
+
+  if(function_exists('make_can_access_member_signin') && !make_can_access_member_signin()) {
+      $login_url = wp_login_url(get_permalink(get_the_ID()));
+      echo '<div class="alert alert-warning text-center">';
+      echo '<p class="mb-3">Please log in with your kiosk or staff account to access member sign in.</p>';
+      echo '<a class="btn btn-primary" href="' . esc_url($login_url) . '">Log In</a>';
+      echo '</div>';
+      echo '</div>';
+      return;
+  }
 
   echo '<div id="MAKEMemberSignIn">';
    

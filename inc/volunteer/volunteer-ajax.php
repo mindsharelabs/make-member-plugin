@@ -93,6 +93,10 @@ if (!defined('ABSPATH')) {
  * Handle volunteer sign-out AJAX request
  */
 function make_handle_volunteer_signout() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     // Debug logging
     if (defined('WP_DEBUG') && WP_DEBUG) {
         error_log('Make Volunteer: Volunteer signout AJAX called');
@@ -227,12 +231,15 @@ function make_handle_volunteer_signout() {
     ));
 }
 add_action('wp_ajax_makeVolunteerSignOut', 'make_handle_volunteer_signout');
-add_action('wp_ajax_nopriv_makeVolunteerSignOut', 'make_handle_volunteer_signout');
 
 /**
  * Get current volunteer session info
  */
 function make_handle_get_volunteer_session() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     // Debug logging
     if (defined('WP_DEBUG') && WP_DEBUG) {
         error_log('Make Volunteer: Get volunteer session AJAX called');
@@ -294,12 +301,15 @@ function make_handle_get_volunteer_session() {
     ));
 }
 add_action('wp_ajax_makeGetVolunteerSession', 'make_handle_get_volunteer_session');
-add_action('wp_ajax_nopriv_makeGetVolunteerSession', 'make_handle_get_volunteer_session');
 
 /**
  * Lightweight: return IDs of users with active volunteer sessions
  */
 function make_handle_get_active_volunteer_ids() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     $sessions = make_get_active_volunteer_sessions();
     $ids = array();
     foreach ($sessions as $s) {
@@ -311,12 +321,15 @@ function make_handle_get_active_volunteer_ids() {
     ));
 }
 add_action('wp_ajax_makeGetActiveVolunteerIds', 'make_handle_get_active_volunteer_ids');
-add_action('wp_ajax_nopriv_makeGetActiveVolunteerIds', 'make_handle_get_active_volunteer_ids');
 
 /**
  * Refresh nonces for long-lived kiosk sessions
  */
 function make_handle_refresh_nonces() {
+    if (function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+        return;
+    }
+
     wp_send_json_success(array(
         'volunteer_nonce' => wp_create_nonce('makesf_volunteer_nonce'),
         'signin_nonce' => wp_create_nonce('makesf_signin_nonce'),
@@ -324,7 +337,6 @@ function make_handle_refresh_nonces() {
     ));
 }
 add_action('wp_ajax_makeRefreshNonces', 'make_handle_refresh_nonces');
-add_action('wp_ajax_nopriv_makeRefreshNonces', 'make_handle_refresh_nonces');
 
 /**
  * Enhanced member sign-in to handle volunteer sessions

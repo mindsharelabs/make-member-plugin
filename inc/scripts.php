@@ -38,10 +38,13 @@ function make_after_signin_log($user_id, $badges) {
 
 }
 
-add_action('wp_ajax_nopriv_makeMemberSignIn', 'make_sign_in_member');
 add_action('wp_ajax_makeMemberSignIn', 'make_sign_in_member');
 
 function make_sign_in_member() {
+	if(function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+		return;
+	}
+
 	// Verify nonce for security
 	if (!wp_verify_nonce($_REQUEST['_wpnonce'] ?? '', 'makesf_signin_nonce') &&
 		!wp_verify_nonce($_REQUEST['volunteer_nonce'] ?? '', 'makesf_volunteer_nonce')) {
@@ -198,16 +201,18 @@ function make_sign_in_member() {
 }
 
 
-add_action('wp_ajax_nopriv_makeAllGetMembers', 'make_get_all_members');
 add_action('wp_ajax_makeAllGetMembers', 'make_get_all_members');
 function make_get_all_members() {
+	if(function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+		return;
+	}
 
 	$members = make_get_active_members();
 	 if($members) :
 	 	$html = '<div id="member-list">';
 
 	 		$html .= '<div class="search-container w-50 mb-4 mx-auto">';
-		 		$html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name or Email" />';
+		 		$html .= '<input id="memberSearch" type="text" class="form-control form-control-lg member-search" placeholder="Search by Name" />';
 		    $html .= '</div>';
 
 		    // Get all active volunteer sessions upfront for efficiency
@@ -297,27 +302,24 @@ function make_get_all_members() {
 }
 
 
-add_action('wp_ajax_nopriv_makeGetMember', 'make_get_member_scan');
 add_action('wp_ajax_makeGetMember', 'make_get_member_scan');
 function make_get_member_scan() {
+	if(function_exists('make_ensure_member_signin_access') && true !== make_ensure_member_signin_access('ajax')) {
+		return;
+	}
+
 	if($_REQUEST['action'] == 'makeGetMember') :
 		try {
 			// Sanitize inputs
-			$userEmail = isset($_REQUEST['userEmail']) && $_REQUEST['userEmail'] !== 'false'
-				? sanitize_email($_REQUEST['userEmail']) : false;
 			$userID = isset($_REQUEST['userID']) && $_REQUEST['userID'] !== 'false'
 				? intval($_REQUEST['userID']) : false;
 
-			if (!$userEmail && !$userID) {
+			if (!$userID) {
 				wp_send_json_error(array('message' => 'No user identifier provided'));
 				return;
 			}
 
-			if($userEmail) :
-				$user = get_user_by('email', $userEmail);
-			elseif($userID) :
-				$user = get_user_by('id', $userID);
-			endif;
+			$user = get_user_by('id', $userID);
 			
 			if (defined('WP_DEBUG') && WP_DEBUG) {
 				error_log('Make Member Scan: User ID: ' . $userID);
@@ -417,10 +419,12 @@ function make_get_member_scan() {
 				$html .= '</div>';
 			endif; //no users found
 			
-            $first_name = get_user_meta($user->ID, 'first_name', true);
-            if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
             $return['html'] = $html;
-            $return['greeting_name'] = $first_name;
+            if ( $user ) :
+                $first_name = get_user_meta($user->ID, 'first_name', true);
+                if (!$first_name) { $first_name = preg_split('/\s+/', $user->display_name)[0]; }
+                $return['greeting_name'] = $first_name;
+            endif;
 		
 			wp_send_json_success( $return );
 			
@@ -554,41 +558,13 @@ function make_list_sign_in_badges($user) {
 
 
 
-add_action('wp_ajax_nopriv_makeGetEmailForm', 'make_get_email_form');
-add_action('wp_ajax_makeGetEmailForm', 'make_get_email_form');
-
-function make_get_email_form() {
-
-	if($_REQUEST['action'] == 'makeGetEmailForm') :
-		$return = array();
-		$html = '<div class="email-form text-center">';
-			$html .= '<form id="emailSubmit">';
-			  $html .= '<div class="mb-3 input-group input-group-lg text-center">';
-			    $html .= '<span class="input-group-text">Email</span>';
-			    $html .= '<input type="email" name="userEmail" class="form-control">';
-			  $html .= '</div>';
-			  $html .= '<button type="submit" class="btn btn-primary btn-lg emailSubmit">Submit</button>';
-			$html .= '</form>';
-		$html .= '</div>';
-		$return['html'] = $html;
-		wp_send_json_success( $return );
-	endif;
-
-}
-
-
-
-
-
 function make_output_profile_container($user, $is_volunteering = null) {
 
 	if($user) :
 		if(!is_object($user)) {
 			$user = get_user_by('id', $user['ID']);
 		}
-		$user_info = get_userdata($user->ID);
 		$html = '<div class="profile-container">';
-			$html .= '<span class="email hidden d-none">' . $user_info->user_email  . '</span>';
 			// Get both active and complimentary memberships
 			$active_memberships = wc_memberships_get_user_active_memberships($user->ID);
 			$complimentary_memberships = wc_memberships_get_user_memberships($user->ID, array('status' => 'complimentary'));
