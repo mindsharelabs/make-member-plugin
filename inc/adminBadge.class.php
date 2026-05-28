@@ -381,6 +381,7 @@ class makeAdminBadgeOverview {
   public function __construct() {
     add_action('admin_menu', array($this, 'register_admin_page'));
     add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+    add_action('admin_init', array($this, 'maybe_export_csv'));
   }
 
   public function register_admin_page() {
@@ -442,6 +443,118 @@ class makeAdminBadgeOverview {
     wp_add_inline_style($css_handle, $css);
   }
 
+  public function maybe_export_csv() {
+    if (empty($_GET['page']) || $_GET['page'] !== $this->page_slug) {
+      return;
+    }
+    if (empty($_GET['action']) || $_GET['action'] !== 'export_csv') {
+      return;
+    }
+    if (!current_user_can('list_users')) {
+      wp_die('You do not have permission to export this data.');
+    }
+    if (empty($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'makesf_badge_csv_export')) {
+      wp_die('Security check failed.');
+    }
+
+    $memberships = $this->get_active_memberships();
+    if (empty($memberships)) {
+      wp_die('No active members to export.');
+    }
+
+    // Build users map (deduplicated)
+    $users_map = array();
+    foreach ($memberships as $uid) {
+      $uid = (int) $uid;
+      if (!$uid || isset($users_map[$uid])) {
+        continue;
+      }
+      $user = get_user_by('id', $uid);
+      if ($user) {
+        $users_map[$uid] = $user;
+      }
+    }
+
+    // Collect all unique valid badge IDs across all members
+    $all_badges = array();
+    foreach ($users_map as $uid => $user) {
+      $badges = get_user_meta($uid, 'certifications', true);
+      if (!$badges || !is_array($badges)) {
+        continue;
+      }
+      foreach ($badges as $badge_id) {
+        $badge_id = (int) $badge_id;
+        if (!$badge_id || isset($all_badges[$badge_id])) {
+          continue;
+        }
+        $badge_post = get_post($badge_id);
+        if (!$badge_post || $badge_post->post_type !== 'certs') {
+          continue;
+        }
+        $all_badges[$badge_id] = $this->get_badge_name($badge_id);
+      }
+    }
+
+    // Sort badges alphabetically by name
+    asort($all_badges);
+
+    // Stream CSV
+    $filename = 'badge-overview-' . date('Y-m-d') . '.csv';
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+
+    // BOM for Excel UTF-8 compatibility
+    fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+    // Header row
+    $header = array('Name', 'Email');
+    foreach ($all_badges as $badge_name) {
+      $header[] = $badge_name;
+    }
+    fputcsv($output, $header);
+
+    // One row per member
+    foreach ($users_map as $uid => $user) {
+      $badges = get_user_meta($uid, 'certifications', true);
+      if (!$badges || !is_array($badges)) {
+        $badges = array();
+      }
+
+      // Build badge_id => status_label map for this user
+      $user_badge_statuses = array();
+      foreach ($badges as $badge_id) {
+        $badge_id = (int) $badge_id;
+        if (!$badge_id) {
+          continue;
+        }
+        $badge_post = get_post($badge_id);
+        if (!$badge_post || $badge_post->post_type !== 'certs') {
+          continue;
+        }
+        $last_time = get_user_meta($uid, $badge_id . '_last_time', true);
+        if (empty($last_time)) {
+          makesf_user_signin_meta_generator($uid);
+          $last_time = get_user_meta($uid, $badge_id . '_last_time', true);
+        }
+        $computed = $this->compute_badge_expiration($badge_id, $last_time);
+        $user_badge_statuses[$badge_id] = $computed['status_label'];
+      }
+
+      $row = array($user->display_name, $user->user_email);
+      foreach ($all_badges as $badge_id => $badge_name) {
+        $row[] = isset($user_badge_statuses[$badge_id]) ? $user_badge_statuses[$badge_id] : 'Not Assigned';
+      }
+      fputcsv($output, $row);
+    }
+
+    fclose($output);
+    exit;
+  }
+
   public function render_page() {
     if (!current_user_can('list_users')) {
       wp_die('You do not have permission to view this page.');
@@ -457,9 +570,14 @@ class makeAdminBadgeOverview {
     echo '<form method="get" class="makesf-badge-overview-toolbar">';
     echo '<input type="hidden" name="page" value="' . esc_attr($this->page_slug) . '">';
     echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="Search members (name or email)" class="regular-text">';
-    
     submit_button('Filter', 'secondary', '', false);
     echo '</form>';
+
+    $export_url = wp_nonce_url(
+      admin_url('users.php?page=' . $this->page_slug . '&action=export_csv'),
+      'makesf_badge_csv_export'
+    );
+    echo '<p><a href="' . esc_url($export_url) . '" class="button button-secondary">Export CSV</a></p>';
 
     // Fetch active members (scaffold)
     $memberships = $this->get_active_memberships();
