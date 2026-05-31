@@ -441,6 +441,22 @@ function make_list_sign_in_badges($user) {
 
 	makesf_user_signin_meta_generator($user->ID);
 
+	$raw_user_badges = get_field('certifications', 'user_' . $user->ID);
+	if (!$raw_user_badges) {
+		$raw_user_badges = get_field('certs', 'user_' . $user->ID);
+	}
+	$user_badges = array();
+	foreach ((array) $raw_user_badges as $user_badge) {
+		if (is_object($user_badge) && isset($user_badge->ID)) {
+			$user_badges[] = (int) $user_badge->ID;
+		} elseif (is_array($user_badge) && !empty($user_badge['ID'])) {
+			$user_badges[] = (int) $user_badge['ID'];
+		} elseif (is_numeric($user_badge)) {
+			$user_badges[] = (int) $user_badge;
+		}
+	}
+	$user_badges = array_values(array_unique(array_filter($user_badges)));
+	$has_earned_badges = !empty($user_badges);
 
 	$all_badges = new WP_Query(array(
 		'post_type' => 'certs',
@@ -456,9 +472,15 @@ function make_list_sign_in_badges($user) {
 	));
 	$html = '';
 
-	$html .= '<div class="alert alert-warning text-center mb-3" style="font-size:1rem;">';
-		$html .= 'Each time you sign in with a badge, its expiration timer resets. If you do not use a badge before it expires, you will need to retake it.';
-	$html .= '</div>';
+	if ($has_earned_badges) {
+		$html .= '<div class="alert alert-warning text-center mb-3" style="font-size:1rem;">';
+			$html .= 'Each time you sign in with a badge, its expiration timer resets. If you do not use a badge before it expires, you will need to retake it.';
+		$html .= '</div>';
+	} else {
+		$html .= '<div class="alert alert-info text-center mb-3" style="font-size:1rem;">';
+			$html .= 'This member does not have any sign-in badges on file. They can still sign in for the activities below.';
+		$html .= '</div>';
+	}
 
 	$html .= '<div class="badge-list d-flex">';
 
@@ -468,13 +490,11 @@ function make_list_sign_in_badges($user) {
 		while($all_badges->have_posts()) :
 			$all_badges->the_post();
 
-			$user_badges = get_field('certifications', 'user_' . $user->ID);
-			$is_earned = is_array($user_badges) && in_array(get_the_id(), $user_badges);
-			$badge_expiration_length = get_field('expiration_time', get_the_id()); //this is stored in days
-			$badge_last_signin_time = get_user_meta($user->ID, get_the_id() . '_last_time', true);
-			$expiration_time = strtotime($badge_last_signin_time) + ($badge_expiration_length * DAY_IN_SECONDS);
-			//days until expiration
-			$time_remaining = $expiration_time - time();
+			$badge_id = get_the_id();
+			$is_earned = in_array($badge_id, $user_badges, true);
+			$badge_expiration_length = ($is_earned ? get_field('expiration_time', $badge_id) : null); //this is stored in days
+			$badge_last_signin_time = ($is_earned ? get_user_meta($user->ID, $badge_id . '_last_time', true) : '');
+			$time_remaining = null;
 
 
 			if ($is_earned && !empty($badge_expiration_length) && !empty($badge_last_signin_time)) {
@@ -497,12 +517,10 @@ function make_list_sign_in_badges($user) {
 			$classes = [];
 
 			$expired = false;
-			if($user_badges) :
-				if(!$is_earned) :
-					$classes[] = 'not-allowed';
-				endif;
+			if(!$is_earned) :
+				$classes[] = 'not-allowed';
 			endif;
-			if($time_remaining <= 0) :
+			if($is_earned && null !== $time_remaining && $time_remaining <= 0) :
 				$classes[] = 'not-allowed';
 				$classes[] = 'expired';
 				$expired = true;
@@ -511,7 +529,7 @@ function make_list_sign_in_badges($user) {
 
 			// Optional helper text under the status
 				$helper = '';
-				if ($time_remaining !== null) {
+				if ($is_earned && null !== $time_remaining) {
 					if ($time_remaining < 0) {
 						$helper = 'Expired ' . abs((int) $time_remaining) . ' days ago. Please re-take this badge class to earn it again.';
 					} elseif ($time_remaining == 0 || $time_remaining == -0) {
@@ -524,10 +542,10 @@ function make_list_sign_in_badges($user) {
 				}
 
 
-			$item_html = '<div class="badge-item ' . implode(' ', $classes) . ' text-center" data-badge="' . get_the_id() . '">';
-				$badge_image = get_field('badge_image', get_the_id());
+			$item_html = '<div class="badge-item ' . implode(' ', $classes) . ' text-center" data-badge="' . $badge_id . '">';
+				$badge_image = get_field('badge_image', $badge_id);
 				$item_html .= wp_get_attachment_image( $badge_image,'thumbnail', false);
-				$item_html .= '<span class="small">' . get_the_title(get_the_id()) . '</span>';
+				$item_html .= '<span class="small">' . get_the_title($badge_id) . '</span>';
 
 				if($is_earned && $badge_expiration_length) :
 					if($expired) :
@@ -543,11 +561,12 @@ function make_list_sign_in_badges($user) {
 
 			if ($is_earned) {
 				$allowed_items[] = $item_html;
-			} else {
+			} elseif ($has_earned_badges) {
 				$other_items[] = $item_html;
 			}
 		endwhile;
 	endif;
+	wp_reset_postdata();
 
 	// Output allowed first, then the rest
 	$html .= implode('', $allowed_items) . implode('', $other_items);
