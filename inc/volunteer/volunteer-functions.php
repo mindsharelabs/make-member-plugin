@@ -827,6 +827,221 @@ function make_test_volunteer_system() {
 }
 
 /**
+ * Build the volunteer detail admin URL for a user.
+ */
+function make_get_volunteer_detail_page_url($user_id, $args = array()) {
+    $query_args = array_merge(array(
+        'page' => 'volunteer-volunteer-detail',
+        'user_id' => intval($user_id),
+    ), array_filter((array) $args, function($value) {
+        return $value !== null && $value !== '';
+    }));
+
+    return add_query_arg($query_args, admin_url('admin.php'));
+}
+
+/**
+ * Format a volunteer session time for display.
+ */
+function make_format_volunteer_session_display_time($time_value) {
+    if (empty($time_value)) {
+        return '';
+    }
+
+    try {
+        $dt = new DateTime($time_value, wp_timezone());
+        return $dt->format('M j, Y g:i A');
+    } catch (Exception $e) {
+        return (string) $time_value;
+    }
+}
+
+/**
+ * Format a volunteer session time for datetime-local inputs.
+ */
+function make_format_volunteer_session_input_time($time_value) {
+    if (empty($time_value)) {
+        return '';
+    }
+
+    try {
+        $dt = new DateTime($time_value, wp_timezone());
+        return $dt->format('Y-m-d\TH:i');
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+/**
+ * Format a duration in minutes for volunteer session displays.
+ */
+function make_format_volunteer_session_duration($minutes, $signin_time = '', $signout_time = '') {
+    $minutes = intval($minutes);
+
+    if ($minutes <= 0 && $signin_time && !$signout_time) {
+        try {
+            $signin_dt = new DateTime($signin_time, wp_timezone());
+            $now = new DateTime('now', wp_timezone());
+            $diff = $signin_dt->diff($now);
+            $minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i;
+        } catch (Exception $e) {
+            $minutes = 0;
+        }
+    }
+
+    if ($minutes <= 0) {
+        return $signout_time ? '0m' : 'Ongoing';
+    }
+
+    $hours = floor($minutes / 60);
+    $remaining_minutes = $minutes % 60;
+
+    if ($hours > 0 && $remaining_minutes > 0) {
+        return $hours . 'h ' . $remaining_minutes . 'm';
+    }
+    if ($hours > 0) {
+        return $hours . 'h';
+    }
+    return $remaining_minutes . 'm';
+}
+
+/**
+ * Get volunteer summary metrics for the detail page.
+ */
+function make_get_volunteer_summary_metrics($user_id) {
+    $user_id = intval($user_id);
+    $user = get_user_by('ID', $user_id);
+    if (!$user) {
+        return false;
+    }
+
+    $all_time = make_get_volunteer_hours($user_id, 'all');
+    $current_month = make_get_user_volunteer_hours_for_month($user_id, date('Y-m'), true);
+    $active_session = make_get_active_volunteer_session($user_id);
+
+    $completed_q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => 1,
+        'fields' => 'ids',
+        'meta_query' => array(
+            'relation' => 'AND',
+            array('key' => 'user_id', 'value' => $user_id, 'compare' => '='),
+            array('key' => 'status', 'value' => 'completed', 'compare' => '='),
+        ),
+    ));
+
+    return array(
+        'user' => $user,
+        'active_session' => $active_session,
+        'all_time_hours' => floatval($all_time['total_hours'] ?? 0),
+        'all_time_minutes' => intval($all_time['total_minutes'] ?? 0),
+        'current_month_hours' => floatval($current_month['total_hours'] ?? 0),
+        'current_month_minutes' => intval($current_month['total_minutes'] ?? 0),
+        'completed_sessions' => intval($completed_q->found_posts),
+    );
+}
+
+/**
+ * Load a volunteer's session rows for the admin detail page.
+ */
+function make_get_volunteer_session_rows($user_id, $args = array()) {
+    $user_id = intval($user_id);
+    $defaults = array(
+        'status' => 'all',
+        'paged' => 1,
+        'per_page' => 25,
+    );
+    $args = wp_parse_args($args, $defaults);
+
+    $status = sanitize_key($args['status']);
+    if (!in_array($status, array('all', 'active', 'completed'), true)) {
+        $status = 'all';
+    }
+
+    $paged = max(1, intval($args['paged']));
+    $per_page = max(1, intval($args['per_page']));
+
+    $base_meta_query = array(
+        'relation' => 'AND',
+        array('key' => 'user_id', 'value' => $user_id, 'compare' => '='),
+    );
+
+    $filtered_meta_query = $base_meta_query;
+    if ($status !== 'all') {
+        $filtered_meta_query[] = array('key' => 'status', 'value' => $status, 'compare' => '=');
+    }
+
+    $q = new WP_Query(array(
+        'post_type' => 'volunteer_session',
+        'post_status' => 'publish',
+        'posts_per_page' => $per_page,
+        'paged' => $paged,
+        'orderby' => 'meta_value',
+        'meta_key' => 'signin_time',
+        'order' => 'DESC',
+        'fields' => 'ids',
+        'meta_query' => $filtered_meta_query,
+    ));
+
+    $rows = array();
+    foreach ($q->posts as $post_id) {
+        $signin_time = get_post_meta($post_id, 'signin_time', true);
+        $signout_time = get_post_meta($post_id, 'signout_time', true);
+        $duration_minutes = intval(get_post_meta($post_id, 'duration_minutes', true));
+        $notes = (string) get_post_meta($post_id, 'notes', true);
+        $row_status = get_post_meta($post_id, 'status', true) ?: ($signout_time ? 'completed' : 'active');
+
+        $rows[] = array(
+            'id' => $post_id,
+            'status' => $row_status,
+            'status_label' => ucfirst($row_status),
+            'is_active' => $row_status === 'active',
+            'signin_time' => $signin_time,
+            'signout_time' => $signout_time,
+            'signin_display' => make_format_volunteer_session_display_time($signin_time),
+            'signout_display' => $signout_time ? make_format_volunteer_session_display_time($signout_time) : 'Active',
+            'signin_input' => make_format_volunteer_session_input_time($signin_time),
+            'signout_input' => make_format_volunteer_session_input_time($signout_time),
+            'duration_minutes' => $duration_minutes,
+            'duration_display' => make_format_volunteer_session_duration($duration_minutes, $signin_time, $signout_time),
+            'notes' => $notes,
+        );
+    }
+
+    $count_sessions = function($status_filter = 'all') use ($base_meta_query) {
+        $meta_query = $base_meta_query;
+        if ($status_filter !== 'all') {
+            $meta_query[] = array('key' => 'status', 'value' => $status_filter, 'compare' => '=');
+        }
+
+        $count_q = new WP_Query(array(
+            'post_type' => 'volunteer_session',
+            'post_status' => 'publish',
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+            'meta_query' => $meta_query,
+        ));
+
+        return intval($count_q->found_posts);
+    };
+
+    return array(
+        'rows' => $rows,
+        'status' => $status,
+        'paged' => $paged,
+        'per_page' => $per_page,
+        'total' => intval($q->found_posts),
+        'total_pages' => max(1, intval($q->max_num_pages)),
+        'counts' => array(
+            'all' => $count_sessions('all'),
+            'active' => $count_sessions('active'),
+            'completed' => $count_sessions('completed'),
+        ),
+    );
+}
+
+/**
  * Get session details for modal display
  */
 function make_get_session_details_for_modal($session_id) {
@@ -845,24 +1060,6 @@ function make_get_session_details_for_modal($session_id) {
     $signout_time = get_post_meta($post->ID, 'signout_time', true);
     $duration_minutes = (int) get_post_meta($post->ID, 'duration_minutes', true);
 
-    $signin_time_input = '';
-    $signout_time_input = '';
-    $duration_display = 'Ongoing';
-
-    if ($signin_time) {
-        $signin_dt = new DateTime($signin_time);
-        $signin_time_input = $signin_dt->format('Y-m-d\TH:i');
-    }
-    if ($signout_time) {
-        $signout_dt = new DateTime($signout_time);
-        $signout_time_input = $signout_dt->format('Y-m-d\TH:i');
-        if ($duration_minutes) {
-            $hours = floor($duration_minutes / 60);
-            $minutes = $duration_minutes % 60;
-            $duration_display = $hours . 'h ' . $minutes . 'm';
-        }
-    }
-
     $status = get_post_meta($post->ID, 'status', true) ?: 'active';
 
     return array(
@@ -871,36 +1068,32 @@ function make_get_session_details_for_modal($session_id) {
         'volunteer_email' => $user->user_email,
         'status' => $status,
         'status_label' => ucfirst($status),
-        'signin_time_input' => $signin_time_input,
-        'signout_time_input' => $signout_time_input,
-        'duration_display' => $duration_display,
+        'signin_time_input' => make_format_volunteer_session_input_time($signin_time),
+        'signout_time_input' => make_format_volunteer_session_input_time($signout_time),
+        'duration_display' => make_format_volunteer_session_duration($duration_minutes, $signin_time, $signout_time),
         'notes' => (string) get_post_meta($post->ID, 'notes', true),
+        'tasks_html' => '',
     );
 }
 
 /**
- * Update volunteer session times and notes
+ * Create a completed volunteer session manually.
+ */
+function make_create_manual_volunteer_session($user_id, $signin_time, $signout_time, $notes = '') {
+    if (!class_exists('Make_Volunteer_Session_Repository')) {
+        return new WP_Error('missing_repo', 'Session repository unavailable');
+    }
+
+    return Make_Volunteer_Session_Repository::create_completed_session($user_id, $signin_time, $signout_time, $notes);
+}
+
+/**
+ * Update volunteer session times and notes.
  */
 function make_update_volunteer_session($session_id, $signin_time, $signout_time, $notes = '') {
-    $post = get_post($session_id);
-    if (!$post || $post->post_type !== 'volunteer_session') {
-        return new WP_Error('session_not_found', 'Session not found');
+    if (!class_exists('Make_Volunteer_Session_Repository')) {
+        return new WP_Error('missing_repo', 'Session repository unavailable');
     }
 
-    $signin_dt = new DateTime($signin_time);
-    $signout_dt = new DateTime($signout_time);
-    if ($signout_dt <= $signin_dt) {
-        return new WP_Error('invalid_times', 'Sign-out time must be after sign-in time');
-    }
-
-    $duration_minutes = round(($signout_dt->getTimestamp() - $signin_dt->getTimestamp()) / 60);
-
-    update_post_meta($post->ID, 'signin_time', $signin_dt->format('Y-m-d H:i:s'));
-    update_post_meta($post->ID, 'signout_time', $signout_dt->format('Y-m-d H:i:s'));
-    update_post_meta($post->ID, 'duration_minutes', $duration_minutes);
-    update_post_meta($post->ID, 'notes', (string) $notes);
-    update_post_meta($post->ID, 'status', 'completed');
-    update_post_meta($post->ID, 'updated_at', current_time('mysql'));
-
-    return true;
+    return Make_Volunteer_Session_Repository::update_session_times($session_id, $signin_time, $signout_time, $notes);
 }

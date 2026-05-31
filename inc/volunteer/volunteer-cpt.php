@@ -95,6 +95,57 @@ if (!class_exists('Make_Volunteer_Session_Repository')) {
             return $post_id;
         }
 
+        /**
+         * Create a completed volunteer session manually.
+         *
+         * @param int    $user_id
+         * @param string $signin_time
+         * @param string $signout_time
+         * @param string $notes
+         * @return int|WP_Error
+         */
+        public static function create_completed_session($user_id, $signin_time, $signout_time, $notes = '') {
+            $prepared = self::prepare_completed_session_values($user_id, $signin_time, $signout_time);
+            if (is_wp_error($prepared)) {
+                return $prepared;
+            }
+
+            $post_id = wp_insert_post(array(
+                'post_type' => 'volunteer_session',
+                'post_status' => 'publish',
+                'post_title' => $prepared['title'],
+                'post_author' => $prepared['user_id'],
+            ), true);
+            if (is_wp_error($post_id)) {
+                return $post_id;
+            }
+
+            self::persist_completed_session_meta($post_id, $prepared, $notes, current_time('mysql'));
+
+            if (!self::use_cpt_only() && function_exists('make_verify_volunteer_tables') && make_verify_volunteer_tables()) {
+                global $wpdb;
+                $table = $wpdb->prefix . 'volunteer_sessions';
+                $ok = $wpdb->insert($table, array(
+                    'user_id' => $prepared['user_id'],
+                    'signin_time' => $prepared['signin_mysql'],
+                    'signout_time' => $prepared['signout_mysql'],
+                    'duration_minutes' => $prepared['duration_minutes'],
+                    'notes' => sanitize_textarea_field($notes),
+                    'status' => 'completed',
+                ), array('%d', '%s', '%s', '%d', '%s', '%s'));
+                if ($ok !== false) {
+                    update_post_meta($post_id, self::META_LEGACY_ID, intval($wpdb->insert_id));
+                }
+            }
+
+            self::sync_user_volunteer_start_date($prepared['user_id'], $prepared['signin_mysql']);
+            if (function_exists('make_clear_volunteer_member_caches')) {
+                make_clear_volunteer_member_caches($prepared['user_id']);
+            }
+
+            return $post_id;
+        }
+
         // End a session by ID (supports legacy id or CPT id). Returns summary array compatible with existing AJAX responses.
         public static function end_session($session_identifier, $tasks = array(), $notes = '') {
             $session = self::get_session_by_identifier($session_identifier);
@@ -155,6 +206,67 @@ if (!class_exists('Make_Volunteer_Session_Repository')) {
             );
         }
 
+        /**
+         * Update session start/end times and notes.
+         *
+         * @param int    $session_identifier
+         * @param string $signin_time
+         * @param string $signout_time
+         * @param string $notes
+         * @return true|WP_Error
+         */
+        public static function update_session_times($session_identifier, $signin_time, $signout_time, $notes = '') {
+            $session = self::get_session_by_identifier($session_identifier);
+            if (!$session || empty($session['post_id'])) {
+                return new WP_Error('session_not_found', 'Session not found');
+            }
+
+            $prepared = self::prepare_completed_session_values($session['user_id'], $signin_time, $signout_time);
+            if (is_wp_error($prepared)) {
+                return $prepared;
+            }
+
+            $updated_post = wp_update_post(array(
+                'ID' => $session['post_id'],
+                'post_title' => $prepared['title'],
+                'post_author' => $prepared['user_id'],
+            ), true);
+            if (is_wp_error($updated_post)) {
+                return $updated_post;
+            }
+
+            self::persist_completed_session_meta($session['post_id'], $prepared, $notes);
+
+            if (!self::use_cpt_only() && function_exists('make_verify_volunteer_tables') && make_verify_volunteer_tables()) {
+                global $wpdb;
+                $table = $wpdb->prefix . 'volunteer_sessions';
+                $legacy_id = isset($session['legacy_id']) ? intval($session['legacy_id']) : 0;
+                if ($legacy_id <= 0) {
+                    $maybe_legacy = self::find_matching_legacy_row($session['user_id'], $session['signin_time']);
+                    if ($maybe_legacy) {
+                        $legacy_id = intval($maybe_legacy->id);
+                        update_post_meta($session['post_id'], self::META_LEGACY_ID, $legacy_id);
+                    }
+                }
+                if ($legacy_id > 0) {
+                    $wpdb->update($table, array(
+                        'signin_time' => $prepared['signin_mysql'],
+                        'signout_time' => $prepared['signout_mysql'],
+                        'duration_minutes' => $prepared['duration_minutes'],
+                        'notes' => sanitize_textarea_field($notes),
+                        'status' => 'completed',
+                    ), array('id' => $legacy_id), array('%s', '%s', '%d', '%s', '%s'), array('%d'));
+                }
+            }
+
+            self::sync_user_volunteer_start_date($prepared['user_id'], $prepared['signin_mysql']);
+            if (function_exists('make_clear_volunteer_member_caches')) {
+                make_clear_volunteer_member_caches($prepared['user_id']);
+            }
+
+            return true;
+        }
+
         // Find active session for a user; returns normalized associative array or null.
         public static function find_active_session_for_user($user_id) {
             $user_id = intval($user_id);
@@ -195,7 +307,122 @@ if (!class_exists('Make_Volunteer_Session_Repository')) {
         private static function compose_session_title($user_id, $signin_mysql) {
             $user = get_user_by('ID', $user_id);
             $user_name = $user ? $user->display_name : 'User ' . $user_id;
-            return sprintf('%s — %s', $user_name, date('M j, Y g:i a', strtotime($signin_mysql)));
+            try {
+                $tz = wp_timezone();
+            } catch (Exception $e) {
+                $tz = new DateTimeZone('UTC');
+            }
+            try {
+                $signin = new DateTime($signin_mysql, $tz);
+                $formatted = $signin->format('M j, Y g:i a');
+            } catch (Exception $e) {
+                $formatted = date('M j, Y g:i a', strtotime($signin_mysql));
+            }
+            return sprintf('%s — %s', $user_name, $formatted);
+        }
+
+        private static function normalize_input_datetime($value) {
+            if ($value instanceof DateTimeInterface) {
+                $dt = new DateTime($value->format('Y-m-d H:i:s'), $value->getTimezone());
+                $dt->setTime((int) $dt->format('H'), (int) $dt->format('i'), 0);
+                return $dt;
+            }
+
+            $value = is_string($value) ? trim($value) : '';
+            if ($value === '') {
+                return null;
+            }
+
+            try {
+                $tz = wp_timezone();
+            } catch (Exception $e) {
+                $tz = new DateTimeZone('UTC');
+            }
+
+            $formats = array('Y-m-d\TH:i', 'Y-m-d H:i:s', 'Y-m-d H:i');
+            foreach ($formats as $format) {
+                $dt = DateTime::createFromFormat($format, $value, $tz);
+                $errors = DateTime::getLastErrors();
+                if ($dt instanceof DateTime && (!$errors || (empty($errors['warning_count']) && empty($errors['error_count'])))) {
+                    $dt->setTimezone($tz);
+                    $dt->setTime((int) $dt->format('H'), (int) $dt->format('i'), 0);
+                    return $dt;
+                }
+            }
+
+            try {
+                $dt = new DateTime($value, $tz);
+                $dt->setTimezone($tz);
+                $dt->setTime((int) $dt->format('H'), (int) $dt->format('i'), 0);
+                return $dt;
+            } catch (Exception $e) {
+                return null;
+            }
+        }
+
+        private static function prepare_completed_session_values($user_id, $signin_time, $signout_time) {
+            $user_id = intval($user_id);
+            if (!$user_id) {
+                return new WP_Error('invalid_user', 'Invalid user ID');
+            }
+
+            $user = get_user_by('ID', $user_id);
+            if (!$user) {
+                return new WP_Error('user_not_found', 'User not found');
+            }
+
+            $signin_dt = self::normalize_input_datetime($signin_time);
+            $signout_dt = self::normalize_input_datetime($signout_time);
+
+            if (!$signin_dt || !$signout_dt) {
+                return new WP_Error('invalid_times', 'Valid sign-in and sign-out times are required');
+            }
+            if ($signout_dt <= $signin_dt) {
+                return new WP_Error('invalid_times', 'Sign-out time must be after sign-in time');
+            }
+
+            $duration_minutes = (int) round(($signout_dt->getTimestamp() - $signin_dt->getTimestamp()) / 60);
+            $signin_mysql = $signin_dt->format('Y-m-d H:i:s');
+
+            return array(
+                'user_id' => $user_id,
+                'signin_dt' => $signin_dt,
+                'signout_dt' => $signout_dt,
+                'signin_mysql' => $signin_mysql,
+                'signout_mysql' => $signout_dt->format('Y-m-d H:i:s'),
+                'duration_minutes' => $duration_minutes,
+                'title' => self::compose_session_title($user_id, $signin_mysql),
+            );
+        }
+
+        private static function persist_completed_session_meta($post_id, array $prepared, $notes = '', $created_at = null) {
+            update_post_meta($post_id, self::META_USER_ID, $prepared['user_id']);
+            update_post_meta($post_id, self::META_SIGNIN, $prepared['signin_mysql']);
+            update_post_meta($post_id, self::META_SIGNOUT, $prepared['signout_mysql']);
+            update_post_meta($post_id, self::META_DURATION, $prepared['duration_minutes']);
+            update_post_meta($post_id, self::META_NOTES, sanitize_textarea_field($notes));
+            update_post_meta($post_id, self::META_STATUS, 'completed');
+            if ($created_at !== null) {
+                update_post_meta($post_id, self::META_CREATED, $created_at);
+            } elseif (!get_post_meta($post_id, self::META_CREATED, true)) {
+                update_post_meta($post_id, self::META_CREATED, $prepared['signin_mysql']);
+            }
+            update_post_meta($post_id, self::META_UPDATED, current_time('mysql'));
+        }
+
+        private static function sync_user_volunteer_start_date($user_id, $signin_mysql) {
+            $current_start_date = get_user_meta($user_id, 'volunteer_start_date', true);
+            if (empty($current_start_date)) {
+                update_user_meta($user_id, 'volunteer_start_date', $signin_mysql);
+                return;
+            }
+
+            $current_dt = self::normalize_input_datetime($current_start_date);
+            $new_dt = self::normalize_input_datetime($signin_mysql);
+
+            if ($new_dt && (!$current_dt || $current_dt > $new_dt)) {
+                update_user_meta($user_id, 'volunteer_start_date', $signin_mysql);
+            }
         }
 
         private static function normalize_cpt_session($post_id) {

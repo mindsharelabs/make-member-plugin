@@ -268,6 +268,219 @@
       $(".session-checkbox").prop("checked", $(this).prop("checked"));
     });
 
+    function parseSessionDateValue(value) {
+      if (!value) {
+        return null;
+      }
+
+      var date = new Date(value);
+      if (isNaN(date.getTime())) {
+        date = new Date(String(value).replace(" ", "T"));
+      }
+
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatSessionDuration(diffMs) {
+      if (!diffMs || diffMs <= 0) {
+        return "Invalid time range";
+      }
+
+      var totalMinutes = Math.round(diffMs / (1000 * 60));
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
+
+      if (hours > 0 && minutes > 0) {
+        return hours + "h " + minutes + "m";
+      }
+      if (hours > 0) {
+        return hours + "h";
+      }
+      return minutes + "m";
+    }
+
+    function updateDetailRowDuration($row) {
+      var signin = parseSessionDateValue($row.find(".session-inline-signin").val());
+      var signout = parseSessionDateValue($row.find(".session-inline-signout").val());
+      var $display = $row.find(".session-duration-display");
+
+      if (!signin || !signout) {
+        $display.text("Duration pending");
+        return;
+      }
+
+      $display.text(formatSessionDuration(signout - signin));
+    }
+
+    function resetDetailRow($row) {
+      $row.find(".session-inline-signin, .session-inline-signout, .session-inline-notes").each(function () {
+        this.value = this.defaultValue;
+      });
+      $row.removeClass("is-editing");
+      updateDetailRowDuration($row);
+    }
+
+    function reloadVolunteerDetailPage() {
+      window.location.reload();
+    }
+
+    if ($("#volunteer-detail-page").length) {
+      $(document).on("click", ".volunteer-session-edit-toggle", function () {
+        var $row = $(this).closest(".volunteer-session-row");
+        $row.addClass("is-editing");
+        updateDetailRowDuration($row);
+      });
+
+      $(document).on("click", ".volunteer-session-cancel", function () {
+        resetDetailRow($(this).closest(".volunteer-session-row"));
+      });
+
+      $(document).on("input change", ".session-inline-signin, .session-inline-signout", function () {
+        updateDetailRowDuration($(this).closest(".volunteer-session-row"));
+      });
+
+      $(document).on("click", ".volunteer-session-save", function () {
+        var $button = $(this);
+        var $row = $button.closest(".volunteer-session-row");
+        var sessionId = $row.data("session-id");
+        var signinTime = $row.find(".session-inline-signin").val();
+        var signoutTime = $row.find(".session-inline-signout").val();
+        var notes = $row.find(".session-inline-notes").val();
+        var signin = parseSessionDateValue(signinTime);
+        var signout = parseSessionDateValue(signoutTime);
+
+        if (!signinTime || !signoutTime) {
+          showNotice("Please provide both start and end times.", "error");
+          return;
+        }
+        if (!signin || !signout || signout <= signin) {
+          showNotice("End time must be after start time.", "error");
+          return;
+        }
+
+        $.ajax({
+          url: volunteerAdmin.ajax_url,
+          type: "post",
+          data: {
+            action: "make_volunteer_admin_action",
+            admin_action: "update_session",
+            session_id: sessionId,
+            signin_time: signinTime,
+            signout_time: signoutTime,
+            notes: notes,
+            nonce: adminNonce,
+          },
+          beforeSend: function () {
+            $button.prop("disabled", true).text("Saving...");
+          },
+          success: function (response) {
+            if (response.success) {
+              showNotice("Session updated successfully", "success");
+              reloadVolunteerDetailPage();
+            } else {
+              showNotice("Error updating session: " + response.data, "error");
+              $button.prop("disabled", false).text("Save");
+            }
+          },
+          error: function () {
+            showNotice("Error updating session. Please try again.", "error");
+            $button.prop("disabled", false).text("Save");
+          },
+        });
+      });
+
+      $(document).on("click", ".detail-end-session-now", function () {
+        var $button = $(this);
+        var $row = $button.closest(".volunteer-session-row");
+        var sessionId = $button.data("session");
+        var notes = $row.find(".session-inline-notes").val() || "";
+
+        if (!confirm("Are you sure you want to end this volunteer session now?")) {
+          return;
+        }
+
+        $.ajax({
+          url: volunteerAdmin.ajax_url,
+          type: "post",
+          data: {
+            action: "make_volunteer_admin_action",
+            admin_action: "end_session",
+            session_id: sessionId,
+            notes: notes,
+            nonce: adminNonce,
+          },
+          beforeSend: function () {
+            $button.prop("disabled", true).text("Ending...");
+          },
+          success: function (response) {
+            if (response.success) {
+              showNotice("Session ended successfully", "success");
+              reloadVolunteerDetailPage();
+            } else {
+              showNotice("Error ending session: " + response.data, "error");
+              $button.prop("disabled", false).text("End Now");
+            }
+          },
+          error: function () {
+            showNotice("Error ending session. Please try again.", "error");
+            $button.prop("disabled", false).text("End Now");
+          },
+        });
+      });
+
+      $("#volunteer-manual-session-form").on("submit", function (event) {
+        event.preventDefault();
+
+        var $form = $(this);
+        var $button = $form.find('button[type="submit"]');
+        var userId = $form.data("user-id");
+        var signinTime = $form.find('[name="signin_time"]').val();
+        var signoutTime = $form.find('[name="signout_time"]').val();
+        var notes = $form.find('[name="notes"]').val();
+        var signin = parseSessionDateValue(signinTime);
+        var signout = parseSessionDateValue(signoutTime);
+
+        if (!signinTime || !signoutTime) {
+          showNotice("Please provide both start and end times.", "error");
+          return;
+        }
+        if (!signin || !signout || signout <= signin) {
+          showNotice("End time must be after start time.", "error");
+          return;
+        }
+
+        $.ajax({
+          url: volunteerAdmin.ajax_url,
+          type: "post",
+          data: {
+            action: "make_volunteer_admin_action",
+            admin_action: "create_manual_session",
+            user_id: userId,
+            signin_time: signinTime,
+            signout_time: signoutTime,
+            notes: notes,
+            nonce: adminNonce,
+          },
+          beforeSend: function () {
+            $button.prop("disabled", true).text("Adding...");
+          },
+          success: function (response) {
+            if (response.success) {
+              showNotice("Session created successfully", "success");
+              reloadVolunteerDetailPage();
+            } else {
+              showNotice("Error creating session: " + response.data, "error");
+              $button.prop("disabled", false).text("Add Completed Session");
+            }
+          },
+          error: function () {
+            showNotice("Error creating session. Please try again.", "error");
+            $button.prop("disabled", false).text("Add Completed Session");
+          },
+        });
+      });
+    }
+
     // Benefits review modal
     function ensureBenefitsModal() {
       if ($('#makesf-modal').length) return;

@@ -313,6 +313,15 @@ function make_volunteer_admin_menu() {
         'volunteer-volunteers',
         'make_volunteer_volunteers_page'
     );
+
+    add_submenu_page(
+        null,
+        'Volunteer Detail',
+        'Volunteer Detail',
+        'manage_options',
+        'volunteer-volunteer-detail',
+        'make_volunteer_volunteer_detail_page'
+    );
     
     // Move Settings to Settings menu (Options) for cleaner UX
     add_options_page(
@@ -339,6 +348,37 @@ function make_volunteer_admin_scripts($hook) {
     /* Remove any accidental second checkbox column spacing by ensuring only first column is checkbox-sized */
     .wrap.volunteer-admin .wp-list-table th.check-column,
     .wrap.volunteer-admin .wp-list-table td.check-column { width: 2.2em; }
+    .volunteer-detail-page .volunteer-detail-header { display: grid; gap: 16px; margin: 16px 0 24px; }
+    .volunteer-detail-page .volunteer-profile-card,
+    .volunteer-detail-page .volunteer-manual-session-form,
+    .volunteer-detail-page .volunteer-session-history { background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 20px; }
+    .volunteer-detail-page .volunteer-profile-card p { margin: 6px 0; }
+    .volunteer-detail-page .volunteer-summary-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .volunteer-detail-page .volunteer-summary-card { background: #fff; border: 1px solid #dcdcde; border-radius: 8px; padding: 16px; }
+    .volunteer-detail-page .volunteer-summary-card h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; color: #50575e; }
+    .volunteer-detail-page .volunteer-summary-value { font-size: 24px; font-weight: 600; line-height: 1.2; }
+    .volunteer-detail-page .volunteer-summary-meta { margin-top: 6px; color: #50575e; }
+    .volunteer-detail-page .volunteer-manual-session-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); align-items: start; }
+    .volunteer-detail-page .volunteer-manual-session-grid .notes-field { grid-column: 1 / -1; }
+    .volunteer-detail-page .volunteer-manual-session-grid label { display: block; font-weight: 600; margin-bottom: 6px; }
+    .volunteer-detail-page .volunteer-manual-session-grid textarea,
+    .volunteer-detail-page .volunteer-manual-session-grid input[type="datetime-local"] { width: 100%; }
+    .volunteer-detail-page .volunteer-manual-session-actions { margin-top: 16px; display: flex; gap: 12px; align-items: center; }
+    .volunteer-detail-page .volunteer-session-toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .volunteer-detail-page .volunteer-session-filter-links { margin: 0 0 16px; }
+    .volunteer-detail-page .volunteer-session-row.is-editing { background: #f6f7f7; }
+    .volunteer-detail-page .session-edit-value { display: none; }
+    .volunteer-detail-page .volunteer-session-row.is-editing .session-edit-value { display: block; }
+    .volunteer-detail-page .volunteer-session-row.is-editing .session-view-value { display: none; }
+    .volunteer-detail-page .session-edit-value textarea,
+    .volunteer-detail-page .session-edit-value input[type="datetime-local"] { width: 100%; }
+    .volunteer-detail-page .session-action-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .volunteer-detail-page .session-edit-actions { display: none; }
+    .volunteer-detail-page .volunteer-session-row.is-editing .session-edit-actions { display: flex; }
+    .volunteer-detail-page .volunteer-session-row.is-editing .session-view-actions { display: none; }
+    .volunteer-detail-page .session-notes-cell { min-width: 240px; }
+    .volunteer-detail-page .session-duration-hint { display: block; margin-top: 6px; color: #646970; font-size: 12px; }
+    .volunteer-detail-page .volunteer-back-link { margin: 0 0 16px; }
     ';
     // Add small polish for settings page
     if (strpos($hook, 'settings_page_volunteer-settings') !== false) {
@@ -764,19 +804,20 @@ function make_volunteer_volunteers_page() {
                 </thead>
                 <tbody id="the-list">
                     <?php foreach ($volunteers_data as $volunteer) : ?>
+                        <?php $detail_url = make_get_volunteer_detail_page_url($volunteer['ID'], array('volunteer_month' => $selected_month)); ?>
                         <tr data-user-id="<?php echo esc_attr($volunteer['ID']); ?>">
                             <th scope="row" class="check-column">
                                 <input type="checkbox" class="benefits-user-checkbox" value="<?php echo esc_attr($volunteer['ID']); ?>" />
                             </th>
                             <td class="name column-name column-primary">
                                 <strong>
-                                    <a href="<?php echo esc_url(get_edit_user_link($volunteer['ID'])); ?>">
+                                    <a href="<?php echo esc_url($detail_url); ?>">
                                         <?php echo esc_html($volunteer['name']); ?>
                                     </a>
                                 </strong>
                                 <div class="row-actions">
                                     <span class="view">
-                                        <a href="<?php echo esc_url(admin_url('edit.php?post_type=volunteer_session&meta_key=user_id&meta_value=' . $volunteer['ID'])); ?>">
+                                        <a href="<?php echo esc_url($detail_url); ?>">
                                             View Sessions
                                         </a> |
                                     </span>
@@ -838,6 +879,228 @@ function make_volunteer_volunteers_page() {
             echo '<div class="notice notice-warning"><p>No volunteer sessions found for ' . esc_html(date('F Y', strtotime($selected_month . '-01'))) . '.</p></div>';
         }
         ?>
+    </div>
+    <?php
+}
+
+/**
+ * Volunteer detail page with inline session editing.
+ */
+function make_volunteer_volunteer_detail_page() {
+    $user_id = intval($_GET['user_id'] ?? 0);
+    $status = isset($_GET['status']) ? sanitize_key($_GET['status']) : 'all';
+    if (!in_array($status, array('all', 'active', 'completed'), true)) {
+        $status = 'all';
+    }
+    $paged = max(1, intval($_GET['paged'] ?? 1));
+    $volunteer_month = isset($_GET['volunteer_month']) ? sanitize_text_field($_GET['volunteer_month']) : '';
+
+    $summary = make_get_volunteer_summary_metrics($user_id);
+    if (!$summary) {
+        echo '<div class="wrap volunteer-admin full-width"><div class="notice notice-error"><p>Volunteer not found.</p></div></div>';
+        return;
+    }
+
+    $session_data = make_get_volunteer_session_rows($user_id, array(
+        'status' => $status,
+        'paged' => $paged,
+        'per_page' => 25,
+    ));
+
+    $user = $summary['user'];
+    $active_session = $summary['active_session'];
+    $back_url_args = array('page' => 'volunteer-volunteers');
+    if ($volunteer_month) {
+        $back_url_args['volunteer_month'] = $volunteer_month;
+    }
+    $back_url = add_query_arg($back_url_args, admin_url('admin.php'));
+
+    $filter_links = array();
+    foreach (array('all' => 'All', 'active' => 'Active', 'completed' => 'Completed') as $slug => $label) {
+        $url = make_get_volunteer_detail_page_url($user_id, array(
+            'status' => $slug,
+            'volunteer_month' => $volunteer_month,
+        ));
+        $count = intval($session_data['counts'][$slug] ?? 0);
+        $class = $status === $slug ? ' class="current"' : '';
+        $filter_links[] = sprintf('<a href="%s"%s>%s <span class="count">(%d)</span></a>',
+            esc_url($url),
+            $class,
+            esc_html($label),
+            $count
+        );
+    }
+
+    $pagination = '';
+    if ($session_data['total_pages'] > 1) {
+        $pagination = paginate_links(array(
+            'base' => add_query_arg('paged', '%#%', make_get_volunteer_detail_page_url($user_id, array(
+                'status' => $status,
+                'volunteer_month' => $volunteer_month,
+            ))),
+            'format' => '',
+            'current' => $session_data['paged'],
+            'total' => $session_data['total_pages'],
+            'prev_text' => '&laquo;',
+            'next_text' => '&raquo;',
+        ));
+    }
+
+    $active_status_label = 'Not currently volunteering';
+    $active_status_meta = 'No active session';
+    if ($active_session && !empty($active_session->signin_time)) {
+        $active_status_label = 'Active session running';
+        $active_status_meta = sprintf(
+            'Started %s • %s',
+            make_format_volunteer_session_display_time($active_session->signin_time),
+            make_format_volunteer_session_duration(intval($active_session->duration_minutes ?? 0), $active_session->signin_time, $active_session->signout_time ?? '')
+        );
+    }
+
+    ?>
+    <div class="wrap volunteer-admin volunteer-detail-page full-width" id="volunteer-detail-page" data-user-id="<?php echo esc_attr($user_id); ?>">
+        <h1>Volunteer Sessions</h1>
+        <p class="volunteer-back-link"><a href="<?php echo esc_url($back_url); ?>">&larr; Back to Volunteers</a></p>
+
+        <div class="volunteer-detail-header">
+            <div class="volunteer-profile-card">
+                <h2><?php echo esc_html($user->display_name); ?></h2>
+                <p><a href="mailto:<?php echo esc_attr($user->user_email); ?>"><?php echo esc_html($user->user_email); ?></a></p>
+                <p><a href="<?php echo esc_url(get_edit_user_link($user_id)); ?>">Edit User Profile</a></p>
+            </div>
+
+            <div class="volunteer-summary-grid">
+                <div class="volunteer-summary-card">
+                    <h3>Active Status</h3>
+                    <div class="volunteer-summary-value"><?php echo esc_html($active_status_label); ?></div>
+                    <div class="volunteer-summary-meta"><?php echo esc_html($active_status_meta); ?></div>
+                </div>
+                <div class="volunteer-summary-card">
+                    <h3>All-Time Hours</h3>
+                    <div class="volunteer-summary-value"><?php echo esc_html(number_format_i18n($summary['all_time_hours'], 2)); ?></div>
+                    <div class="volunteer-summary-meta">Across completed sessions</div>
+                </div>
+                <div class="volunteer-summary-card">
+                    <h3>This Month</h3>
+                    <div class="volunteer-summary-value"><?php echo esc_html(number_format_i18n($summary['current_month_hours'], 2)); ?></div>
+                    <div class="volunteer-summary-meta"><?php echo esc_html(date_i18n('F Y')); ?></div>
+                </div>
+                <div class="volunteer-summary-card">
+                    <h3>Completed Sessions</h3>
+                    <div class="volunteer-summary-value"><?php echo esc_html(number_format_i18n($summary['completed_sessions'])); ?></div>
+                    <div class="volunteer-summary-meta">All-time total</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="volunteer-manual-session-form">
+            <h2>Add Completed Session</h2>
+            <p class="description">Create a manual volunteer session by entering both start and end times.</p>
+            <form id="volunteer-manual-session-form" data-user-id="<?php echo esc_attr($user_id); ?>">
+                <div class="volunteer-manual-session-grid">
+                    <div class="form-field">
+                        <label for="manual-session-signin">Start</label>
+                        <input type="datetime-local" id="manual-session-signin" name="signin_time" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="manual-session-signout">End</label>
+                        <input type="datetime-local" id="manual-session-signout" name="signout_time" required>
+                    </div>
+                    <div class="form-field notes-field">
+                        <label for="manual-session-notes">Notes</label>
+                        <textarea id="manual-session-notes" name="notes" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="volunteer-manual-session-actions">
+                    <button type="submit" class="button button-primary">Add Completed Session</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="volunteer-session-history">
+            <div class="volunteer-session-toolbar">
+                <h2>Session History</h2>
+                <span class="description">Showing <?php echo esc_html(number_format_i18n($session_data['total'])); ?> session<?php echo intval($session_data['total']) === 1 ? '' : 's'; ?>.</span>
+            </div>
+
+            <ul class="subsubsub volunteer-session-filter-links">
+                <li><?php echo implode(' | </li><li>', $filter_links); ?></li>
+            </ul>
+
+            <table class="wp-list-table widefat striped fixed volunteer-detail-table">
+                <thead>
+                    <tr>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Duration</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($session_data['rows'])) : ?>
+                        <tr>
+                            <td colspan="6">No sessions found for this filter.</td>
+                        </tr>
+                    <?php else : ?>
+                        <?php foreach ($session_data['rows'] as $row) : ?>
+                            <tr class="volunteer-session-row" data-session-id="<?php echo esc_attr($row['id']); ?>" data-session-status="<?php echo esc_attr($row['status']); ?>">
+                                <td>
+                                    <div class="session-view-value"><?php echo esc_html($row['signin_display']); ?></div>
+                                    <div class="session-edit-value">
+                                        <input type="datetime-local" class="session-inline-signin" value="<?php echo esc_attr($row['signin_input']); ?>">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="session-view-value"><?php echo esc_html($row['signout_display']); ?></div>
+                                    <div class="session-edit-value">
+                                        <input type="datetime-local" class="session-inline-signout" value="<?php echo esc_attr($row['signout_input']); ?>">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="session-view-value session-duration-display"><?php echo esc_html($row['duration_display']); ?></div>
+                                    <div class="session-edit-value">
+                                        <strong class="session-duration-display"><?php echo esc_html($row['duration_display']); ?></strong>
+                                        <span class="session-duration-hint">Duration updates as you change the times.</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-<?php echo esc_attr($row['status']); ?>"><?php echo esc_html($row['status_label']); ?></span>
+                                </td>
+                                <td class="session-notes-cell">
+                                    <div class="session-view-value"><?php echo $row['notes'] !== '' ? nl2br(esc_html($row['notes'])) : '&mdash;'; ?></div>
+                                    <div class="session-edit-value">
+                                        <textarea class="session-inline-notes" rows="3"><?php echo esc_textarea($row['notes']); ?></textarea>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="session-action-group session-view-actions">
+                                        <button type="button" class="button button-small volunteer-session-edit-toggle">Edit</button>
+                                        <?php if ($row['is_active']) : ?>
+                                            <button type="button" class="button button-small detail-end-session-now" data-session="<?php echo esc_attr($row['id']); ?>">End Now</button>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="session-action-group session-edit-actions">
+                                        <button type="button" class="button button-primary button-small volunteer-session-save">Save</button>
+                                        <button type="button" class="button button-small volunteer-session-cancel">Cancel</button>
+                                        <?php if ($row['is_active']) : ?>
+                                            <button type="button" class="button button-small detail-end-session-now" data-session="<?php echo esc_attr($row['id']); ?>">End Now</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <?php if ($pagination) : ?>
+                <div class="tablenav bottom">
+                    <div class="tablenav-pages"><?php echo wp_kses_post($pagination); ?></div>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
     <?php
 }
@@ -1208,6 +1471,28 @@ function make_handle_volunteer_admin_ajax() {
             }
             
             wp_send_json_success($session_data);
+            break;
+
+        case 'create_manual_session':
+            $user_id = intval($_POST['user_id'] ?? 0);
+            $signin_time = sanitize_text_field($_POST['signin_time'] ?? '');
+            $signout_time = sanitize_text_field($_POST['signout_time'] ?? '');
+            $notes = sanitize_textarea_field($_POST['notes'] ?? '');
+
+            if (!$user_id || !$signin_time || !$signout_time) {
+                wp_send_json_error('Missing required fields');
+                break;
+            }
+
+            $result = make_create_manual_volunteer_session($user_id, $signin_time, $signout_time, $notes);
+            if (is_wp_error($result)) {
+                wp_send_json_error($result->get_error_message());
+            } else {
+                wp_send_json_success(array(
+                    'message' => 'Session created successfully',
+                    'session_id' => intval($result),
+                ));
+            }
             break;
             
         case 'update_session':
