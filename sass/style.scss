@@ -409,6 +409,125 @@ $dark: rgba(1, 1, 1, 1);
   }
 }
 
+.make-numbered-steps {
+  margin-top: 2.75rem;
+
+  .make-numbered-steps__list {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    &:before {
+      content: "";
+      position: absolute;
+      left: 1.55rem;
+      top: 1.25rem;
+      bottom: 1.25rem;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(190, 32, 46, 0.5) 0%, rgba(190, 32, 46, 0.08) 100%);
+    }
+  }
+
+  .make-numbered-steps__item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .make-numbered-steps__badge {
+    position: relative;
+    z-index: 1;
+    width: 3.125rem;
+    height: 3.125rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: linear-gradient(180deg, lighten($primary, 6%) 0%, darken($primary, 4%) 100%);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 10px 20px rgba(190, 32, 46, 0.2);
+  }
+
+  .make-numbered-steps__content {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 1rem 1.15rem;
+    border: 1px solid rgba(190, 32, 46, 0.12);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(1, 1, 1, 0.08);
+  }
+
+  .make-numbered-steps__title {
+    margin: 0;
+    color: $dark;
+    font-size: clamp(1.05rem, 1.7vw, 1.25rem);
+    line-height: 1.25;
+  }
+
+  .make-numbered-steps__body {
+    margin-top: 0.65rem;
+    color: rgba(1, 1, 1, 0.74);
+    font-size: 0.95rem;
+    line-height: 1.65;
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .make-numbered-steps__tag {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.85rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(190, 32, 46, 0.14);
+    background: rgba(190, 32, 46, 0.08);
+    color: $primary;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  @media (max-width: 767.98px) {
+    .make-numbered-steps__list {
+      gap: 0.85rem;
+
+      &:before {
+        left: 1.1rem;
+        top: 1rem;
+        bottom: 1rem;
+      }
+    }
+
+    .make-numbered-steps__item {
+      gap: 0.75rem;
+    }
+
+    .make-numbered-steps__badge {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 0.95rem;
+    }
+
+    .make-numbered-steps__content {
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+    }
+  }
+}
+
 .make-image-slider {
   overflow-x: hidden;
   .gallery-images {
@@ -465,3 +584,5 @@ $dark: rgba(1, 1, 1, 1);
     }
   }
 }
+
+

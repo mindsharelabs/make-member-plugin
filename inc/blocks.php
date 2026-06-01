@@ -473,6 +473,34 @@ add_action('acf/init', function () {
 		);
 
 		acf_register_block_type(array(
+			'name'              => 'make-numbered-steps',
+			'title'             => __('Numbered Steps'),
+			'description'       => __('A block that displays a reusable sequence of numbered steps.'),
+			'render_template'   => MAKESF_ABSPATH . '/inc/templates/make-numbered-steps.php',
+			'category'          => 'make-blocks',
+			'icon'              => MAKE_LOGO,
+			'keywords'          => array( 'steps', 'numbered', 'process', 'pathway', 'make', 'mind', 'Mindshare' ),
+			'align'             => 'full',
+			'mode'            	=> 'edit',
+			'multiple'          => false,
+			'supports'					=> array(
+				'align' => false,
+			),
+			'enqueue_assets' => function(){
+				wp_register_style( 'make-block-styles', MAKESF_URL . 'assets/css/style.css', array(), MAKESF_PLUGIN_VERSION );
+
+				if ( is_admin() ) {
+					wp_enqueue_style( 'make-block-styles' );
+					return;
+				}
+
+				add_action( 'get_footer', function () {
+					wp_enqueue_style( 'make-block-styles' );
+				});
+			})
+		);
+
+		acf_register_block_type(array(
 			'name'              => 'make-gravity-form-entries',
 			'title'             => __('Gravity Form Entries'),
 			'description'       => __('A block that displays submissions for a Gravity Form.'),
@@ -1140,6 +1168,133 @@ add_action( 'acf/include_fields', function() {
 					'param' => 'block',
 					'operator' => '==',
 					'value' => 'acf/make-sponsorship-tiers',
+				),
+			),
+		),
+		'menu_order' => 0,
+		'position' => 'normal',
+		'style' => 'default',
+		'label_placement' => 'top',
+		'instruction_placement' => 'label',
+		'hide_on_screen' => '',
+		'active' => true,
+		'description' => '',
+		'show_in_rest' => 0,
+	) );
+
+	acf_add_local_field_group( array(
+		'key' => 'group_683cb7308e401',
+		'title' => 'BLOCK: Numbered Steps',
+		'fields' => array(
+			array(
+				'key' => 'field_683cb7308e402',
+				'label' => 'Numbered Steps',
+				'name' => 'make_numbered_steps',
+				'aria-label' => '',
+				'type' => 'group',
+				'instructions' => '',
+				'required' => 0,
+				'conditional_logic' => 0,
+				'wrapper' => array(
+					'width' => '',
+					'class' => '',
+					'id' => '',
+				),
+				'layout' => 'block',
+				'sub_fields' => array(
+					array(
+						'key' => 'field_683cb7308e403',
+						'label' => 'Steps',
+						'name' => 'steps',
+						'aria-label' => '',
+						'type' => 'repeater',
+						'instructions' => 'Add each step in the order it should appear.',
+						'required' => 0,
+						'conditional_logic' => 0,
+						'wrapper' => array(
+							'width' => '',
+							'class' => '',
+							'id' => '',
+						),
+						'layout' => 'row',
+						'pagination' => 0,
+						'min' => 0,
+						'max' => 0,
+						'collapsed' => 'field_683cb7308e404',
+						'button_label' => 'Add Step',
+						'rows_per_page' => 20,
+						'sub_fields' => array(
+							array(
+								'key' => 'field_683cb7308e404',
+								'label' => 'Title',
+								'name' => 'title',
+								'aria-label' => '',
+								'type' => 'text',
+								'instructions' => 'The main heading for this step.',
+								'required' => 1,
+								'conditional_logic' => 0,
+								'wrapper' => array(
+									'width' => '70',
+									'class' => '',
+									'id' => '',
+								),
+								'default_value' => '',
+								'maxlength' => '',
+								'placeholder' => '',
+								'prepend' => '',
+								'append' => '',
+							),
+							array(
+								'key' => 'field_683cb7308e405',
+								'label' => 'Tag',
+								'name' => 'tag',
+								'aria-label' => '',
+								'type' => 'text',
+								'instructions' => 'Optional short label, such as a timeframe or category.',
+								'required' => 0,
+								'conditional_logic' => 0,
+								'wrapper' => array(
+									'width' => '30',
+									'class' => '',
+									'id' => '',
+								),
+								'default_value' => '',
+								'maxlength' => '',
+								'placeholder' => 'Optional label',
+								'prepend' => '',
+								'append' => '',
+							),
+							array(
+								'key' => 'field_683cb7308e406',
+								'label' => 'Body',
+								'name' => 'body',
+								'aria-label' => '',
+								'type' => 'wysiwyg',
+								'instructions' => 'Optional supporting copy for this step.',
+								'required' => 0,
+								'conditional_logic' => 0,
+								'wrapper' => array(
+									'width' => '',
+									'class' => '',
+									'id' => '',
+								),
+								'default_value' => '',
+								'tabs' => 'visual',
+								'toolbar' => 'basic',
+								'media_upload' => 0,
+								'delay' => 0,
+							),
+						),
+					),
+				),
+			),
+		),
+		'location' => array(
+			array(
+				array(
+					'param' => 'block',
+					'operator' => '==',
+					'value' => 'acf/make-numbered-steps',
 				),
 			),
 		),

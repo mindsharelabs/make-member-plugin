@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Make Santa Fe — Grievance & Conflict Resolution Policy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --orange:   #E06A1A;
+    --orange-lt:#FFF3E0;
+    --dark:     #1E1E1E;
+    --mid:      #555;
+    --light:    #F8F6F3;
+    --blue-lt:  #EBF5FB;
+    --border:   #E2DDD8;
+    --white:    #FFFFFF;
+    --max:      860px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--dark);
+    background: var(--light);
+  }
+
+  /* ── TOP BANNER ───────────────────────────────── */
+  .policy-hero {
+    background: var(--dark);
+    color: var(--white);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .policy-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 28px,
+      rgba(224,106,26,.06) 28px,
+      rgba(224,106,26,.06) 30px
+    );
+  }
+  .policy-hero .org-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    color: var(--orange);
+    letter-spacing: .02em;
+    position: relative;
+  }
+  .policy-hero .doc-title {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 300;
+    color: rgba(255,255,255,.85);
+    margin-top: .5rem;
+    position: relative;
+  }
+  .policy-hero .meta {
+    display: inline-flex;
+    gap: 1.5rem;
+    margin-top: 1.25rem;
+    font-size: .8rem;
+    color: rgba(255,255,255,.55);
+    position: relative;
+  }
+  .policy-hero .meta span::before {
+    content: '· ';
+    color: var(--orange);
+  }
+  .policy-hero .meta span:first-child::before { content: ''; }
+
+  /* ── JUMP NAV ─────────────────────────────────── */
+  .jump-nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .jump-nav ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 1.25rem;
+    max-width: var(--max);
+    margin: 0 auto;
+    justify-content: center;
+  }
+  .jump-nav a {
+    font-size: .78rem;
+    font-weight: 500;
+    color: var(--mid);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    transition: color .2s;
+  }
+  .jump-nav a:hover { color: var(--orange); }
+
+  /* ── MAIN LAYOUT ──────────────────────────────── */
+  .policy-wrap {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* ── SECTION HEADINGS ─────────────────────────── */
+  .section-block { margin-bottom: 2.5rem; }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: .75rem;
+  }
+  .section-num {
+    background: var(--orange);
+    color: var(--white);
+    font-family: 'DM Serif Display', serif;
+    font-size: 1rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.35rem;
+    color: var(--dark);
+    letter-spacing: .01em;
+  }
+  .section-divider {
+    height: 2px;
+    background: linear-gradient(to right, var(--orange), transparent);
+    margin-bottom: 1.25rem;
+    border: none;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--dark);
+    margin: 1.5rem 0 .5rem;
+    padding-left: .75rem;
+    border-left: 3px solid var(--orange);
+  }
+
+  p { margin-bottom: .9rem; color: var(--mid); }
+
+  ul.policy-list {
+    list-style: none;
+    padding: 0;
+    margin: .5rem 0 1rem;
+  }
+  ul.policy-list li {
+    padding: .4rem 0 .4rem 1.75rem;
+    position: relative;
+    color: var(--mid);
+    border-bottom: 1px solid var(--border);
+    font-size: .96rem;
+  }
+  ul.policy-list li:last-child { border-bottom: none; }
+  ul.policy-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--orange);
+    font-size: .85rem;
+    top: .45rem;
+  }
+  ul.policy-list li strong { color: var(--dark); }
+
+  /* ── CALLOUT BOXES ────────────────────────────── */
+  .callout {
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0 1.5rem;
+    font-size: .92rem;
+    line-height: 1.65;
+  }
+  .callout.orange {
+    background: var(--orange-lt);
+    border-left: 4px solid var(--orange);
+  }
+  .callout.blue {
+    background: var(--blue-lt);
+    border-left: 4px solid #5BA4CF;
+  }
+  .callout strong {
+    color: var(--orange);
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    display: block;
+    margin-bottom: .3rem;
+  }
+  .callout.blue strong { color: #2980B9; }
+
+  /* ── ESCALATION PATHWAY ───────────────────────── */
+  .escalation {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 1.25rem 0 1.75rem;
+    position: relative;
+  }
+  .escalation::before {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    top: 2rem;
+    bottom: 2rem;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--orange), #5BA4CF);
+    z-index: 0;
+  }
+  .tier-card {
+    display: flex;
+    gap: 1.25rem;
+    align-items: flex-start;
+    padding: 1rem 1.25rem 1rem 0;
+    position: relative;
+    z-index: 1;
+  }
+  .tier-badge {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  .tier-card:nth-child(1) .tier-badge { background: var(--orange); }
+  .tier-card:nth-child(2) .tier-badge { background: #C0562A; }
+  .tier-card:nth-child(3) .tier-badge { background: #7B3F9E; }
+  .tier-card:nth-child(4) .tier-badge { background: #2D6EA8; }
+
+  .tier-body { flex: 1; }
+  .tier-label {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--dark);
+  }
+  .tier-subtitle {
+    font-size: .8rem;
+    color: var(--orange);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: .4rem;
+  }
+  .tier-card:nth-child(3) .tier-subtitle { color: #7B3F9E; }
+  .tier-card:nth-child(4) .tier-subtitle { color: #2D6EA8; }
+  .tier-desc { font-size: .9rem; color: var(--mid); line-height: 1.6; }
+  .tier-tag {
+    display: inline-block;
+    background: var(--border);
+    border-radius: 20px;
+    font-size: .72rem;
+    padding: .15rem .6rem;
+    color: var(--mid);
+    margin-top: .5rem;
+    font-weight: 500;
+  }
+
+  /* ── CONTACT TABLE ────────────────────────────── */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .contact-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--orange);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+  .contact-card .role {
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--orange);
+    margin-bottom: .3rem;
+  }
+  .contact-card .email {
+    font-size: .9rem;
+    color: var(--dark);
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  /* ── PRINCIPLES GRID ──────────────────────────── */
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: .85rem;
+    margin: 1rem 0;
+  }
+  .principle-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: .9rem 1rem;
+    display: flex;
+    gap: .75rem;
+    align-items: flex-start;
+  }
+  .principle-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: .1rem;
+  }
+  .principle-name {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--dark);
+    margin-bottom: .2rem;
+  }
+  .principle-desc { font-size: .82rem; color: var(--mid); line-height: 1.5; }
+
+  /* ── SOURCE BADGES ────────────────────────────── */
+  .source-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: .75rem 0;
+  }
+  .source-badge {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: .75rem;
+    padding: .25rem .75rem;
+    color: var(--mid);
+    font-weight: 500;
+  }
+
+  /* ── FOOTER ───────────────────────────────────── */
+  .policy-footer {
+    background: var(--dark);
+    color: rgba(255,255,255,.5);
+    text-align: center;
+    padding: 1.5rem;
+    font-size: .82rem;
+    margin-top: 1rem;
+  }
+  .policy-footer a { color: var(--orange); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .jump-nav { display: none; }
+    .escalation::before { left: 1rem; }
+    .tier-card { gap: .75rem; }
+    .tier-badge { width: 2.25rem; height: 2.25rem; font-size: .9rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="policy-hero">
+  <div class="org-name">Make Santa Fe</div>
+  <div class="doc-title">Grievance &amp; Conflict Resolution Policy</div>
+  <div class="meta">
+    <span>Version 2.0</span>
+    <span>Adopted June 2026</span>
+    <span>Annual Review</span>
+  </div>
+</div>
+
+<!-- JUMP NAV -->
+<nav class="jump-nav" aria-label="Policy sections">
+  <ul>
+    <li><a href="#purpose">Purpose</a></li>
+    <li><a href="#principles">Principles</a></li>
+    <li><a href="#protected">Protected Categories</a></li>
+    <li><a href="#pathway">Escalation Pathway</a></li>
+    <li><a href="#investigation">Investigation</a></li>
+    <li><a href="#confidentiality">Confidentiality</a></li>
+    <li><a href="#retaliation">Non-Retaliation</a></li>
+    <li><a href="#outcomes">Outcomes</a></li>
+    <li><a href="#report">How to Report</a></li>
+    <li><a href="#accessibility">Accessibility</a></li>
+    <li><a href="#sources">Sources</a></li>
+  </ul>
+</nav>
+
+<div class="policy-wrap">
+
+  <!-- ══ 1. PURPOSE ═══════════════════════════════════ -->
+  <div class="section-block" id="purpose">
+    <div class="section-label">
+      <span class="section-num">1</span>
+      <h2 class="section-title">Purpose &amp; Scope</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Make Santa Fe is committed to fostering a safe, inclusive, and equitable environment where every member, guest, instructor, volunteer, and staff person can learn, build, and thrive. This policy establishes a clear, transparent, and trauma-informed process for reporting, investigating, and resolving grievances and conflicts — in alignment with best practices from the Society for Human Resource Management (SHRM), the Nonprofit Risk Management Center (NRMC), and DEI frameworks grounded in equity, accessibility, and intersectionality.</p>
+    <p>This policy applies to <strong>all individuals</strong> who interact with Make Santa Fe in any capacity: members, staff, instructors, volunteers, vendors, guests, and board members — whether incidents occur on-site, at Make-sponsored events, or in Make-affiliated online spaces.</p>
+    <div class="callout orange">
+      <strong>Living Document</strong>
+      This policy will be reviewed at least annually and updated to reflect changes in law, community needs, and organizational learning. It supplements but does not replace applicable New Mexico law, the Make Santa Fe Member Agreement, or board bylaws.
+    </div>
+  </div>
+
+  <!-- ══ 2. PRINCIPLES ═════════════════════════════════ -->
+  <div class="section-block" id="principles">
+    <div class="section-label">
+      <span class="section-num">2</span>
+      <h2 class="section-title">Guiding Principles</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>All grievance and conflict resolution processes at Make Santa Fe are guided by:</p>
+    <div class="principles-grid">
+      <div class="principle-card">
+        <div class="principle-icon">🤝</div>
+        <div>
+          <div class="principle-name">Dignity &amp; Respect</div>
+          <div class="principle-desc">Every person involved will be treated with care, regardless of the nature of the complaint.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⚖️</div>
+        <div>
+          <div class="principle-name">Equity &amp; Inclusion</div>
+          <div class="principle-desc">Processes will account for power differentials, language access, and intersectional identities.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🔒</div>
+        <div>
+          <div class="principle-name">Confidentiality</div>
+          <div class="principle-desc">Information will be protected to the maximum extent possible, disclosed only on a need-to-know basis.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🛡️</div>
+        <div>
+          <div class="principle-name">Non-Retaliation</div>
+          <div class="principle-desc">Good-faith reporters, participants, and witnesses are fully protected from adverse consequences.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">⏱️</div>
+        <div>
+          <div class="principle-name">Timeliness</div>
+          <div class="principle-desc">Prompt acknowledgment and resolution at every stage of the process.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">🌱</div>
+        <div>
+          <div class="principle-name">Restorative Intent</div>
+          <div class="principle-desc">Where appropriate, the goal is restoration of relationships and community, not only punishment.</div>
+        </div>
+      </div>
+      <div class="principle-card">
+        <div class="principle-icon">💙</div>
+        <div>
+          <div class="principle-name">Trauma-Informed</div>
+          <div class="principle-desc">Investigators approach all parties with awareness of how trauma affects memory, disclosure, and participation.</div>
+        </div>
+      </div>
+    </div>
+    <div class="callout blue">
+      <strong>Sources</strong>
+      SHRM Managing Conflict in the Workplace Toolkit; Nonprofit Risk Management Center, <em>Taking the High Road</em> (2024 ed.); UN Guiding Principles on Business and Human Rights, Pillar III.
+    </div>
+  </div>
+
+  <!-- ══ 3. PROTECTED CATEGORIES ══════════════════════ -->
+  <div class="section-block" id="protected">
+    <div class="section-label">
+      <span class="section-num">3</span>
+      <h2 class="section-title">Protected Categories &amp; Covered Behaviors</h2>
+    </div>
+    <hr class="section-divider"/>
+
+    <h3>3.1 — Protected Categories</h3>
+    <p>Make Santa Fe prohibits discrimination, harassment, or differential treatment on the basis of any characteristic protected under federal or New Mexico law, including but not limited to:</p>
+    <ul class="policy-list">
+      <li>Race, color, ethnicity, or national origin</li>
+      <li>Sex, gender identity, or gender expression</li>
+      <li>Sexual orientation</li>
+      <li>Age (18+ for membership; all minors receive youth protections)</li>
+      <li>Disability (physical, cognitive, or mental health)</li>
+      <li>Religion or belief system (or lack thereof)</li>
+      <li>Pregnancy or parental status</li>
+      <li>Veteran or military status</li>
+      <li>Socioeconomic status or housing situation</li>
+      <li>Immigration status</li>
+      <li>Neurodivergence</li>
+    </ul>
+
+    <h3>3.2 — Reportable Behaviors</h3>
+    <ul class="policy-list">
+      <li><strong>Abusive language or behavior</strong></li>
+      <li><strong>Discrimination</strong> on the basis of any protected category</li>
+      <li><strong>Harassment</strong>, including sexual harassment</li>
+      <li><strong>Unwanted physical contact</strong> or threats of physical contact</li>
+      <li><strong>Violence or credible threats of violence</strong></li>
+      <li><strong>Stalking, intimidation,</strong> or targeted hostile behavior</li>
+      <li><strong>Retaliation</strong> against a reporter or witness</li>
+      <li><strong>Misuse</strong> of this process (bad-faith reports)</li>
+    </ul>
+    <div class="callout orange">
+      <strong>Note</strong>
+      This list is illustrative, not exhaustive. Behavior that creates a hostile, unsafe, or unwelcoming environment for any member of our community falls within scope of this policy, even if not explicitly listed above.
+    </div>
+  </div>
+
+  <!-- ══ 4. ESCALATION PATHWAY ════════════════════════ -->
+  <div class="section-block" id="pathway">
+    <div class="section-label">
+      <span class="section-num">4</span>
+      <h2 class="section-title">Conflict Resolution &amp; Escalation Pathway</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Make Santa Fe uses a tiered approach. The appropriate starting point depends on the nature, severity, and urgency of the situation. <strong>Reporters always have the right to bypass lower tiers</strong> when the situation warrants it.</p>
+
+    <div class="escalation">
+
+      <div class="tier-card">
+        <div class="tier-badge">1</div>
+        <div class="tier-body">
+          <div class="tier-subtitle">Informal Resolution</div>
+          <div class="tier-label">Direct Dialogue</div>
+          <div class="tier-desc">For minor interpersonal disagreements or misunderstandings. Both parties engage in respectful dialogue, with optional staff facilitation. <em>Skip this tier entirely if the incident involves harassment, discrimination, physical contact, threats, or any power imbalance.</em></div>
+          <span class="tier-tag">⏱ Days 1–7</span>
+        </div>
+      </div>
+
+      <div class="tier-card">
+        <div class="tier-badge">2</div>
+        <div class="tier-body">
+          <div class="tier-subtitle">Formal Reporting &amp; Staff Review</div>
+          <div class="tier-label">Investigation by Staff or ED</div>
+          <div class="tier-desc">Submit a formal report. Make Santa Fe will acknowledge within 5 business days, assign a reviewer, conduct an investigation (interviews, documentation), and issue a written determination. Outcomes include warnings, required training, mediation, or temporary suspension.</div>
+          <span class="tier-tag">⏱ Days 1–14</span>
+        </div>
+      </div>
+
+      <div class="tier-card">
+        <div class="tier-badge">3</div>
+        <div class="tier-body">
+          <div class="tier-subtitle">Board-Level Review</div>
+          <div class="tier-label">Board Review Panel</div>
+          <div class="tier-desc">Automatically triggered for: harassment, discrimination, physical contact, violence/threats; reports against the ED or a board member; appeals of Tier 2 decisions; or when Tier 2 exceeds 14 days. A 3-person Board panel issues a written decision. Outcomes may include permanent membership revocation.</div>
+          <span class="tier-tag">⏱ Days 15–30</span>
+        </div>
+      </div>
+
+      <div class="tier-card">
+        <div class="tier-badge">4</div>
+        <div class="tier-body">
+          <div class="tier-subtitle">External Resolution</div>
+          <div class="tier-label">Third-Party Mediation or Legal Referral</div>
+          <div class="tier-desc">If unresolved after Tier 3, or if the situation involves potential criminal conduct or civil rights violations, Make Santa Fe will provide referrals to the EEOC, NM Human Rights Bureau, or local law enforcement, and will cooperate fully with any external investigation.</div>
+          <span class="tier-tag">⏱ As needed</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="callout orange">
+      <strong>Safety Override</strong>
+      In cases involving credible, immediate safety threats, Make Santa Fe reserves the right to take protective action — including removal from the space — at any tier, at any time. <strong>If someone is in immediate danger, call 911 first.</strong>
+    </div>
+  </div>
+
+  <!-- ══ 5. INVESTIGATION ══════════════════════════════ -->
+  <div class="section-block" id="investigation">
+    <div class="section-label">
+      <span class="section-num">5</span>
+      <h2 class="section-title">Investigation Standards</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>All investigations will be conducted in accordance with SHRM best practices for workplace investigations:</p>
+    <ul class="policy-list">
+      <li><strong>Impartiality</strong> — Investigators must disclose conflicts of interest and recuse if necessary.</li>
+      <li><strong>Thoroughness</strong> — All relevant facts, witnesses, and documentation will be considered.</li>
+      <li><strong>Proportionality</strong> — The depth of investigation matches the severity of the allegation.</li>
+      <li><strong>Both-party notice</strong> — Both reporter and respondent are informed that an investigation is underway and given an opportunity to present their account.</li>
+      <li><strong>Documentation</strong> — All steps, interviews, and findings are documented in writing.</li>
+      <li><strong>Confidentiality</strong> — Investigation records are restricted to those with a need to know and stored securely.</li>
+      <li><strong>Interim measures</strong> — Temporary protective measures may be implemented before an investigation concludes when there is risk of ongoing harm.</li>
+    </ul>
+    <div class="callout blue">
+      <strong>Scope Note</strong>
+      Make Santa Fe is not a legal authority and cannot compel testimony or impose legal penalties. Internal investigations do not substitute for law enforcement or regulatory action.
+    </div>
+  </div>
+
+  <!-- ══ 6. CONFIDENTIALITY ════════════════════════════ -->
+  <div class="section-block" id="confidentiality">
+    <div class="section-label">
+      <span class="section-num">6</span>
+      <h2 class="section-title">Confidentiality &amp; Anonymous Reporting</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Make Santa Fe will protect the confidentiality of all parties to the maximum extent practicable. Complete confidentiality cannot always be guaranteed where:</p>
+    <ul class="policy-list">
+      <li>Disclosure is required by law (e.g., mandatory reporting of child abuse or abuse of a vulnerable adult).</li>
+      <li>The safety of an individual or the community requires disclosure.</li>
+      <li>A fair investigation requires the respondent to know the nature of the allegations against them.</li>
+    </ul>
+    <p><strong>Anonymous reports are accepted</strong> and will be investigated to the extent possible. Reporters should understand that anonymous submissions may limit Make Santa Fe's ability to follow up, contact the reporter for clarification, or reach a definitive determination.</p>
+  </div>
+
+  <!-- ══ 7. NON-RETALIATION ════════════════════════════ -->
+  <div class="section-block" id="retaliation">
+    <div class="section-label">
+      <span class="section-num">7</span>
+      <h2 class="section-title">Non-Retaliation</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Retaliation against anyone who, in good faith, reports a concern, participates in an investigation, or supports another person through this process is <strong>strictly prohibited</strong>. Retaliation includes — but is not limited to — exclusion, intimidation, disparagement, adverse changes in access or status, or any conduct that would discourage a reasonable person from reporting.</p>
+    <p>Any person who believes they have experienced retaliation may report it using the same channels as any other grievance. Substantiated retaliation will be treated as a serious policy violation subject to the full range of disciplinary outcomes, up to and including permanent revocation of membership.</p>
+  </div>
+
+  <!-- ══ 8. OUTCOMES ═══════════════════════════════════ -->
+  <div class="section-block" id="outcomes">
+    <div class="section-label">
+      <span class="section-num">8</span>
+      <h2 class="section-title">Possible Outcomes &amp; Disciplinary Measures</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Depending on the nature and severity of a substantiated violation, outcomes may include:</p>
+    <ul class="policy-list">
+      <li>Informal counseling or coaching</li>
+      <li>Written warning placed in personnel or membership record</li>
+      <li>Required completion of training (e.g., harassment prevention, bystander intervention)</li>
+      <li>Formal mediation or restorative dialogue (with consent of all parties)</li>
+      <li>Temporary suspension of space access or membership privileges</li>
+      <li>Permanent revocation of membership or access (Board decision)</li>
+      <li>Referral to external authorities for potential legal action</li>
+    </ul>
+    <div class="callout orange">
+      <strong>Inconclusive Findings</strong>
+      In cases where a determination is inconclusive, Make Santa Fe may still take proactive steps — such as additional community training, structural safeguards, or environmental changes — to prevent future incidents and improve community culture.
+    </div>
+  </div>
+
+  <!-- ══ 9. HOW TO REPORT ══════════════════════════════ -->
+  <div class="section-block" id="report">
+    <div class="section-label">
+      <span class="section-num">9</span>
+      <h2 class="section-title">How to Report a Grievance</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Reports may be submitted through any of the following channels. You do not need to know which tier is appropriate — staff will help determine the right process.</p>
+
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="role">Online Form</div>
+        <div class="email">makesantafe.org/member-policies/conflict-resolution-policy/</div>
+      </div>
+      <div class="contact-card">
+        <div class="role">General Staff</div>
+        <div class="email">build@makesantafe.org</div>
+      </div>
+      <div class="contact-card">
+        <div class="role">Executive Director</div>
+        <div class="email">ed@makesantafe.org</div>
+      </div>
+      <div class="contact-card">
+        <div class="role">Board of Directors</div>
+        <div class="email">board@makesantafe.org</div>
+      </div>
+      <div class="contact-card">
+        <div class="role">In Person</div>
+        <div class="email">Speak directly with any Make Santa Fe staff member on-site</div>
+      </div>
+    </div>
+
+    <div class="callout blue">
+      <strong>Important Routing</strong>
+      For incidents involving the Executive Director, report directly to <strong>board@makesantafe.org</strong>. For incidents involving a board member, report to <strong>ed@makesantafe.org</strong> and/or the full Board.
+    </div>
+
+    <div class="callout orange">
+      <strong>Emergency</strong>
+      If you or someone else is in immediate danger, call 911 first. Make Santa Fe staff are authorized to ask any individual to leave the space immediately if their presence poses an ongoing safety risk.
+    </div>
+  </div>
+
+  <!-- ══ 10. ACCESSIBILITY ═════════════════════════════ -->
+  <div class="section-block" id="accessibility">
+    <div class="section-label">
+      <span class="section-num">10</span>
+      <h2 class="section-title">Accessibility &amp; Language Access</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>Make Santa Fe is committed to making this process accessible to everyone. Accommodations and language access support are available upon request, including:</p>
+    <ul class="policy-list">
+      <li>Submitting reports in Spanish or requesting a Spanish-speaking point of contact</li>
+      <li>Requesting a support person or advocate to accompany you through the process</li>
+      <li>Receiving written communications in accessible formats</li>
+      <li>Alternative submission methods for individuals with disabilities</li>
+    </ul>
+    <p>Contact <strong>build@makesantafe.org</strong> to request any accommodation. No accommodation request will be used as evidence in any investigation.</p>
+  </div>
+
+  <!-- ══ 11. SOURCES ═══════════════════════════════════ -->
+  <div class="section-block" id="sources">
+    <div class="section-label">
+      <span class="section-num">11</span>
+      <h2 class="section-title">Policy Review &amp; Source Frameworks</h2>
+    </div>
+    <hr class="section-divider"/>
+    <p>This policy will be reviewed annually by Make Santa Fe staff and the Board of Directors. Community members may submit feedback to <strong>board@makesantafe.org</strong>.</p>
+    <p>This policy was developed in alignment with the following professional and legal frameworks:</p>
+    <div class="source-list">
+      <span class="source-badge">SHRM Conflict Resolution Toolkit</span>
+      <span class="source-badge">NRMC Taking the High Road (2024)</span>
+      <span class="source-badge">UN Guiding Principles on Business &amp; Human Rights</span>
+      <span class="source-badge">NM Human Rights Act (NMSA §§ 28-1-1 et seq.)</span>
+      <span class="source-badge">Title VII Civil Rights Act</span>
+      <span class="source-badge">ADA</span>
+      <span class="source-badge">Title IX</span>
+      <span class="source-badge">North End Makers Code of Conduct</span>
+    </div>
+    <div class="callout blue">
+      <strong>Download</strong>
+      A full PDF/Word version of this policy is available for download from the Make Santa Fe member resources page.
+    </div>
+  </div>
+
+</div><!-- /.policy-wrap -->
+
+<div class="policy-footer">
+  Make Santa Fe &nbsp;·&nbsp; 2879 All Trades Rd, Santa Fe, NM 87507 &nbsp;·&nbsp;
+  <a href="mailto:build@makesantafe.org">build@makesantafe.org</a> &nbsp;·&nbsp;
+  <a href="https://makesantafe.org">makesantafe.org</a><br/>
+  Version 2.0 &nbsp;·&nbsp; Adopted June 2026 &nbsp;·&nbsp; FEIN: 81-1757888
+</div>
+
+</body>
+</html>
