@@ -755,10 +755,21 @@ function make_get_user_signins($user_id){
 add_action('wp_enqueue_scripts', 'make_enqueue_signin_styles');
 function make_enqueue_signin_styles() {
 	if (is_page_template('make-member-sign-in.php')) {
-		// mapi_write_log('Enqueueing sign-in styles for make-member-sign-in template');
 		wp_enqueue_style(
 			'make-signin-styles',
 			MAKESF_URL . 'assets/css/sign-in.css',
+			array(),
+			MAKESF_PLUGIN_VERSION
+		);
+	}
+}
+
+add_action('wp_enqueue_scripts', 'make_enqueue_membership_styles');
+function make_enqueue_membership_styles() {
+	if ( function_exists('is_account_page') && is_account_page() ) {
+		wp_enqueue_style(
+			'make-membership-styles',
+			MAKESF_URL . 'assets/css/membership.css',
 			array(),
 			MAKESF_PLUGIN_VERSION
 		);

@@ -449,3 +449,383 @@ function make_handle_badge_toggle() {
         'updated_badges' => $updated_badges_display
     ));
 }
+
+
+// ===========================
+// Membership Account Actions
+// ===========================
+
+function make_membership_action_url( $action, $membership_id ) {
+    return wp_nonce_url(
+        add_query_arg(
+            array(
+                'make_membership_action' => $action,
+                'membership_id'          => absint( $membership_id ),
+            ),
+            wc_get_account_endpoint_url( 'my-membership' )
+        ),
+        'make_membership_' . $action . '_' . $membership_id
+    );
+}
+
+/**
+ * Process Pause, Resume, and Cancel at Renewal requests.
+ * Uses the same query-param + nonce pattern as WC Memberships' own cancel action.
+ */
+add_action( 'template_redirect', 'make_handle_membership_actions' );
+function make_handle_membership_actions() {
+    if ( ! isset( $_REQUEST['make_membership_action'], $_REQUEST['membership_id'], $_REQUEST['_wpnonce'] ) ) {
+        return;
+    }
+
+    if ( ! is_user_logged_in() ) {
+        wp_safe_redirect( wc_get_page_permalink( 'myaccount' ) );
+        exit;
+    }
+
+    $action        = sanitize_key( $_REQUEST['make_membership_action'] );
+    $membership_id = absint( $_REQUEST['membership_id'] );
+    $nonce         = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) );
+    $redirect_to = wc_get_account_endpoint_url( 'my-membership' );
+
+    if ( ! wp_verify_nonce( $nonce, 'make_membership_' . $action . '_' . $membership_id ) ) {
+        wc_add_notice( __( 'Invalid request. Please try again.', 'make-member-plugin' ), 'error' );
+        wp_safe_redirect( $redirect_to );
+        exit;
+    }
+
+    $user_membership = wc_memberships_get_user_membership( $membership_id );
+
+    if ( ! $user_membership || $user_membership->get_user_id() !== get_current_user_id() ) {
+        wc_add_notice( __( 'Membership not found.', 'make-member-plugin' ), 'error' );
+        wp_safe_redirect( $redirect_to );
+        exit;
+    }
+
+    $subscription = null;
+    if ( method_exists( $user_membership, 'get_subscription' ) ) {
+        $subscription = $user_membership->get_subscription();
+    } elseif ( function_exists( 'wcs_get_subscriptions_for_order' ) && $user_membership->get_order_id() ) {
+        $subs = wcs_get_subscriptions_for_order( $user_membership->get_order_id() );
+        $subscription = ! empty( $subs ) ? reset( $subs ) : null;
+    }
+
+    switch ( $action ) {
+
+        case 'pause':
+            if ( ! $user_membership->has_status( 'active' ) ) {
+                wc_add_notice( __( 'Only an active membership can be paused.', 'make-member-plugin' ), 'error' );
+                break;
+            }
+            if ( $subscription && $subscription->has_status( 'active' ) ) {
+                $subscription->update_status( 'on-hold', __( 'Paused by member via account page.', 'make-member-plugin' ) );
+            }
+            $user_membership->pause_membership( __( 'Paused by member via account page.', 'make-member-plugin' ) );
+            wc_add_notice( __( 'Your membership has been paused.', 'make-member-plugin' ), 'success' );
+            break;
+
+        case 'resume':
+            if ( ! $user_membership->has_status( 'paused' ) ) {
+                wc_add_notice( __( 'Only a paused membership can be resumed.', 'make-member-plugin' ), 'error' );
+                break;
+            }
+            if ( $subscription && $subscription->has_status( 'on-hold' ) ) {
+                $subscription->update_status( 'active', __( 'Resumed by member via account page.', 'make-member-plugin' ) );
+            }
+            $user_membership->activate_membership( __( 'Resumed by member via account page.', 'make-member-plugin' ) );
+            wc_add_notice( __( 'Your membership has been resumed.', 'make-member-plugin' ), 'success' );
+            break;
+
+        case 'do-not-renew':
+            if ( ! $user_membership->has_status( 'active' ) ) {
+                wc_add_notice( __( 'Only an active membership can be set to not renew.', 'make-member-plugin' ), 'error' );
+                break;
+            }
+            if ( $subscription && $subscription->has_status( 'active' ) ) {
+                $subscription->update_status( 'pending-cancel', __( 'Set to not renew by member via account page.', 'make-member-plugin' ) );
+            }
+            wc_add_notice( __( 'Your membership will remain active until the end of the current billing period, then cancel automatically.', 'make-member-plugin' ), 'success' );
+            break;
+
+        case 'cancel':
+            if ( ! $user_membership->has_status( array( 'active', 'paused', 'complimentary' ) ) ) {
+                wc_add_notice( __( 'This membership cannot be cancelled.', 'make-member-plugin' ), 'error' );
+                break;
+            }
+            $user_membership->cancel_membership( __( 'Cancelled by member via account page.', 'make-member-plugin' ) );
+            wc_add_notice( __( 'Your membership has been cancelled.', 'make-member-plugin' ), 'success' );
+            break;
+
+        default:
+            wc_add_notice( __( 'Unknown action.', 'make-member-plugin' ), 'error' );
+    }
+
+    wp_safe_redirect( $redirect_to );
+    exit;
+}
+
+/**
+ * When a member uses WC Memberships' built-in Cancel button, also cancel the linked subscription
+ * so billing stops immediately rather than continuing to the next renewal date.
+ */
+add_action( 'wc_memberships_cancelled_user_membership', 'make_cancel_linked_subscription_on_membership_cancel' );
+function make_cancel_linked_subscription_on_membership_cancel( $membership_id ) {
+    $user_membership = wc_memberships_get_user_membership( $membership_id );
+    if ( ! $user_membership ) {
+        return;
+    }
+
+    $subscription = null;
+    if ( method_exists( $user_membership, 'get_subscription' ) ) {
+        $subscription = $user_membership->get_subscription();
+    } elseif ( function_exists( 'wcs_get_subscriptions_for_order' ) && $user_membership->get_order_id() ) {
+        $subs = wcs_get_subscriptions_for_order( $user_membership->get_order_id() );
+        $subscription = ! empty( $subs ) ? reset( $subs ) : null;
+    }
+
+    if ( $subscription && ! $subscription->has_status( array( 'cancelled', 'expired', 'trash', 'pending-cancel' ) ) ) {
+        $subscription->update_status( 'cancelled', __( 'Cancelled when member cancelled their membership.', 'make-member-plugin' ) );
+    }
+}
+
+
+
+
+// ===========================
+// My Account Menu + Profile Endpoint
+// ===========================
+
+add_action( 'init', 'make_add_make_profile_endpoint' );
+function make_add_make_profile_endpoint() {
+    add_rewrite_endpoint( 'make-profile', EP_ROOT | EP_PAGES );
+    add_rewrite_endpoint( 'my-membership', EP_ROOT | EP_PAGES );
+}
+
+add_filter( 'query_vars', 'make_profile_query_vars', 0 );
+function make_profile_query_vars( $vars ) {
+    $vars[] = 'make-profile';
+    $vars[] = 'my-membership';
+    return $vars;
+}
+
+add_filter( 'woocommerce_account_menu_items', 'make_add_make_profile_link_my_account', 99 );
+function make_add_make_profile_link_my_account( $items ) {
+    // Remove unwanted items.
+    foreach ( array( 'subscriptions', 'members-area', 'edit-account', 'bookings' ) as $key ) {
+        unset( $items[ $key ] );
+    }
+
+    // Ensure our custom endpoints have labels.
+    $items['my-membership'] = 'My Membership';
+    $items['make-profile']  = 'My Public Profile';
+
+    // Canonical order — keys absent from $items are skipped silently.
+    $order = array(
+        'dashboard',
+        'tool-reservations',
+        'my-membership',
+        'member-calendar',
+        'my-badges',
+        'make-profile',
+        'store-credit',
+        'giftcards',
+        'orders',
+        'edit-address',
+        'payment-methods',
+        'customer-logout',
+    );
+
+    $ordered = array();
+    foreach ( $order as $key ) {
+        if ( isset( $items[ $key ] ) ) {
+            $ordered[ $key ] = $items[ $key ];
+        }
+    }
+
+    // Append anything not in the order list so no tab goes missing.
+    foreach ( $items as $key => $label ) {
+        if ( ! isset( $ordered[ $key ] ) ) {
+            $ordered[ $key ] = $label;
+        }
+    }
+
+    return $ordered;
+}
+
+function make_subscription_status_label( $status ) {
+    $labels = array(
+        'active'         => 'Active',
+        'on-hold'        => 'Paused',
+        'pending-cancel' => 'Cancels at renewal',
+        'cancelled'      => 'Cancelled',
+        'expired'        => 'Expired',
+        'pending'        => 'Pending',
+    );
+    return isset( $labels[ $status ] ) ? $labels[ $status ] : ucfirst( $status );
+}
+
+function make_render_subscription_billing( $sub ) {
+    $next_payment = $sub->get_date( 'next_payment' );
+    $end_date     = $sub->get_date( 'end' );
+    $sub_status   = $sub->get_status();
+    $total        = $sub->get_total();
+    $period       = $sub->get_billing_period();
+    $interval     = (int) $sub->get_billing_interval();
+
+    if ( 'pending-cancel' === $sub_status && $end_date ) {
+        echo '<p><strong>Access until:</strong> '
+            . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $end_date ) ) ) . '</p>';
+    } elseif ( $next_payment ) {
+        echo '<p><strong>Next payment:</strong> '
+            . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $next_payment ) ) ) . '</p>';
+    }
+
+    if ( $total && $period ) {
+        $interval_label = 1 === $interval ? $period : $interval . ' ' . $period . 's';
+        echo '<p><strong>Billing:</strong> ' . wp_kses_post( wc_price( $total ) ) . ' / ' . esc_html( $interval_label ) . '</p>';
+    }
+}
+
+// Renders a single unified card. $actions is an array of ['label' => '', 'url' => ''] entries.
+function make_render_membership_card( $title, $status_label, $start, $subscription, $actions = array() ) {
+    $view_url = $subscription
+        ? wc_get_endpoint_url( 'view-subscription', $subscription->get_id(), wc_get_page_permalink( 'myaccount' ) )
+        : null;
+
+    echo '<div class="make-membership-card">';
+    echo '<h3>' . esc_html( $title ) . '</h3>';
+    echo '<p><strong>Status:</strong> ' . esc_html( $status_label ) . '</p>';
+
+    if ( $start ) {
+        echo '<p><strong>Since:</strong> '
+            . esc_html( date_i18n( get_option( 'date_format' ), strtotime( $start ) ) ) . '</p>';
+    }
+
+    if ( $subscription ) {
+        make_render_subscription_billing( $subscription );
+    }
+
+    $has_actions = ! empty( $actions ) || $view_url;
+    if ( $has_actions ) {
+        echo '<div class="make-membership-actions">';
+        foreach ( $actions as $action ) {
+            echo '<a href="' . esc_url( $action['url'] ) . '" class="button">' . esc_html( $action['label'] ) . '</a> ';
+        }
+        if ( $view_url ) {
+            echo '<a href="' . esc_url( $view_url ) . '" class="button button-secondary">View Subscription</a>';
+        }
+        echo '</div>';
+    }
+
+    echo '</div>';
+}
+
+add_action( 'woocommerce_account_my-membership_endpoint', 'make_my_membership_content' );
+function make_my_membership_content() {
+    $user_id       = get_current_user_id();
+    $shown_sub_ids = array();
+    $has_content   = false;
+
+    echo '<div class="make-membership-cards">';
+
+    // ── Memberships ───────────────────────────────────────────────────
+    $memberships = function_exists( 'wc_memberships_get_user_memberships' )
+        ? wc_memberships_get_user_memberships( $user_id )
+        : array();
+
+    foreach ( $memberships as $membership ) {
+        $has_content = true;
+        $plan        = $membership->get_plan();
+        $plan_name   = $plan ? $plan->get_name() : 'Membership';
+        $status      = $membership->get_status();
+        $start       = $membership->get_start_date();
+        $id          = $membership->get_id();
+
+        $subscription = null;
+        if ( method_exists( $membership, 'get_subscription' ) ) {
+            $subscription = $membership->get_subscription();
+        } elseif ( function_exists( 'wcs_get_subscriptions_for_order' ) && $membership->get_order_id() ) {
+            $subs         = wcs_get_subscriptions_for_order( $membership->get_order_id() );
+            $subscription = ! empty( $subs ) ? reset( $subs ) : null;
+        }
+        if ( $subscription ) {
+            $shown_sub_ids[] = $subscription->get_id();
+        }
+
+        $sub_is_pending_cancel = $subscription && $subscription->has_status( 'pending-cancel' );
+
+        if ( 'active' === $status && $sub_is_pending_cancel ) {
+            $status_label = 'Active (cancels at renewal)';
+        } else {
+            $status_label = make_subscription_status_label( $status );
+        }
+
+        $actions = array();
+        if ( $subscription ) {
+            // Subscription-backed membership: full suite of actions
+            if ( $membership->has_status( 'active' ) && ! $sub_is_pending_cancel ) {
+                $actions[] = array( 'label' => 'Pause',             'url' => make_membership_action_url( 'pause',        $id ) );
+                $actions[] = array( 'label' => 'Cancel at Renewal', 'url' => make_membership_action_url( 'do-not-renew', $id ) );
+            }
+            if ( $membership->has_status( 'paused' ) ) {
+                $actions[] = array( 'label' => 'Resume', 'url' => make_membership_action_url( 'resume', $id ) );
+            }
+        } else {
+            // No linked subscription: only allow immediate cancellation
+            if ( $membership->has_status( array( 'active', 'paused' ) ) ) {
+                $actions[] = array( 'label' => 'Cancel', 'url' => make_membership_action_url( 'cancel', $id ) );
+            }
+        }
+
+        make_render_membership_card( $plan_name, $status_label, $start, $subscription, $actions );
+    }
+
+    // ── Standalone subscriptions ──────────────────────────────────────
+    if ( function_exists( 'wcs_get_users_subscriptions' ) ) {
+        $all_subs   = wcs_get_users_subscriptions( $user_id );
+        $standalone = array_filter( $all_subs, function( $sub ) use ( $shown_sub_ids ) {
+            return ! in_array( $sub->get_id(), $shown_sub_ids, true );
+        } );
+
+        foreach ( $standalone as $sub ) {
+            $has_content  = true;
+            $names        = array();
+            foreach ( $sub->get_items() as $item ) {
+                $names[] = $item->get_name();
+            }
+            $sub_name     = ! empty( $names ) ? implode( ', ', $names ) : 'Subscription';
+            $status_label = make_subscription_status_label( $sub->get_status() );
+            $start        = $sub->get_date( 'date_created' );
+
+            make_render_membership_card( $sub_name, $status_label, $start, $sub );
+        }
+    }
+
+    echo '</div>'; // .make-membership-cards
+
+    if ( ! $has_content ) {
+        echo '<p>You do not have any active memberships or subscriptions.</p>';
+    }
+}
+
+add_action( 'woocommerce_account_make-profile_endpoint', 'make_user_edit_form' );
+function make_user_edit_form() {
+    $current_user_id = get_current_user_id();
+    $author_url      = get_author_posts_url( $current_user_id );
+    include get_template_directory() . '/inc/user-edit-form.php';
+}
+
+add_filter( 'woocommerce_product_subcategories_args', function( $args ) {
+    $exclude = array();
+    $slugs   = array( 'track-products' );
+    foreach ( $slugs as $slug ) {
+        $term = get_term_by( 'slug', $slug, 'product_cat' );
+        if ( $term && ! is_wp_error( $term ) ) {
+            $exclude[] = $term->term_id;
+        }
+    }
+    if ( ! empty( $exclude ) ) {
+        $args['exclude'] = $exclude;
+    }
+    return $args;
+} );
