@@ -722,11 +722,11 @@ function make_render_membership_card( $title, $status_label, $start, $subscripti
 
 add_action( 'woocommerce_account_my-membership_endpoint', 'make_my_membership_content' );
 function make_my_membership_content() {
-    $user_id       = get_current_user_id();
-    $shown_sub_ids = array();
-    $has_content   = false;
-
-    echo '<div class="make-membership-cards">';
+    $user_id          = get_current_user_id();
+    $shown_sub_ids    = array();
+    $active_cards     = array();
+    $inactive_cards   = array();
+    $inactive_statuses = array( 'cancelled', 'expired' );
 
     // ── Memberships ───────────────────────────────────────────────────
     $memberships = function_exists( 'wc_memberships_get_user_memberships' )
@@ -734,12 +734,11 @@ function make_my_membership_content() {
         : array();
 
     foreach ( $memberships as $membership ) {
-        $has_content = true;
-        $plan        = $membership->get_plan();
-        $plan_name   = $plan ? $plan->get_name() : 'Membership';
-        $status      = $membership->get_status();
-        $start       = $membership->get_start_date();
-        $id          = $membership->get_id();
+        $plan      = $membership->get_plan();
+        $plan_name = $plan ? $plan->get_name() : 'Membership';
+        $status    = $membership->get_status();
+        $start     = $membership->get_start_date();
+        $id        = $membership->get_id();
 
         $subscription = null;
         if ( method_exists( $membership, 'get_subscription' ) ) {
@@ -762,7 +761,6 @@ function make_my_membership_content() {
 
         $actions = array();
         if ( $subscription ) {
-            // Subscription-backed membership: full suite of actions
             if ( $membership->has_status( 'active' ) && ! $sub_is_pending_cancel ) {
                 $actions[] = array( 'label' => 'Pause',             'url' => make_membership_action_url( 'pause',        $id ) );
                 $actions[] = array( 'label' => 'Cancel at Renewal', 'url' => make_membership_action_url( 'do-not-renew', $id ) );
@@ -771,13 +769,24 @@ function make_my_membership_content() {
                 $actions[] = array( 'label' => 'Resume', 'url' => make_membership_action_url( 'resume', $id ) );
             }
         } else {
-            // No linked subscription: only allow immediate cancellation
             if ( $membership->has_status( array( 'active', 'paused' ) ) ) {
                 $actions[] = array( 'label' => 'Cancel', 'url' => make_membership_action_url( 'cancel', $id ) );
             }
         }
 
-        make_render_membership_card( $plan_name, $status_label, $start, $subscription, $actions );
+        $card = array(
+            'title'        => $plan_name,
+            'status_label' => $status_label,
+            'start'        => $start,
+            'subscription' => $subscription,
+            'actions'      => $actions,
+        );
+
+        if ( in_array( $status, $inactive_statuses, true ) ) {
+            $inactive_cards[] = $card;
+        } else {
+            $active_cards[] = $card;
+        }
     }
 
     // ── Standalone subscriptions ──────────────────────────────────────
@@ -788,8 +797,7 @@ function make_my_membership_content() {
         } );
 
         foreach ( $standalone as $sub ) {
-            $has_content  = true;
-            $names        = array();
+            $names = array();
             foreach ( $sub->get_items() as $item ) {
                 $names[] = $item->get_name();
             }
@@ -797,14 +805,43 @@ function make_my_membership_content() {
             $status_label = make_subscription_status_label( $sub->get_status() );
             $start        = $sub->get_date( 'date_created' );
 
-            make_render_membership_card( $sub_name, $status_label, $start, $sub );
+            $card = array(
+                'title'        => $sub_name,
+                'status_label' => $status_label,
+                'start'        => $start,
+                'subscription' => $sub,
+                'actions'      => array(),
+            );
+
+            if ( in_array( $sub->get_status(), $inactive_statuses, true ) ) {
+                $inactive_cards[] = $card;
+            } else {
+                $active_cards[] = $card;
+            }
         }
     }
 
-    echo '</div>'; // .make-membership-cards
-
-    if ( ! $has_content ) {
+    // ── Render ────────────────────────────────────────────────────────
+    if ( empty( $active_cards ) && empty( $inactive_cards ) ) {
         echo '<p>You do not have any active memberships or subscriptions.</p>';
+        return;
+    }
+
+    if ( ! empty( $active_cards ) ) {
+        echo '<div class="make-membership-cards">';
+        foreach ( $active_cards as $card ) {
+            make_render_membership_card( $card['title'], $card['status_label'], $card['start'], $card['subscription'], $card['actions'] );
+        }
+        echo '</div>';
+    }
+
+    if ( ! empty( $inactive_cards ) ) {
+        echo '<h5 class="make-membership-inactive-header">Cancelled &amp; Expired</h5>';
+        echo '<div class="make-membership-cards">';
+        foreach ( $inactive_cards as $card ) {
+            make_render_membership_card( $card['title'], $card['status_label'], $card['start'], $card['subscription'], $card['actions'] );
+        }
+        echo '</div>';
     }
 }
 

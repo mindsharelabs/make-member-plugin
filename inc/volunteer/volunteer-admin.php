@@ -295,16 +295,6 @@ function make_volunteer_admin_menu() {
         'make_volunteer_dashboard_page'
     );
     
-    // Sessions submenu points to native CPT list screen for volunteer_session
-    add_submenu_page(
-        'volunteer-dashboard',
-        'Volunteer Sessions',
-        'Sessions',
-        'manage_options',
-        'edit.php?post_type=volunteer_session',
-        ''
-    );
-    
     add_submenu_page(
         'volunteer-dashboard',
         'Volunteers',
@@ -598,7 +588,7 @@ function make_volunteer_volunteers_page() {
     ?>
     <div class="wrap volunteer-admin full-width">
         <h1>Volunteers</h1>
-        <p class="description">This table shows only users who have recorded volunteer hours in the selected month.</p>
+        <p class="description">All volunteers are listed. Hours and sessions reflect the selected month (0 if none that month), sorted highest to lowest.</p>
         
         <div class="tablenav top">
             <div class="alignleft actions">
@@ -632,41 +622,40 @@ function make_volunteer_volunteers_page() {
         </div>
         
         <?php
-        // First, get all users who have volunteer sessions in the selected month
-        // This is more efficient than getting all users and checking each one
-        $session_args = array(
-            'post_type' => 'volunteer_session',
-            'post_status' => 'publish',
+        // Get ALL distinct volunteer user IDs ever recorded in the CPT
+        global $wpdb;
+        $all_volunteer_user_ids = array_filter(array_map('intval', (array) $wpdb->get_col(
+            "SELECT DISTINCT pm.meta_value
+             FROM {$wpdb->postmeta} pm
+             INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+             WHERE p.post_type = 'volunteer_session'
+               AND p.post_status = 'publish'
+               AND pm.meta_key = 'user_id'"
+        )));
+
+        // Aggregate completed sessions for the selected month into a per-user map
+        $month_sessions_q = new WP_Query(array(
+            'post_type'      => 'volunteer_session',
+            'post_status'    => 'publish',
             'posts_per_page' => -1,
-            'meta_query' => array(
+            'fields'         => 'ids',
+            'meta_query'     => array(
                 'relation' => 'AND',
-                array(
-                    'key' => 'signin_time',
-                    'value' => array($start_date, $end_date),
-                    'compare' => 'BETWEEN',
-                    'type' => 'DATETIME'
-                ),
-                array(
-                    'key' => 'status',
-                    'value' => 'completed',
-                    'compare' => '='
-                )
+                array('key' => 'signin_time', 'value' => array($start_date, $end_date), 'compare' => 'BETWEEN', 'type' => 'DATETIME'),
+                array('key' => 'status',      'value' => 'completed', 'compare' => '='),
             ),
-            'fields' => 'ids'
-        );
-        
-        $sessions_query = new WP_Query($session_args);
-        $user_ids_with_sessions = array();
-        
-        if ($sessions_query->have_posts()) {
-            foreach ($sessions_query->posts as $session_id) {
-                $user_id = get_post_meta($session_id, 'user_id', true);
-                if ($user_id && !in_array($user_id, $user_ids_with_sessions)) {
-                    $user_ids_with_sessions[] = $user_id;
-                }
+        ));
+        $user_month_map = array();
+        foreach ($month_sessions_q->posts as $sid) {
+            $uid = (int) get_post_meta($sid, 'user_id', true);
+            if (!$uid) continue;
+            if (!isset($user_month_map[$uid])) {
+                $user_month_map[$uid] = array('minutes' => 0, 'sessions' => 0);
             }
+            $user_month_map[$uid]['minutes']  += (int) get_post_meta($sid, 'duration_minutes', true);
+            $user_month_map[$uid]['sessions'] += 1;
         }
-        
+
         // Resolve MAKE plan id once (if WC Memberships is installed)
         $make_plan_id = 0;
         if (function_exists('wc_memberships_get_membership_plan')) {
@@ -683,53 +672,15 @@ function make_volunteer_volunteers_page() {
         // Prepare table data
         $volunteers_data = array();
         $target_hours = (float) get_option('makesf_volunteer_target_hours', 12);
-        
-        foreach ($user_ids_with_sessions as $user_id) {
+
+        foreach ($all_volunteer_user_ids as $user_id) {
             $user = get_user_by('ID', $user_id);
             if (!$user) continue;
-            
-            // Get volunteer sessions for this user in the selected month
-            $session_args = array(
-                'post_type' => 'volunteer_session',
-                'post_status' => 'publish',
-                'posts_per_page' => -1,
-                'meta_query' => array(
-                    'relation' => 'AND',
-                    array(
-                        'key' => 'user_id',
-                        'value' => $user_id,
-                        'compare' => '='
-                    ),
-                    array(
-                        'key' => 'signin_time',
-                        'value' => array($start_date, $end_date),
-                        'compare' => 'BETWEEN',
-                        'type' => 'DATETIME'
-                    ),
-                    array(
-                        'key' => 'status',
-                        'value' => 'completed',
-                        'compare' => '='
-                    )
-                )
-            );
-            
-            $user_sessions_query = new WP_Query($session_args);
-            $total_minutes = 0;
-            $session_count = 0;
-            
-            if ($user_sessions_query->have_posts()) {
-                while ($user_sessions_query->have_posts()) {
-                    $user_sessions_query->the_post();
-                    $duration = get_post_meta(get_the_ID(), 'duration_minutes', true);
-                    $total_minutes += intval($duration);
-                    $session_count++;
-                }
-            }
-            
-            wp_reset_postdata();
-            
-            $meets_target = round($total_minutes / 60, 2) >= $target_hours;
+
+            $month_data    = isset($user_month_map[$user_id]) ? $user_month_map[$user_id] : array('minutes' => 0, 'sessions' => 0);
+            $total_minutes = $month_data['minutes'];
+            $session_count = $month_data['sessions'];
+            $meets_target  = round($total_minutes / 60, 2) >= $target_hours;
             $benefits_status = makesf_get_benefits_status($user_id, $selected_month);
 
             // Membership info (status + expiration)
